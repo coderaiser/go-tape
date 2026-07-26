@@ -11,9 +11,9 @@ func (e *FakeExecutor) Run(args ...string) (io.ReadCloser, error) {
 	r, w := io.Pipe()
 	go func() {
 		for _, line := range e.Lines {
-			w.Write([]byte(line + "\n"))
+			_, _ = w.Write([]byte(line + "\n"))
 		}
-		w.Close()
+		_ = w.Close()
 	}()
 	return r, nil
 }

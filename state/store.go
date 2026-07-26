@@ -171,6 +171,8 @@ func (s *Store) Summary() (passed, failed, skipped []string) {
 			failed = append(failed, test)
 		case StateSkipped:
 			skipped = append(skipped, test)
+		case StateIdle, StateRunning:
+			// not yet in a terminal state — skip
 		}
 	}
 	return
