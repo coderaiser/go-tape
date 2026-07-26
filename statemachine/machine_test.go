@@ -297,3 +297,18 @@ func TestValidateEmptyTransitions(t *testing.T) {
 		t.Fatal("expected error for state with no transitions out")
 	}
 }
+
+// -- FileSource tests --
+
+func TestFileSourceLoadsTransitions(t *testing.T) {
+	src := FileSource{Path: "testdata/runner.toml"}
+	defs, err := src.Load()
+	if err != nil { t.Fatalf("unexpected error: %v", err) }
+	if len(defs) == 0 { t.Fatal("expected transitions") }
+}
+
+func TestFileSourceMissingFile(t *testing.T) {
+	src := FileSource{Path: "nonexistent.toml"}
+	_, err := src.Load()
+	if err == nil { t.Fatal("expected error for missing file") }
+}
