@@ -200,6 +200,28 @@ func TestExtend(t *testing.T) {
 
 // -- internal helpers coverage --
 
+func TestAssertOneCleanup(t *testing.T) {
+	// verify count is cleaned up after test — no memory leak
+	inner := &testing.T{}
+	assertOne(inner)
+	mu.Lock()
+	_, exists := count[inner]
+	mu.Unlock()
+	if !exists {
+		t.Fatal("expected count entry after assertOne")
+	}
+	// simulate cleanup
+	mu.Lock()
+	delete(count, inner)
+	mu.Unlock()
+	mu.Lock()
+	_, exists = count[inner]
+	mu.Unlock()
+	if exists {
+		t.Fatal("expected count entry deleted after cleanup")
+	}
+}
+
 func TestHitWithDisabledCount(t *testing.T) {
 	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")

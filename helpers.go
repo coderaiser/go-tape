@@ -21,6 +21,12 @@ func assertOne(t *testing.T) {
 	mu.Lock()
 	count[t] = 0
 	mu.Unlock()
+	// cleanup prevents memory leak — removes entry after test finishes
+	t.Cleanup(func() {
+		mu.Lock()
+		delete(count, t)
+		mu.Unlock()
+	})
 }
 
 func hit(t *testing.T) {
