@@ -3,6 +3,9 @@ package formatter
 import (
 	"strings"
 	"testing"
+
+	"github.com/coderaiser/go-tape/model"
+	"github.com/coderaiser/go-tape/state"
 )
 
 func TestTAPOkLine(t *testing.T) {
@@ -110,5 +113,16 @@ func TestTAPVersionLine(t *testing.T) {
 	output := f.Format()
 	if !strings.Contains(output, "TAP version 14") {
 		t.Errorf("expected TAP version 14, got: %s", output)
+	}
+}
+
+func TestFormatFromStore(t *testing.T) {
+	s := state.New()
+	s.Apply(model.Event{Action: "run", Test: "TestA"})
+	s.Apply(model.Event{Action: "pass", Test: "TestA"})
+	s.Apply(model.Event{Action: "output", Test: "TestA", Output: "ok"})
+	output := FormatFromStore(s)
+	if !strings.Contains(output, "TAP version 14") {
+		t.Errorf("expected TAP header, got: %s", output)
 	}
 }

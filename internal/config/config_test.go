@@ -93,3 +93,19 @@ func TestStrictTransitionsDisabled(t *testing.T) {
 		t.Error("should be false when env is 0")
 	}
 }
+
+func TestEnvBoolTrue(t *testing.T) {
+	t.Cleanup(func() { os.Unsetenv("TAPE_CHECK_SCOPES") })
+	os.Setenv("TAPE_CHECK_SCOPES", "true")
+	if !CheckScopes() {
+		t.Error("expected true for 'true'")
+	}
+}
+
+func TestEnvBoolInvalid(t *testing.T) {
+	t.Cleanup(func() { os.Unsetenv("TAPE_CHECK_SCOPES") })
+	os.Setenv("TAPE_CHECK_SCOPES", "invalid")
+	if !CheckScopes() {
+		t.Error("expected default true for invalid value")
+	}
+}

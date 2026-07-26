@@ -225,3 +225,74 @@ func TestNewT(t *testing.T) {
 		t.Fatal("expected non-nil T")
 	}
 }
+
+func TestTEqualPointer(t *testing.T) {
+	x := 42
+	Test(t, "tape: Equal pointer", func(tt *T) {
+		tt.Equal(&x, &x)
+		tt.End()
+	})
+}
+
+// -- isPrimitive coverage -- 
+
+func TestIsPrimitivePointer(t *testing.T) {
+	x := 42
+	Test(t, "tape: isPrimitive true for pointer", func(tt *T) {
+		tt.Ok(isPrimitive(&x))
+		tt.End()
+	})
+}
+
+func TestIsPrimitiveNil(t *testing.T) {
+	Test(t, "tape: isPrimitive false for nil", func(tt *T) {
+		tt.NotOk(isPrimitive(nil))
+		tt.End()
+	})
+}
+
+// -- truthy coverage --
+
+func TestTruthyNil(t *testing.T) {
+	Test(t, "tape: truthy false for nil", func(tt *T) {
+		tt.NotOk(truthy(nil))
+		tt.End()
+	})
+}
+
+func TestTruthyIntZero(t *testing.T) {
+	Test(t, "tape: truthy false for int 0", func(tt *T) {
+		tt.NotOk(truthy(0))
+		tt.End()
+	})
+}
+
+func TestTruthyStringEmpty(t *testing.T) {
+	Test(t, "tape: truthy false for empty string", func(tt *T) {
+		tt.NotOk(truthy(""))
+		tt.End()
+	})
+}
+
+func TestTruthyDefault(t *testing.T) {
+	Test(t, "tape: truthy true for struct", func(tt *T) {
+		tt.Ok(truthy(struct{}{}))
+		tt.End()
+	})
+}
+
+// -- toRegexp coverage --
+
+func TestToRegexpInvalidRegex(t *testing.T) {
+	_, err := toRegexp("[invalid")
+	if err == nil {
+		t.Fatal("expected error for invalid regex")
+	}
+}
+
+func TestToRegexpInvalidType(t *testing.T) {
+	_, err := toRegexp(42)
+	if err == nil {
+		t.Fatal("expected error for invalid type")
+	}
+}
