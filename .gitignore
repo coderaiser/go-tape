@@ -1,0 +1,8 @@
+*.swp
+*.log
+
+.idea
+.DS_Store
+coverage.out
+coverage.html
+coverage
