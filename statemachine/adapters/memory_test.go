@@ -1,8 +1,6 @@
 package adapters
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestNewMemory(t *testing.T) {
 	m := NewMemory[string]()
@@ -13,23 +11,16 @@ func TestNewMemory(t *testing.T) {
 
 func TestMemorySetAndGet(t *testing.T) {
 	m := NewMemory[string]()
-	err := m.Set("key1", "value1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err := m.Get("key1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != "value1" {
-		t.Errorf("want value1, got %s", got)
-	}
+	m.Set("k", "v")
+	ptr, err := m.Get("k")
+	if err != nil { t.Fatal(err) }
+	if ptr == nil { t.Fatal("expected non-nil pointer") }
+	if *ptr != "v" { t.Errorf("want v, got %s", *ptr) }
 }
 
 func TestMemoryGetNotFound(t *testing.T) {
 	m := NewMemory[string]()
-	_, err := m.Get("nonexistent")
-	if err == nil {
-		t.Error("expected error for nonexistent key")
-	}
+	ptr, err := m.Get("nonexistent")
+	if err != nil { t.Fatalf("unexpected error: %v", err) }
+	if ptr != nil { t.Errorf("expected nil, got %v", ptr) }
 }

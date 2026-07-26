@@ -91,3 +91,47 @@ func TestGetNonExistent(t *testing.T) {
 		t.Error("expected error for nonexistent test")
 	}
 }
+
+func TestSummary(t *testing.T) {
+	s := New()
+	s.Apply(model.Event{Action: "run", Test: "TestA"})
+	s.Apply(model.Event{Action: "pass", Test: "TestA"})
+	s.Apply(model.Event{Action: "output", Test: "TestA", Output: "ok"})
+	s.Apply(model.Event{Action: "run", Test: "TestB"})
+	s.Apply(model.Event{Action: "fail", Test: "TestB"})
+	s.Apply(model.Event{Action: "output", Test: "TestB", Output: "fail"})
+	s.Apply(model.Event{Action: "run", Test: "TestC"})
+	s.Apply(model.Event{Action: "skip", Test: "TestC"})
+	s.Apply(model.Event{Action: "output", Test: "TestC", Output: "skip"})
+	passed, failed, skipped := s.Summary()
+	if len(passed) != 1 {
+		t.Errorf("want 1 passed, got %d", len(passed))
+	}
+	if len(failed) != 1 {
+		t.Errorf("want 1 failed, got %d", len(failed))
+	}
+	if len(skipped) != 1 {
+		t.Errorf("want 1 skipped, got %d", len(skipped))
+	}
+}
+
+func TestParseTestStateUnknown(t *testing.T) {
+	_, err := parseTestState("unknown")
+	if err == nil {
+		t.Fatal("expected error for unknown state")
+	}
+}
+
+func TestParseTestEventUnknown(t *testing.T) {
+	_, err := parseTestEvent("unknown")
+	if err == nil {
+		t.Fatal("expected error for unknown event")
+	}
+}
+
+func TestNewPanic(t *testing.T) {
+	s := New()
+	if s == nil {
+		t.Fatal("expected non-nil store")
+	}
+}

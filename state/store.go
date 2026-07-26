@@ -119,8 +119,11 @@ func (s *Store) Apply(e model.Event) (TestState, error) {
 	state, err := s.machine.Apply(e.Test, ev, nil)
 	if err != nil {
 		// For invalid transitions (e.g., run on running), just return current state
-		current, _ := s.adapter.Get(e.Test)
-		return current, nil
+		ptr, _ := s.adapter.Get(e.Test)
+		if ptr == nil {
+			return StateIdle, nil
+		}
+		return *ptr, nil
 	}
 
 	return state, nil
@@ -128,7 +131,14 @@ func (s *Store) Apply(e model.Event) (TestState, error) {
 
 // Get returns the current state of a test.
 func (s *Store) Get(test string) (TestState, error) {
-	return s.adapter.Get(test)
+	ptr, err := s.adapter.Get(test)
+	if err != nil {
+		return 0, err
+	}
+	if ptr == nil {
+		return 0, fmt.Errorf("state not found: %s", test)
+	}
+	return *ptr, nil
 }
 
 // GetOutput returns the accumulated output for a test.
@@ -147,11 +157,14 @@ func (s *Store) Summary() (passed, failed, skipped []string) {
 		}
 	}
 	for test := range allStates {
-		st, err := s.adapter.Get(test)
+		ptr, err := s.adapter.Get(test)
 		if err != nil {
 			continue
 		}
-		switch st {
+		if ptr == nil {
+			continue
+		}
+		switch *ptr {
 		case StatePassed:
 			passed = append(passed, test)
 		case StateFailed:
@@ -162,4 +175,3 @@ func (s *Store) Summary() (passed, failed, skipped []string) {
 	}
 	return
 }
-
