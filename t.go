@@ -13,6 +13,19 @@ type T struct {
 
 func newT(t *testing.T) *T { return &T{t: t} }
 
+// TB returns the underlying *testing.T for use with helpers
+// that require it directly (e.g. t.TB().TempDir(), t.TB().Fatal(...)).
+func (tt *T) TB() *testing.T {
+    return tt.t
+}
+
+// Setenv sets an environment variable for the duration of the test.
+// It is automatically restored when the test ends.
+func (tt *T) Setenv(key, value string) {
+    tt.t.Helper()
+    tt.t.Setenv(key, value)
+}
+
 // Equal asserts result == expected using strict equality.
 // For primitives and pointers only.
 // Use DeepEqual for structs, slices, and maps.
