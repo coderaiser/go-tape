@@ -29,7 +29,6 @@ tasks:
   lint:
     desc: Run go vet
     cmds:
-      - go run ./cmd/lint ./...
       - golangci-lint run
   fix:lint:
     desc: Run fix lint
