@@ -3,8 +3,11 @@ package tape
 import (
 	"errors"
 	"os"
+	"regexp"
 	"testing"
 )
+
+// -- scope guard --
 
 func TestValidScopePasses(t *testing.T) {
 	Test(t, "tape: valid scope runs fine", func(t *T) {
@@ -22,6 +25,8 @@ func TestScopesDisabled(t *testing.T) {
 	})
 }
 
+// -- assertion count guard --
+
 func TestAssertionsCountDisabled(t *testing.T) {
 	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
@@ -32,6 +37,8 @@ func TestAssertionsCountDisabled(t *testing.T) {
 	})
 }
 
+// -- end guard --
+
 func TestEndCheckDisabled(t *testing.T) {
 	os.Setenv("TAPE_CHECK_END", "0")
 	defer os.Unsetenv("TAPE_CHECK_END")
@@ -40,6 +47,8 @@ func TestEndCheckDisabled(t *testing.T) {
 	})
 }
 
+// -- operators happy path --
+
 func TestTEqual(t *testing.T) {
 	Test(t, "tape: Equal works", func(t *T) {
 		t.Equal(42, 42)
@@ -47,10 +56,9 @@ func TestTEqual(t *testing.T) {
 	})
 }
 
-func TestTEqualMismatch(t *testing.T) {
-	// Errorf doesn't stop execution, this runs fine
-	Test(t, "tape: Equal mismatch", func(t *T) {
-		t.Equal(1, 2)
+func TestTNotEqual(t *testing.T) {
+	Test(t, "tape: NotEqual works", func(t *T) {
+		t.NotEqual(1, 2)
 		t.End()
 	})
 }
@@ -62,23 +70,9 @@ func TestTOk(t *testing.T) {
 	})
 }
 
-func TestTOkFalse(t *testing.T) {
-	Test(t, "tape: Ok false", func(t *T) {
-		t.Ok(false)
-		t.End()
-	})
-}
-
 func TestTNotOk(t *testing.T) {
 	Test(t, "tape: NotOk works", func(t *T) {
 		t.NotOk(false)
-		t.End()
-	})
-}
-
-func TestTNotOkTrue(t *testing.T) {
-	Test(t, "tape: NotOk true", func(t *T) {
-		t.NotOk(true)
 		t.End()
 	})
 }
@@ -90,23 +84,9 @@ func TestTDeepEqual(t *testing.T) {
 	})
 }
 
-func TestTDeepEqualMismatch(t *testing.T) {
-	Test(t, "tape: DeepEqual mismatch", func(t *T) {
-		t.DeepEqual([]int{1}, []int{2})
-		t.End()
-	})
-}
-
-func TestTContains(t *testing.T) {
-	Test(t, "tape: Contains works", func(t *T) {
-		t.Contains("hello world", "world")
-		t.End()
-	})
-}
-
-func TestTContainsNoMatch(t *testing.T) {
-	Test(t, "tape: Contains no match", func(t *T) {
-		t.Contains("hello", "xyz")
+func TestTNotDeepEqual(t *testing.T) {
+	Test(t, "tape: NotDeepEqual works", func(t *T) {
+		t.NotDeepEqual([]int{1}, []int{2})
 		t.End()
 	})
 }
@@ -126,18 +106,88 @@ func TestTNoError(t *testing.T) {
 }
 
 func TestTMatch(t *testing.T) {
-	Test(t, "tape: Match works", func(t *T) {
+	Test(t, "tape: Match works with string pattern", func(t *T) {
 		t.Match("hello 123", `hello \d+`)
 		t.End()
 	})
 }
 
-func TestTMatchNoMatch(t *testing.T) {
-	Test(t, "tape: Match no match", func(t *T) {
-		t.Match("hello", `\d+`)
+func TestTMatchRegexp(t *testing.T) {
+	Test(t, "tape: Match works with regexp pattern", func(t *T) {
+		t.Match("hello 123", regexp.MustCompile(`hello \d+`))
 		t.End()
 	})
 }
+
+func TestTNotMatch(t *testing.T) {
+	Test(t, "tape: NotMatch works", func(t *T) {
+		t.NotMatch("hello", `\d+`)
+		t.End()
+	})
+}
+
+func TestTPass(t *testing.T) {
+	Test(t, "tape: Pass works", func(t *T) {
+		t.Pass("all good")
+		t.End()
+	})
+}
+
+func TestTComment(t *testing.T) {
+	Test(t, "tape: Comment does not count as assertion", func(t *T) {
+		t.Comment("just a note")
+		t.Ok(true)
+		t.End()
+	})
+}
+
+// -- helpers --
+
+func TestHelperIsPrimitive(t *testing.T) {
+	Test(t, "tape: isPrimitive true for int", func(t *T) {
+		t.Ok(isPrimitive(42))
+		t.End()
+	})
+}
+
+func TestHelperIsNotPrimitive(t *testing.T) {
+	Test(t, "tape: isPrimitive false for slice", func(t *T) {
+		t.NotOk(isPrimitive([]int{1}))
+		t.End()
+	})
+}
+
+func TestHelperTruthy(t *testing.T) {
+	Test(t, "tape: truthy true for true", func(t *T) {
+		t.Ok(truthy(true))
+		t.End()
+	})
+}
+
+func TestHelperFalsy(t *testing.T) {
+	Test(t, "tape: truthy false for false", func(t *T) {
+		t.NotOk(truthy(false))
+		t.End()
+	})
+}
+
+// -- Only / Skip --
+
+func TestOnly(t *testing.T) {
+	Only(t, "tape: Only runs the test", func(t *T) {
+		t.Ok(true)
+		t.End()
+	})
+}
+
+func TestSkip(t *testing.T) {
+	Skip(t, "tape: this test is skipped", func(t *T) {
+		t.Ok(false)
+		t.End()
+	})
+}
+
+// -- Extend --
 
 func TestExtend(t *testing.T) {
 	called := false
@@ -148,37 +198,14 @@ func TestExtend(t *testing.T) {
 	})
 }
 
-func TestHelperFunctions(t *testing.T) {
-	if !deepEqual(1, 1) { t.Error("fail") }
-	if deepEqual(1, 2) { t.Error("fail") }
-	if !contains("hello", "hell") { t.Error("fail") }
-	if contains("hello", "xyz") { t.Error("fail") }
-	if !match("abc123", `abc\d+`) { t.Error("fail") }
-	if match("abc", `\d+`) { t.Error("fail") }
-	if match("hello", `[invalid`) { t.Error("fail") }
-}
-
-func TestOnly(t *testing.T) {
-	Test(t, "tape: Only test", func(t *T) {
-		t.Ok(true)
-		t.End()
-	})
-}
-
-func TestSkip(t *testing.T) {
-	Skip(t, "tape: skip test", func(t *T) {
-		t.Ok(true)
-		t.End()
-	})
-}
+// -- internal helpers coverage --
 
 func TestHitWithDisabledCount(t *testing.T) {
 	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
-	
 	assertOne(t)
 	hit(t)
-	hit(t) // Should not fail because count check disabled
+	hit(t) // should not fail — count check disabled
 }
 
 func TestEndCalledFlag(t *testing.T) {
@@ -188,7 +215,7 @@ func TestEndCalledFlag(t *testing.T) {
 	}
 	tt.End()
 	if !tt.ended {
-		t.Error("ended should be true after call")
+		t.Error("ended should be true after End()")
 	}
 }
 

@@ -1,59 +1,135 @@
 package tape
 
 import (
+	"reflect"
 	"testing"
 )
 
-// T wraps *testing.T with a thinner, more expressive API.
+// T wraps *testing.T with supertape-compatible assertions.
 type T struct {
 	t     *testing.T
 	ended bool
 }
 
-func newT(t *testing.T) *T {
-	return &T{t: t}
-}
+func newT(t *testing.T) *T { return &T{t: t} }
 
-func (tt *T) Equal(want, got any) {
+// Equal asserts result == expected using strict equality.
+// For primitives and pointers only.
+// Use DeepEqual for structs, slices, and maps.
+func (tt *T) Equal(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if !deepEqual(want, got) {
-		tt.t.Errorf("\nwant: %#v\n got: %#v", want, got)
+	if !isPrimitive(result) {
+		tt.t.Fatalf("Equal: use DeepEqual for %T — Equal is for primitives and pointers only", result)
+		return
+	}
+	if result != expected {
+		tt.t.Errorf("\nresult:   %#v\nexpected: %#v", result, expected)
 	}
 }
 
-func (tt *T) Ok(v bool) {
+// NotEqual asserts result != expected.
+// For primitives and pointers only.
+func (tt *T) NotEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if !v {
-		tt.t.Errorf("expected true, got false")
+	if !isPrimitive(result) {
+		tt.t.Fatalf("NotEqual: use NotDeepEqual for %T — NotEqual is for primitives and pointers only", result)
+		return
+	}
+	if result == expected {
+		tt.t.Errorf("expected values to differ, both are: %#v", result)
 	}
 }
 
-func (tt *T) NotOk(v bool) {
+// DeepEqual asserts deep equality using reflect.DeepEqual.
+// Use for structs, slices, and maps.
+func (tt *T) DeepEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if v {
-		tt.t.Errorf("expected false, got true")
+	if !reflect.DeepEqual(result, expected) {
+		tt.t.Errorf("\nresult:   %#v\nexpected: %#v", result, expected)
 	}
 }
 
-func (tt *T) DeepEqual(want, got any) {
+// NotDeepEqual asserts values are not deeply equal.
+func (tt *T) NotDeepEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if !deepEqual(want, got) {
-		tt.t.Errorf("\nwant: %#v\n got: %#v", want, got)
+	if reflect.DeepEqual(result, expected) {
+		tt.t.Errorf("expected values to differ, both deep-equal: %#v", result)
 	}
 }
 
-func (tt *T) Contains(s, sub string) {
+// Ok asserts result is truthy.
+func (tt *T) Ok(result any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if !contains(s, sub) {
-		tt.t.Errorf("%q does not contain %q", s, sub)
+	if !truthy(result) {
+		tt.t.Errorf("expected truthy, got: %#v", result)
 	}
 }
 
+// NotOk asserts result is falsy.
+func (tt *T) NotOk(result any) {
+	tt.t.Helper()
+	hit(tt.t)
+	if truthy(result) {
+		tt.t.Errorf("expected falsy, got: %#v", result)
+	}
+}
+
+// Match asserts result matches pattern.
+// pattern may be a string or *regexp.Regexp.
+func (tt *T) Match(result string, pattern any) {
+	tt.t.Helper()
+	hit(tt.t)
+	re, err := toRegexp(pattern)
+	if err != nil {
+		tt.t.Errorf("Match: invalid pattern: %v", err)
+		return
+	}
+	if !re.MatchString(result) {
+		tt.t.Errorf("%q does not match %q", result, re)
+	}
+}
+
+// NotMatch asserts result does not match pattern.
+// pattern may be a string or *regexp.Regexp.
+func (tt *T) NotMatch(result string, pattern any) {
+	tt.t.Helper()
+	hit(tt.t)
+	re, err := toRegexp(pattern)
+	if err != nil {
+		tt.t.Errorf("NotMatch: invalid pattern: %v", err)
+		return
+	}
+	if re.MatchString(result) {
+		tt.t.Errorf("%q should not match %q", result, re)
+	}
+}
+
+// Pass generates an unconditional passing assertion.
+func (tt *T) Pass(message string) {
+	tt.t.Helper()
+	hit(tt.t)
+	tt.t.Log("pass:", message)
+}
+
+// Fail generates an unconditional failing assertion.
+func (tt *T) Fail(message string) {
+	tt.t.Helper()
+	hit(tt.t)
+	tt.t.Errorf("fail: %s", message)
+}
+
+// Comment prints a TAP comment without counting as an assertion.
+func (tt *T) Comment(message string) {
+	tt.t.Helper()
+	tt.t.Log("#", message)
+}
+
+// Error asserts err is non-nil.
 func (tt *T) Error(err error) {
 	tt.t.Helper()
 	hit(tt.t)
@@ -62,6 +138,7 @@ func (tt *T) Error(err error) {
 	}
 }
 
+// NoError asserts err is nil.
 func (tt *T) NoError(err error) {
 	tt.t.Helper()
 	hit(tt.t)
@@ -70,16 +147,8 @@ func (tt *T) NoError(err error) {
 	}
 }
 
-func (tt *T) Match(s, pattern string) {
-	tt.t.Helper()
-	hit(tt.t)
-	if !match(s, pattern) {
-		tt.t.Errorf("%q does not match %q", s, pattern)
-	}
-}
-
-// End marks the test as having completed its single assertion.
+// End marks the test as intentionally complete.
+// Required when TAPE_CHECK_END is enabled (default: on).
 func (tt *T) End() {
-	tt.t.Helper()
 	tt.ended = true
 }
