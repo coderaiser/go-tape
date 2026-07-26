@@ -318,11 +318,33 @@ func TestFileSourceJSON(t *testing.T) {
 	}
 }
 
+// errSource returns an error on Load.
+type errSource struct{}
+
+func (s errSource) Load() ([]TransitionDef, error) {
+	return nil, errors.New("source failed")
+}
+
+func TestNewWithSourceError(t *testing.T) {
+	_, err := New[testState, testEvent](errSource{}, parseState, parseEvent, adapters.NewMemory[testState](), false)
+	if err == nil {
+		t.Fatal("expected error from source failure")
+	}
+}
+
 func TestFileSourceUnsupportedExtension(t *testing.T) {
 	src := FileSource{Path: "testdata/runner.yaml"}
 	_, err := src.Load()
 	if err == nil {
 		t.Fatal("expected error for unsupported extension")
+	}
+}
+
+func TestFileSourceInvalidJSON(t *testing.T) {
+	src := FileSource{Path: "testdata/invalid.json"}
+	_, err := src.Load()
+	if err == nil {
+		t.Fatal("expected error for invalid JSON")
 	}
 }
 
