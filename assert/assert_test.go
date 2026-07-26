@@ -34,3 +34,11 @@ func TestNotOkFalse(t *testing.T) {
 	One(t)
 	NotOk(t, false)
 }
+
+func TestOneResetsCount(t *testing.T) {
+	One(t)
+	hit(t)
+	// After another One, count resets
+	One(t)
+	hit(t) // should work fine
+}
