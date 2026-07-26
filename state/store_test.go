@@ -92,7 +92,32 @@ func TestGetNonExistent(t *testing.T) {
 	}
 }
 
-func TestSummary(t *testing.T) {
+func TestApplyInvalidTransitionReturnsCurrentState(t *testing.T) {
+	s := New()
+	// pass without run — invalid transition
+	state, err := s.Apply(model.Event{Action: "pass", Test: "TestA"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if state != StateIdle {
+		t.Errorf("want StateIdle, got %v", state)
+	}
+}
+
+func TestSummaryHierarchicalName(t *testing.T) {
+	s := New()
+	// state stored under "pkg" — output maps pkg/TestFoo -> pkg
+	s.Apply(model.Event{Action: "run", Test: "pkg"})
+	s.Apply(model.Event{Action: "pass", Test: "pkg"})
+	// output with subtest name "pkg/TestFoo" — LastIndex extracts "pkg"
+	s.Apply(model.Event{Action: "output", Test: "pkg/TestFoo", Output: "ok"})
+	passed, _, _ := s.Summary()
+	if len(passed) != 1 {
+		t.Errorf("want 1 passed, got %d", len(passed))
+	}
+}
+
+func TestSummaryPassedFailedSkipped(t *testing.T) {
 	s := New()
 	s.Apply(model.Event{Action: "run", Test: "TestA"})
 	s.Apply(model.Event{Action: "pass", Test: "TestA"})
@@ -126,6 +151,16 @@ func TestParseTestEventUnknown(t *testing.T) {
 	_, err := parseTestEvent("unknown")
 	if err == nil {
 		t.Fatal("expected error for unknown event")
+	}
+}
+
+func TestSummaryWithOutputOnly(t *testing.T) {
+	s := New()
+	// output-only test — never applied with a state transition
+	s.Apply(model.Event{Action: "output", Test: "orphan", Output: "some output"})
+	passed, failed, skipped := s.Summary()
+	if len(passed)+len(failed)+len(skipped) != 0 {
+		t.Errorf("expected 0 total, got pass=%d fail=%d skip=%d", len(passed), len(failed), len(skipped))
 	}
 }
 
