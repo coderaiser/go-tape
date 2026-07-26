@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"os/exec"
 	"testing"
 
 	"github.com/coderaiser/go-tape/model"
@@ -68,7 +69,24 @@ func TestFakeExecutorReturnsLines(t *testing.T) {
 	}
 }
 
+
+func TestOSExecutorRun(t *testing.T) {
+	// inject echo as the command — no real go test spawned
+	e := &OSExecutor{
+		Command: func(name string, args ...string) *exec.Cmd {
+			return exec.Command("echo", `{"Action":"run","Test":"TestFoo"}`)
+		},
+	}
+	rc, err := e.Run("test", "-json")
+	if err != nil { t.Fatal(err) }
+	defer rc.Close()
+	buf := make([]byte, 256)
+	n, _ := rc.Read(buf)
+	if n == 0 { t.Fatal("expected output") }
+}
+
 func TestOSExecutorConformsToInterface(t *testing.T) {
-	var e Executor = &OSExecutor{}
+	var e Executor = NewOSExecutor()
 	_ = e
 }
+
