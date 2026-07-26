@@ -85,6 +85,35 @@ func TestOSExecutorRun(t *testing.T) {
 	if n == 0 { t.Fatal("expected output") }
 }
 
+func TestRunnerClosesChannelOnEmptyInput(t *testing.T) {
+	executor := &FakeExecutor{Lines: []string{}}
+	r := New(executor)
+	ch, err := r.Run("test", "-json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := 0
+	for range ch {
+		count++
+	}
+	if count != 0 {
+		t.Errorf("expected 0 events, got %d", count)
+	}
+}
+
+func TestOSExecutorStartError(t *testing.T) {
+	e := &OSExecutor{
+		Command: func(name string, args ...string) *exec.Cmd {
+			// nonexistent command — Start() will fail
+			return exec.Command("nonexistent-command-xyz")
+		},
+	}
+	_, err := e.Run("test")
+	if err == nil {
+		t.Fatal("expected error from failed Start()")
+	}
+}
+
 func TestOSExecutorConformsToInterface(t *testing.T) {
 	var e Executor = NewOSExecutor()
 	_ = e
