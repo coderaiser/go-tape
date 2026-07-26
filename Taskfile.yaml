@@ -4,7 +4,6 @@ tasks:
     desc: Run all unit tests
     cmds:
       - go test ./...
-      - go test ./cmd/lint/
   coverage:
     desc: |
       Run tests with tape scoped to the library package only.

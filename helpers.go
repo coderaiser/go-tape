@@ -61,7 +61,7 @@ func isPrimitive(v any) bool {
 		return true
 	}
 	t := reflect.TypeOf(v)
-	return t != nil && t.Kind() == reflect.Ptr
+	return t != nil && t.Kind() == reflect.Pointer
 }
 
 func truthy(v any) bool {

@@ -7,9 +7,9 @@ import (
 
 // ShortFormatter outputs compact format.
 type ShortFormatter struct {
-	total  int
-	passed int
-	failed int
+	total   int
+	passed  int
+	failed  int
 	skipped int
 }
 

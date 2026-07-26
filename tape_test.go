@@ -256,7 +256,7 @@ func TestTEqualPointer(t *testing.T) {
 	})
 }
 
-// -- isPrimitive coverage -- 
+// -- isPrimitive coverage --
 
 func TestIsPrimitivePointer(t *testing.T) {
 	x := 42

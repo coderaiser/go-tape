@@ -9,8 +9,8 @@ import (
 
 // TAPFormatter outputs TAP version 14.
 type TAPFormatter struct {
-	passed []string
-	failed []string
+	passed  []string
+	failed  []string
 	skipped []string
 }
 

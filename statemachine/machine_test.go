@@ -168,16 +168,26 @@ func TestApplyStoresState(t *testing.T) {
 
 	m.Apply("test-1", eventRun, nil)
 	ptr, err := adapter.Get("test-1")
-	if err != nil { t.Fatalf("unexpected error: %v", err) }
-	if ptr == nil { t.Fatal("expected stored state, got nil") }
-	if *ptr != stateRunning { t.Errorf("want %v, got %v", stateRunning, *ptr) }
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ptr == nil {
+		t.Fatal("expected stored state, got nil")
+	}
+	if *ptr != stateRunning {
+		t.Errorf("want %v, got %v", stateRunning, *ptr)
+	}
 }
 
 func TestUnknownIdGetsNil(t *testing.T) {
 	adapter := adapters.NewMemory[testState]()
 	ptr, err := adapter.Get("unknown")
-	if err != nil { t.Fatalf("unexpected error: %v", err) }
-	if ptr != nil { t.Errorf("expected nil, got %v", ptr) }
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ptr != nil {
+		t.Errorf("expected nil, got %v", ptr)
+	}
 }
 
 func TestNewWithParseStateError(t *testing.T) {
@@ -257,10 +267,12 @@ func TestHookNotCalledForUnknownTransition(t *testing.T) {
 // -- error adapter tests --
 
 type errGetAdapter struct{}
+
 func (a errGetAdapter) Get(id string) (*testState, error) { return nil, errors.New("get failed") }
 func (a errGetAdapter) Set(id string, s testState) error  { return nil }
 
 type errSetAdapter struct{}
+
 func (a errSetAdapter) Get(id string) (*testState, error) { s := stateIdle; return &s, nil }
 func (a errSetAdapter) Set(id string, s testState) error  { return errors.New("set failed") }
 
@@ -268,14 +280,18 @@ func TestApplyGetError(t *testing.T) {
 	src := &MemorySource{Defs: []TransitionDef{{From: "idle", Event: "run", To: "running"}}}
 	m, _ := New(src, parseState, parseEvent, errGetAdapter{}, false)
 	_, err := m.Apply("x", eventRun, nil)
-	if err == nil { t.Fatal("expected error from Get failure") }
+	if err == nil {
+		t.Fatal("expected error from Get failure")
+	}
 }
 
 func TestApplySetError(t *testing.T) {
 	src := &MemorySource{Defs: []TransitionDef{{From: "idle", Event: "run", To: "running"}}}
 	m, _ := New(src, parseState, parseEvent, errSetAdapter{}, false)
 	_, err := m.Apply("x", eventRun, nil)
-	if err == nil { t.Fatal("expected error from Set failure") }
+	if err == nil {
+		t.Fatal("expected error from Set failure")
+	}
 }
 
 func TestWithInitialUsedForUnknownId(t *testing.T) {
@@ -283,8 +299,12 @@ func TestWithInitialUsedForUnknownId(t *testing.T) {
 	m, _ := New(src, parseState, parseEvent, adapters.NewMemory[testState](), false)
 	m.WithInitial(stateIdle)
 	next, err := m.Apply("brand-new", eventRun, nil)
-	if err != nil { t.Fatalf("unexpected error: %v", err) }
-	if next != stateRunning { t.Errorf("want running, got %v", next) }
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if next != stateRunning {
+		t.Errorf("want running, got %v", next)
+	}
 }
 
 func TestValidateEmptyTransitions(t *testing.T) {
@@ -303,8 +323,12 @@ func TestValidateEmptyTransitions(t *testing.T) {
 func TestFileSourceLoadsTransitions(t *testing.T) {
 	src := FileSource{Path: "testdata/runner.toml"}
 	defs, err := src.Load()
-	if err != nil { t.Fatalf("unexpected error: %v", err) }
-	if len(defs) == 0 { t.Fatal("expected transitions") }
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(defs) == 0 {
+		t.Fatal("expected transitions")
+	}
 }
 
 func TestFileSourceJSON(t *testing.T) {

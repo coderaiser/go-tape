@@ -69,7 +69,6 @@ func TestFakeExecutorReturnsLines(t *testing.T) {
 	}
 }
 
-
 func TestOSExecutorRun(t *testing.T) {
 	// inject echo as the command — no real go test spawned
 	e := &OSExecutor{
@@ -78,11 +77,15 @@ func TestOSExecutorRun(t *testing.T) {
 		},
 	}
 	rc, err := e.Run("test", "-json")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer rc.Close()
 	buf := make([]byte, 256)
 	n, _ := rc.Read(buf)
-	if n == 0 { t.Fatal("expected output") }
+	if n == 0 {
+		t.Fatal("expected output")
+	}
 }
 
 func TestRunnerClosesChannelOnEmptyInput(t *testing.T) {
@@ -118,4 +121,3 @@ func TestOSExecutorConformsToInterface(t *testing.T) {
 	var e Executor = NewOSExecutor()
 	_ = e
 }
-
