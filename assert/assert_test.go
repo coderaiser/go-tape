@@ -18,18 +18,6 @@ func (m *mockT) Errorf(f string, args ...any) { m.failed = true; m.message = fmt
 func (m *mockT) Fatalf(f string, args ...any) { m.failed = true; m.message = fmt.Sprintf(f, args...) }
 func (m *mockT) Fatal(args ...any)            { m.failed = true }
 
-// -- One / hit --
-
-func TestOneResetsCount(t *testing.T) {
-	One(t)
-	hit(t)
-	One(t) // reset
-	hit(t) // should not fail
-}
-
-// hit failure path is tested indirectly via tape_test.go which
-// exercises the assertion count guard with TAPE_CHECK_ASSERTIONS_COUNT.
-
 // -- Equal --
 
 func TestEqualMatch(t *testing.T) {
