@@ -307,8 +307,37 @@ func TestFileSourceLoadsTransitions(t *testing.T) {
 	if len(defs) == 0 { t.Fatal("expected transitions") }
 }
 
-func TestFileSourceMissingFile(t *testing.T) {
+func TestFileSourceJSON(t *testing.T) {
+	src := FileSource{Path: "testdata/runner.json"}
+	defs, err := src.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(defs) == 0 {
+		t.Fatal("expected transitions")
+	}
+}
+
+func TestFileSourceUnsupportedExtension(t *testing.T) {
+	src := FileSource{Path: "testdata/runner.yaml"}
+	_, err := src.Load()
+	if err == nil {
+		t.Fatal("expected error for unsupported extension")
+	}
+}
+
+func TestFileSourceMissingJSON(t *testing.T) {
+	src := FileSource{Path: "testdata/nonexistent.json"}
+	_, err := src.Load()
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+}
+
+func TestFileSourceMissingTOML(t *testing.T) {
 	src := FileSource{Path: "nonexistent.toml"}
 	_, err := src.Load()
-	if err == nil { t.Fatal("expected error for missing file") }
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
 }

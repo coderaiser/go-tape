@@ -1,9 +1,10 @@
 package statemachine
 
 import (
+	"encoding/json"
 	"fmt"
-
-	"github.com/BurntSushi/toml"
+	"os"
+	"path/filepath"
 )
 
 // TransitionSource loads transition definitions once at startup.
@@ -22,36 +23,46 @@ func (s *MemorySource) Load() ([]TransitionDef, error) {
 	return s.Defs, nil
 }
 
-// FileSource loads transitions from a TOML file.
-//
-// Expected TOML format:
-//
-//   [transitions.idle]
-//   run = "running"
-//
-//   [transitions.running]
-//   pass = "passed"
-//   fail = "failed"
+// FileSource loads transitions from a file.
+// Supported extensions: .toml, .json
+// .toml: uses BurntSushi/toml by default, hand-rolled with -tags no_external
+// .json: uses encoding/json (stdlib always)
 type FileSource struct {
 	Path string
 }
 
 func (s FileSource) Load() ([]TransitionDef, error) {
+	switch filepath.Ext(s.Path) {
+	case ".toml":
+		return loadTOML(s.Path)
+	case ".json":
+		return loadJSON(s.Path)
+	default:
+		return nil, fmt.Errorf("FileSource: unsupported extension %q", filepath.Ext(s.Path))
+	}
+}
+
+// loadJSON loads transitions from a JSON file using stdlib encoding/json.
+func loadJSON(path string) ([]TransitionDef, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("FileSource: read %s: %w", path, err)
+	}
 	var cfg struct {
-		Transitions map[string]map[string]string `toml:"transitions"`
+		Transitions map[string]map[string]string `json:"transitions"`
 	}
-	if _, err := toml.DecodeFile(s.Path, &cfg); err != nil {
-		return nil, fmt.Errorf("FileSource: load %s: %w", s.Path, err)
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("FileSource: parse %s: %w", path, err)
 	}
+	return toTransitionDefs(cfg.Transitions), nil
+}
+
+func toTransitionDefs(transitions map[string]map[string]string) []TransitionDef {
 	var defs []TransitionDef
-	for from, events := range cfg.Transitions {
+	for from, events := range transitions {
 		for event, to := range events {
-			defs = append(defs, TransitionDef{
-				From:  from,
-				Event: event,
-				To:    to,
-			})
+			defs = append(defs, TransitionDef{From: from, Event: event, To: to})
 		}
 	}
-	return defs, nil
+	return defs
 }
