@@ -40,14 +40,11 @@ func hit(t *testing.T) {
 	if !config.CheckAssertionsCount() {
 		return
 	}
-	_, file, line, ok := runtime.Caller(2)
-	if ok {
-		t.Fatalf(
-			"too many assertions: got %d, expected 1\nat %s:%d",
-			count[t], file, line,
-		)
-	}
-	t.Fatalf("too many assertions: got %d, expected 1", count[t])
+	_, file, line, _ := runtime.Caller(2)
+	t.Fatalf(
+		"too many assertions: got %d, expected 1\nat %s:%d",
+		count[t], file, line,
+	)
 }
 
 func isPrimitive(v any) bool {
