@@ -51,6 +51,13 @@ func Only(t *testing.T, name string, fn func(t *T)) {
 }
 
 // Skip marks a test as skipped.
+// Only the sub-test is skipped — not the parent.
 func Skip(t *testing.T, name string, fn func(t *T)) {
-	t.Skipf("tape: skip: %s", name)
+	if config.CheckScopes() && !scope.Valid(name) {
+		t.Fatalf("tape: test name must be 'scope: message', got: %q", name)
+		return
+	}
+	t.Run(name, func(t *testing.T) {
+		t.Skip("tape: skipped")
+	})
 }

@@ -187,6 +187,30 @@ func TestSkip(t *testing.T) {
 	})
 }
 
+func TestSkipDoesNotSkipParent(t *testing.T) {
+	passed := false
+	Skip(t, "tape: skip this one", func(t *T) {
+		t.Ok(false)
+		t.End()
+	})
+	passed = true
+	if !passed {
+		t.Fatal("parent should not have been skipped")
+	}
+}
+
+func TestSkipScopeCheck(t *testing.T) {
+	wasFailed := !t.Run("inner", func(inner *testing.T) {
+		Skip(inner, "bad format no scope", func(t *T) {
+			t.Ok(true)
+			t.End()
+		})
+	})
+	if !wasFailed {
+		t.Fatal("expected scope check to fail")
+	}
+}
+
 // -- Extend --
 
 func TestExtend(t *testing.T) {
