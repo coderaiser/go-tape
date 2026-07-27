@@ -5,4 +5,4 @@
 .DS_Store
 coverage.out
 coverage.html
-tape
+/tape
