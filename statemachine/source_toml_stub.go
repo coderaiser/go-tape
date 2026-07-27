@@ -5,6 +5,7 @@ package statemachine
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -18,11 +19,15 @@ func loadTOML(path string) ([]TransitionDef, error) {
 		return nil, fmt.Errorf("FileSource: open %s: %w", path, err)
 	}
 	defer f.Close()
+	return parseTOMLReader(f, path)
+}
 
+// parseTOMLReader parses TOML from a reader.
+func parseTOMLReader(r io.Reader, name string) ([]TransitionDef, error) {
 	var defs []TransitionDef
 	var currentFrom string
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
@@ -58,7 +63,7 @@ func loadTOML(path string) ([]TransitionDef, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("FileSource: scan %s: %w", path, err)
+		return nil, fmt.Errorf("FileSource: scan %s: %w", name, err)
 	}
 
 	return defs, nil
