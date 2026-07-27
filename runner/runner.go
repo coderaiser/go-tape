@@ -35,6 +35,9 @@ func (r *Runner) Run(args ...string) (<-chan model.Event, error) {
 			}
 			ch <- e
 		}
+		if err := scanner.Err(); err != nil {
+			return
+		}
 	}()
 
 	return ch, nil

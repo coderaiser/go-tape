@@ -1,6 +1,9 @@
 package runner
 
 import (
+	"errors"
+	"io"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -120,4 +123,66 @@ func TestOSExecutorStartError(t *testing.T) {
 func TestOSExecutorConformsToInterface(t *testing.T) {
 	var e Executor = NewOSExecutor()
 	_ = e
+}
+
+func TestOSExecutorStdoutPipeError(t *testing.T) {
+	e := &OSExecutor{
+		Command: func(name string, args ...string) *exec.Cmd {
+			cmd := exec.Command("echo", "hello")
+			// pre-assign stdout — StdoutPipe will fail
+			cmd.Stdout = os.Stdout
+			return cmd
+		},
+	}
+	_, err := e.Run("test")
+	if err == nil {
+		t.Fatal("expected error when StdoutPipe fails")
+	}
+}
+
+// errReader returns an error after the first read
+type errReader struct{ done bool }
+
+func (r *errReader) Read(p []byte) (int, error) {
+	if r.done {
+		return 0, errors.New("read error")
+	}
+	r.done = true
+	copy(p, []byte("not json\n"))
+	return 9, nil
+}
+
+func (r *errReader) Close() error { return nil }
+
+// errExecutor returns an errReader
+type errExecutor struct{}
+
+func (e errExecutor) Run(args ...string) (io.ReadCloser, error) {
+	return &errReader{}, nil
+}
+
+func TestRunnerHandlesScannerError(t *testing.T) {
+	r := New(errExecutor{})
+	ch, err := r.Run("test", "-json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// drain channel — scanner error causes goroutine to exit
+	for range ch {
+	}
+}
+
+// errExecutorRunError always fails
+type errExecutorRunError struct{}
+
+func (e errExecutorRunError) Run(args ...string) (io.ReadCloser, error) {
+	return nil, errors.New("executor failed")
+}
+
+func TestRunnerExecutorError(t *testing.T) {
+	r := New(errExecutorRunError{})
+	_, err := r.Run("test")
+	if err == nil {
+		t.Fatal("expected executor error")
+	}
 }
