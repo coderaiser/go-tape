@@ -1,9 +1,12 @@
 package state
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/coderaiser/go-tape/model"
+	"github.com/coderaiser/go-tape/statemachine"
+	"github.com/coderaiser/go-tape/statemachine/adapters"
 )
 
 func TestRunEventCreatesRunningState(t *testing.T) {
@@ -169,4 +172,55 @@ func TestNewPanic(t *testing.T) {
 	if s == nil {
 		t.Fatal("expected non-nil store")
 	}
+}
+
+// errSource always fails Load
+type errSource struct{}
+
+func (s errSource) Load() ([]statemachine.TransitionDef, error) {
+	return nil, errors.New("source failed")
+}
+
+func TestNewPanicsOnBadSource(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic from bad source")
+		}
+	}()
+	newFromSource(errSource{})
+}
+
+// errAdapter always fails Get
+type errAdapter struct{ *adapters.Memory[TestState] }
+
+func (a errAdapter) Get(id string) (*TestState, error) {
+	return nil, errors.New("adapter error")
+}
+
+func TestGetAdapterError(t *testing.T) {
+	s := New()
+	mem, ok := s.adapter.(*adapters.Memory[TestState])
+	if !ok {
+		t.Fatal("expected memory adapter")
+	}
+	s.adapter = errAdapter{mem}
+	_, err := s.Get("TestFoo")
+	if err == nil {
+		t.Fatal("expected error from adapter")
+	}
+}
+
+func TestSummaryAdapterError(t *testing.T) {
+	s := New()
+	s.Apply(model.Event{Action: "output", Test: "TestFoo", Output: "ok"})
+	mem, ok := s.adapter.(*adapters.Memory[TestState])
+	if !ok {
+		t.Fatal("expected memory adapter")
+	}
+	s.adapter = errAdapter{mem}
+	// Summary silently skips on adapter error — should not panic
+	passed, failed, skipped := s.Summary()
+	_ = passed
+	_ = failed
+	_ = skipped
 }

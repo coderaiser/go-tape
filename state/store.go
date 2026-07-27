@@ -65,21 +65,27 @@ func parseTestEvent(e string) (TestEvent, error) {
 // Store manages test state using the statemachine.
 type Store struct {
 	machine *statemachine.Machine[TestState, TestEvent]
-	adapter *adapters.Memory[TestState]
+	adapter statemachine.Adapter[TestState]
 	outputs map[string]string
 }
 
 // New creates a new Store.
 func New() *Store {
-	adapter := adapters.NewMemory[TestState]()
-	src := &statemachine.MemorySource{
+	s := newFromSource(&statemachine.MemorySource{
 		Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "running"},
 			{From: "running", Event: "pass", To: "passed"},
 			{From: "running", Event: "fail", To: "failed"},
 			{From: "running", Event: "skip", To: "skipped"},
 		},
-	}
+	})
+	return s
+}
+
+// newFromSource creates a Store from a TransitionSource.
+// Exported for testing.
+func newFromSource(src statemachine.TransitionSource) *Store {
+	adapter := adapters.NewMemory[TestState]()
 	m, err := statemachine.New(src, parseTestState, parseTestEvent, adapter, false)
 	if err != nil {
 		panic(err)
