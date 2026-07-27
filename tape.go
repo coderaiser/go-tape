@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coderaiser/go-tape/assert"
 	"github.com/coderaiser/go-tape/internal/config"
 	"github.com/coderaiser/go-tape/internal/scope"
 )
@@ -13,9 +14,7 @@ func Test(t *testing.T, name string, fn func(t *T)) {
 	t.Helper()
 
 	// guard 1: scope check
-	if config.CheckScopes() && !scope.Valid(name) {
-		t.Fatalf("tape: test name must be 'scope: message', got: %q", name)
-	}
+	assert.CheckScopeName(t, name, scope.Valid(name), config.CheckScopes())
 
 	t.Run(name, func(t *testing.T) {
 		t.Helper()
@@ -39,9 +38,7 @@ func Test(t *testing.T, name string, fn func(t *T)) {
 		}
 
 		// guard 4: t.End() check
-		if config.CheckEnd() && !tt.ended {
-			t.Fatal("tape: missing t.End()")
-		}
+		assert.CheckEndCalled(t, tt.ended, config.CheckEnd())
 	})
 }
 
@@ -53,10 +50,7 @@ func Only(t *testing.T, name string, fn func(t *T)) {
 // Skip marks a test as skipped.
 // Only the sub-test is skipped — not the parent.
 func Skip(t *testing.T, name string, fn func(t *T)) {
-	if config.CheckScopes() && !scope.Valid(name) {
-		t.Fatalf("tape: test name must be 'scope: message', got: %q", name)
-		return
-	}
+	assert.CheckScopeName(t, name, scope.Valid(name), config.CheckScopes())
 	t.Run(name, func(t *testing.T) {
 		t.Skip("tape: skipped")
 	})

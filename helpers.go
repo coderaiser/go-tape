@@ -1,13 +1,10 @@
 package tape
 
 import (
-	"fmt"
-	"reflect"
-	"regexp"
-	"runtime"
 	"sync"
 	"testing"
 
+	"github.com/coderaiser/go-tape/assert"
 	"github.com/coderaiser/go-tape/internal/config"
 )
 
@@ -32,33 +29,16 @@ func assertOne(t *testing.T) {
 func hit(t *testing.T) {
 	t.Helper()
 	mu.Lock()
-	defer mu.Unlock()
 	count[t]++
-	if count[t] <= 1 {
+	c := count[t]
+	mu.Unlock()
+	if c <= 1 {
 		return
 	}
 	if !config.CheckAssertionsCount() {
 		return
 	}
-	_, file, line, _ := runtime.Caller(2)
-	t.Fatalf(
-		"too many assertions: got %d, expected 1\nat %s:%d",
-		count[t], file, line,
-	)
-}
-
-func isPrimitive(v any) bool {
-	switch v.(type) {
-	case bool,
-		int, int8, int16, int32, int64,
-		uint, uint8, uint16, uint32, uint64,
-		float32, float64,
-		complex64, complex128,
-		string, uintptr:
-		return true
-	}
-	t := reflect.TypeOf(v)
-	return t != nil && t.Kind() == reflect.Pointer
+	assert.HitCheck(t, c)
 }
 
 func truthy(v any) bool {
@@ -74,16 +54,5 @@ func truthy(v any) bool {
 		return val != ""
 	default:
 		return true
-	}
-}
-
-func toRegexp(pattern any) (*regexp.Regexp, error) {
-	switch p := pattern.(type) {
-	case *regexp.Regexp:
-		return p, nil
-	case string:
-		return regexp.Compile(regexp.QuoteMeta(p))
-	default:
-		return nil, fmt.Errorf("pattern must be string or *regexp.Regexp, got %T", pattern)
 	}
 }

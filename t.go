@@ -1,8 +1,10 @@
 package tape
 
 import (
-	"reflect"
+	"regexp"
 	"testing"
+
+	"github.com/coderaiser/go-tape/assert"
 )
 
 // T wraps *testing.T with supertape-compatible assertions.
@@ -32,13 +34,7 @@ func (tt *T) Setenv(key, value string) {
 func (tt *T) Equal(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if !isPrimitive(result) {
-		tt.t.Fatalf("Equal: use DeepEqual for %T — Equal is for primitives and pointers only", result)
-		return
-	}
-	if result != expected {
-		tt.t.Errorf("\nresult:   %#v\nexpected: %#v", result, expected)
-	}
+	assert.Equal(tt.t, result, expected)
 }
 
 // NotEqual asserts result != expected.
@@ -46,13 +42,7 @@ func (tt *T) Equal(result, expected any) {
 func (tt *T) NotEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if !isPrimitive(result) {
-		tt.t.Fatalf("NotEqual: use NotDeepEqual for %T — NotEqual is for primitives and pointers only", result)
-		return
-	}
-	if result == expected {
-		tt.t.Errorf("expected values to differ, both are: %#v", result)
-	}
+	assert.NotEqual(tt.t, result, expected)
 }
 
 // DeepEqual asserts deep equality using reflect.DeepEqual.
@@ -60,36 +50,28 @@ func (tt *T) NotEqual(result, expected any) {
 func (tt *T) DeepEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if !reflect.DeepEqual(result, expected) {
-		tt.t.Errorf("\nresult:   %#v\nexpected: %#v", result, expected)
-	}
+	assert.DeepEqual(tt.t, result, expected)
 }
 
 // NotDeepEqual asserts values are not deeply equal.
 func (tt *T) NotDeepEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if reflect.DeepEqual(result, expected) {
-		tt.t.Errorf("expected values to differ, both deep-equal: %#v", result)
-	}
+	assert.NotDeepEqual(tt.t, result, expected)
 }
 
 // Ok asserts result is truthy.
 func (tt *T) Ok(result any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if !truthy(result) {
-		tt.t.Errorf("expected truthy, got: %#v", result)
-	}
+	assert.Ok(tt.t, result)
 }
 
 // NotOk asserts result is falsy.
 func (tt *T) NotOk(result any) {
 	tt.t.Helper()
 	hit(tt.t)
-	if truthy(result) {
-		tt.t.Errorf("expected falsy, got: %#v", result)
-	}
+	assert.NotOk(tt.t, result)
 }
 
 // Match asserts result matches pattern.
@@ -97,14 +79,7 @@ func (tt *T) NotOk(result any) {
 func (tt *T) Match(result string, pattern any) {
 	tt.t.Helper()
 	hit(tt.t)
-	re, err := toRegexp(pattern)
-	if err != nil {
-		tt.t.Errorf("Match: invalid pattern: %v", err)
-		return
-	}
-	if !re.MatchString(result) {
-		tt.t.Errorf("%q does not match %q", result, re)
-	}
+	assert.Match(tt.t, result, pattern)
 }
 
 // NotMatch asserts result does not match pattern.
@@ -112,14 +87,7 @@ func (tt *T) Match(result string, pattern any) {
 func (tt *T) NotMatch(result string, pattern any) {
 	tt.t.Helper()
 	hit(tt.t)
-	re, err := toRegexp(pattern)
-	if err != nil {
-		tt.t.Errorf("NotMatch: invalid pattern: %v", err)
-		return
-	}
-	if re.MatchString(result) {
-		tt.t.Errorf("%q should not match %q", result, re)
-	}
+	assert.NotMatch(tt.t, result, pattern)
 }
 
 // Pass generates an unconditional passing assertion.
@@ -133,7 +101,7 @@ func (tt *T) Pass(message string) {
 func (tt *T) Fail(message string) {
 	tt.t.Helper()
 	hit(tt.t)
-	tt.t.Errorf("fail: %s", message)
+	assert.Fail(tt.t, message)
 }
 
 // Comment prints a TAP comment without counting as an assertion.
@@ -146,22 +114,28 @@ func (tt *T) Comment(message string) {
 func (tt *T) Error(err error) {
 	tt.t.Helper()
 	hit(tt.t)
-	if err == nil {
-		tt.t.Fatal("expected an error, got nil")
-	}
+	assert.Error(tt.t, err)
 }
 
 // NoError asserts err is nil.
 func (tt *T) NoError(err error) {
 	tt.t.Helper()
 	hit(tt.t)
-	if err != nil {
-		tt.t.Fatalf("unexpected error: %v", err)
-	}
+	assert.NoError(tt.t, err)
 }
 
 // End marks the test as intentionally complete.
 // Required when TAPE_CHECK_END is enabled (default: on).
 func (tt *T) End() {
 	tt.ended = true
+}
+
+// toRegexp is kept for backward compatibility with tests.
+func toRegexp(pattern any) (*regexp.Regexp, error) {
+	return assert.ToRegexp(pattern)
+}
+
+// isPrimitive is kept for backward compatibility with tests.
+func isPrimitive(v any) bool {
+	return assert.IsPrimitive(v)
 }
