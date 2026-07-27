@@ -124,6 +124,20 @@ func (tt *T) NoError(err error) {
 	assert.NoError(tt.t, err)
 }
 
+// Contains asserts s contains sub.
+func (tt *T) Contains(s, sub string) {
+	tt.t.Helper()
+	hit(tt.t)
+	assert.Contains(tt.t, s, sub)
+}
+
+// NotContains asserts s does not contain sub.
+func (tt *T) NotContains(s, sub string) {
+	tt.t.Helper()
+	hit(tt.t)
+	assert.NotContains(tt.t, s, sub)
+}
+
 // End marks the test as intentionally complete.
 // Required when TAPE_CHECK_END is enabled (default: on).
 func (tt *T) End() {

@@ -126,6 +126,14 @@ func Contains(t TB, s, sub string) {
 	}
 }
 
+// NotContains asserts s does not contain sub.
+func NotContains(t TB, s, sub string) {
+	t.Helper()
+	if strings.Contains(s, sub) {
+		t.Errorf("%q should not contain %q", s, sub)
+	}
+}
+
 // CheckScopeName checks a test name follows "scope: message" format.
 // If checkScopes is true and valid is false, it calls t.Fatalf.
 func CheckScopeName(t TB, name string, valid, checkScopes bool) {

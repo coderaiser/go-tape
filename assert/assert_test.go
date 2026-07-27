@@ -151,6 +151,24 @@ func TestContainsNoMatch(t *testing.T) {
 	}
 }
 
+// -- NotContains --
+
+func TestNotContainsMatch(t *testing.T) {
+	m := &mockT{}
+	NotContains(m, "hello", "xyz")
+	if m.failed {
+		t.Fatal("expected pass")
+	}
+}
+
+func TestNotContainsNoMatch(t *testing.T) {
+	m := &mockT{}
+	NotContains(m, "hello world", "world")
+	if !m.failed {
+		t.Fatal("expected fail")
+	}
+}
+
 // -- NotEqual --
 
 func TestNotEqualMatch(t *testing.T) {
