@@ -16,7 +16,7 @@ type OutputFields struct {
 }
 
 var (
-	reAt       = regexp.MustCompile(`^\s+(\S+\.go:\d+):`)
+	reAt       = regexp.MustCompile(`^\s+(\S+\.go:\d+:)\s*`)
 	reResult   = regexp.MustCompile(`^\s+result:\s+(.+)`)
 	reExpected = regexp.MustCompile(`^\s+expected:\s+(.+)`)
 	reOperator = regexp.MustCompile(`^\s+(Equal|NotEqual|Ok|NotOk|DeepEqual|NotDeepEqual|Match|NotMatch|Error|NoError|Pass|Fail)`)
