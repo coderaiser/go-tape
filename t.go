@@ -91,17 +91,29 @@ func (tt *T) NotMatch(result string, pattern any) {
 }
 
 // Pass generates an unconditional passing assertion.
-func (tt *T) Pass(message string) {
+func (tt *T) Pass(message ...string) {
 	tt.t.Helper()
 	hit(tt.t)
-	tt.t.Log("pass:", message)
+	msg := "(unnamed assert)"
+	if len(message) > 0 {
+		msg = message[0]
+	}
+	tt.t.Log("pass:", msg)
 }
 
 // Fail generates an unconditional failing assertion.
-func (tt *T) Fail(message string) {
+// message may be a string or error.
+func (tt *T) Fail(message any) {
 	tt.t.Helper()
 	hit(tt.t)
-	assert.Fail(tt.t, message)
+	switch msg := message.(type) {
+	case string:
+		tt.t.Errorf("fail: %s", msg)
+	case error:
+		tt.t.Errorf("fail: %v", msg)
+	default:
+		tt.t.Errorf("fail: %v", message)
+	}
 }
 
 // Comment prints a TAP comment without counting as an assertion.
