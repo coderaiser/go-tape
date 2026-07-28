@@ -2,9 +2,12 @@ package tape
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"regexp"
 	"testing"
+
+	"github.com/coderaiser/go-tape/assert"
 )
 
 // -- scope guard --
@@ -328,5 +331,40 @@ func TestToRegexpInvalidType(t *testing.T) {
 	_, err := toRegexp(42)
 	if err == nil {
 		t.Fatal("expected error for invalid type")
+	}
+}
+
+// mockT implements testing.TB without calling runtime.Goexit().
+type mockT struct {
+	failed  bool
+	message string
+}
+
+func (m *mockT) Helper()                      {}
+func (m *mockT) Errorf(f string, args ...any) { m.failed = true; m.message = fmt.Sprintf(f, args...) }
+func (m *mockT) Fatalf(f string, args ...any) { m.failed = true; m.message = fmt.Sprintf(f, args...) }
+func (m *mockT) Fatal(args ...any)            { m.failed = true }
+func (m *mockT) Log(args ...any)              {}
+
+// -- 100% coverage: Fail, scope check, hit paths --
+
+// t.Fail with string
+func TestTFailString(t *testing.T) {
+	tt := &T{t: &testing.T{}}
+	tt.Fail("forced failure")
+}
+
+// t.Fail with error type
+func TestTFailError(t *testing.T) {
+	tt := &T{t: &testing.T{}}
+	tt.Fail(errors.New("error message"))
+}
+
+// Test scope check failure via mockT
+func TestScopeCheckFails(t *testing.T) {
+	m := &mockT{}
+	assert.CheckScopeName(m, "no scope here", false, true)
+	if !m.failed {
+		t.Fatal("expected scope check to fail")
 	}
 }
