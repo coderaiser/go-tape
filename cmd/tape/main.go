@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	tapeast "github.com/coderaiser/go-tape/cmd/tape/ast"
@@ -14,21 +15,26 @@ import (
 const version = "1.0.0"
 
 func main() {
-	format            := flag.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines")
-	help              := flag.Bool("h", false, "display this help and exit")
-	ver               := flag.Bool("v", false, "output version information and exit")
-	noCheckScopes     := flag.Bool("no-check-scopes", false, "do not check scope format")
-	noCheckAssertions := flag.Bool("no-check-assertions-count", false, "do not check assertion count")
-	noCheckDuplicates := flag.Bool("no-check-duplicates", false, "do not check for duplicates")
-	flag.Parse()
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
+
+func run(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("go-tape", flag.ExitOnError)
+	format            := flags.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines")
+	help              := flags.Bool("h", false, "display this help and exit")
+	ver               := flags.Bool("v", false, "output version information and exit")
+	noCheckScopes     := flags.Bool("no-check-scopes", false, "do not check scope format")
+	noCheckAssertions := flags.Bool("no-check-assertions-count", false, "do not check assertion count")
+	noCheckDuplicates := flags.Bool("no-check-duplicates", false, "do not check for duplicates")
+	flags.Parse(args)
 
 	if *help {
-		fmt.Print(usage)
-		return
+		fmt.Fprint(stdout, usage)
+		return 0
 	}
 	if *ver {
-		fmt.Println(version)
-		return
+		fmt.Fprintln(stdout, version)
+		return 0
 	}
 	if *noCheckScopes {
 		os.Setenv("TAPE_CHECK_SCOPES", "0")
@@ -38,8 +44,8 @@ func main() {
 	}
 
 	path := "./..."
-	if flag.NArg() > 0 {
-		path = flag.Arg(0)
+	if flags.NArg() > 0 {
+		path = flags.Arg(0)
 	}
 	dir := "."
 
@@ -47,46 +53,46 @@ func main() {
 	if !*noCheckDuplicates {
 		dups, err := tapeast.FindDuplicates(dir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "tape: scan duplicates: %v\n", err)
-			os.Exit(1)
+			fmt.Fprintf(stderr, "tape: scan duplicates: %v\n", err)
+			return 1
 		}
 		if len(dups) > 0 {
-			fmt.Fprintf(os.Stderr, "tape: duplicate test names found:\n")
+			fmt.Fprintf(stderr, "tape: duplicate test names found:\n")
 			for _, d := range dups {
-				fmt.Fprintf(os.Stderr, "  %s\n", d)
+				fmt.Fprintf(stderr, "  %s\n", d)
 			}
-			os.Exit(1)
+			return 1
 		}
 	}
 
 	// count tests for progress bar total
 	total, err := tapeast.CountTests(dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "tape: count tests: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(stderr, "tape: count tests: %v\n", err)
+		return 1
 	}
 
 	// find Only calls — restrict run if any found
 	onlyCalls, err := tapeast.FindOnlyCalls(dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "tape: scan Only: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(stderr, "tape: scan Only: %v\n", err)
+		return 1
 	}
 
-	args := []string{"test", "-json", "-v", path}
+	goArgs := []string{"test", "-json", "-v", path}
 	if pattern := tapeast.BuildRunPattern(onlyCalls); pattern != "" {
-		fmt.Fprintf(os.Stderr, "tape: Only mode — %s\n", pattern)
-		args = append(args, "-run", pattern)
+		fmt.Fprintf(stderr, "tape: Only mode — %s\n", pattern)
+		goArgs = append(goArgs, "-run", pattern)
 	}
 
-	f := formatter.New(*format, os.Stdout, total)
+	f := formatter.New(*format, stdout, total)
 	store := state.New()
 	r := runner.New(runner.NewOSExecutor())
 
-	ch, err := r.Run(args...)
+	ch, err := r.Run(goArgs...)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "tape: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(stderr, "tape: %v\n", err)
+		return 1
 	}
 
 	for event := range ch {
@@ -98,8 +104,9 @@ func main() {
 	f.End(len(passed), len(failed), len(skipped))
 
 	if len(failed) > 0 {
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 const usage = `Usage: go-tape [options] [path]
