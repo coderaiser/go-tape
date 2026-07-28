@@ -9,7 +9,7 @@ tasks:
       Run tests with tape scoped to the library package only.
       run.go (CLI glue) is intentionally excluded.
     cmds:
-      - go test -coverprofile=tape.out -covermode=atomic coderaiser/go-tape > /dev/null
+      - go test -coverprofile=tape.out -covermode=atomic ./... > /dev/null
       - go tool cover -func=tape.out | grep 'tape\.go'
       - coverage
   build:
