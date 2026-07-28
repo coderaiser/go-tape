@@ -368,3 +368,11 @@ func TestScopeCheckFails(t *testing.T) {
 		t.Fatal("expected scope check to fail")
 	}
 }
+
+// t.Fail with default type (int — hits default branch)
+func TestTFailDefault(t *testing.T) {
+	tt := &T{t: &testing.T{}}
+	tt.Fail(42)
+}
+
+

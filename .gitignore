@@ -7,3 +7,4 @@ coverage.out
 coverage.html
 tape.out
 /tape
+coverage_gaps.out
