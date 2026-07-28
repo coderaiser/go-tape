@@ -5,7 +5,7 @@ import (
 	tape "github.com/coderaiser/go-tape"
 )
 
-func TestParser(t *testing.T) {
+func TestOneOnlyParser(t *testing.T) {
 	tape.Only(t, "parser: run action", func(t *tape.T) { t.Ok(true); t.End() })
 	tape.Test(t, "parser: other test", func(t *tape.T) { t.Ok(true); t.End() })
 }
