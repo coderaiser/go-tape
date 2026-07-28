@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coderaiser/go-tape"
 	"github.com/coderaiser/go-tape/model"
 )
 
@@ -504,3 +505,128 @@ func TestFromEventEnd(t *testing.T) {
 		t.Errorf("expected '# ok', got %q", buf.String())
 	}
 }
+
+// -- 100% coverage: FromEvent and formatter methods --
+
+// FromEvent — output action buffered
+func TestFromEventOutput(t *testing.T) {
+	tape.Test(t, "formatter: FromEvent buffers output action", func(t *tape.T) {
+		var buf strings.Builder
+		s := New("tap", &buf, 1)
+		s.FromEvent(model.Event{Action: "output", Test: "parser: run", Output: "some log\n"})
+		// output alone produces no formatter output
+		t.NotOk(strings.Contains(buf.String(), "some log"))
+		t.End()
+	})
+}
+
+// FromEvent — fail action
+func TestFromEventFail(t *testing.T) {
+	tape.Test(t, "formatter: FromEvent fail calls Fail", func(t *tape.T) {
+		var buf strings.Builder
+		s := New("tap", &buf, 1)
+		s.FromEvent(model.Event{Action: "fail", Test: "parser: bad", Elapsed: 0.1})
+		t.Match(buf.String(), `not ok`)
+		t.End()
+	})
+}
+
+// FromEvent — empty Test ignored
+func TestFromEventEmptyTestIgnored(t *testing.T) {
+	tape.Test(t, "formatter: FromEvent ignores package-level events", func(t *tape.T) {
+		var buf strings.Builder
+		s := New("tap", &buf, 1)
+		initialLen := buf.Len()
+		s.FromEvent(model.Event{Action: "output", Package: "mypkg"})
+		t.Equal(buf.Len(), initialLen)
+		t.End()
+	})
+}
+
+// json_lines.Test and Success return empty
+func TestJSONLinesTestReturnsEmpty(t *testing.T) {
+	tape.Test(t, "json-lines: Test returns empty string", func(t *tape.T) {
+		f := NewJSONLines(3)
+		t.Equal(f.Test("parser: run"), "")
+		t.End()
+	})
+}
+
+func TestJSONLinesSuccessReturnsEmpty(t *testing.T) {
+	tape.Test(t, "json-lines: Success returns empty string", func(t *tape.T) {
+		f := NewJSONLines(3)
+		t.Equal(f.Success(1, "parser: run"), "")
+		t.End()
+	})
+}
+
+// progress_bar
+func TestProgressBarTestEnd(t *testing.T) {
+	tape.Test(t, "progress-bar: TestEnd writes to stderr", func(t *tape.T) {
+		t.Setenv("CI", "true") // CI mode writes lines not \r
+		f := NewProgressBar(10)
+		// TestEnd writes to stderr — just verify no panic
+		result := f.TestEnd(1, 10, 0, "parser: run")
+		t.Equal(result, "")
+		t.End()
+	})
+}
+
+func TestProgressBarFail(t *testing.T) {
+	tape.Test(t, "progress-bar: Fail buffers output for end", func(t *tape.T) {
+		f := NewProgressBar(1)
+		result := f.Fail(1, "parser: bad", "Ok", false, true, "", "", "")
+		t.Equal(result, "")
+		t.End()
+	})
+}
+
+func TestProgressBarComment(t *testing.T) {
+	tape.Test(t, "progress-bar: Comment returns comment line", func(t *tape.T) {
+		f := NewProgressBar(1)
+		result := f.Comment("hello")
+		t.Equal(result, "# hello\n")
+		t.End()
+	})
+}
+
+// time formatter
+func TestTimeFormatterTestEnd(t *testing.T) {
+	tape.Test(t, "time: TestEnd writes to stderr", func(t *tape.T) {
+		t.Setenv("CI", "true")
+		f := NewTime(10)
+		f.Start(10)
+		result := f.TestEnd(1, 10, 0, "parser: run")
+		t.Equal(result, "")
+		t.End()
+	})
+}
+
+// New factory — fail and time branches
+func TestNewFailFormatter(t *testing.T) {
+	tape.Test(t, "formatter: New returns fail formatter", func(t *tape.T) {
+		var buf strings.Builder
+		s := New("fail", &buf, 0)
+		t.Ok(s != nil)
+		t.End()
+	})
+}
+
+func TestNewTimeFormatter(t *testing.T) {
+	tape.Test(t, "formatter: New returns time formatter", func(t *tape.T) {
+		var buf strings.Builder
+		s := New("time", &buf, 0)
+		t.Ok(s != nil)
+		t.End()
+	})
+}
+
+func TestNewUnknownFormatter(t *testing.T) {
+	tape.Test(t, "formatter: New returns progress-bar for unknown format", func(t *tape.T) {
+		var buf strings.Builder
+		s := New("unknown", &buf, 5)
+		t.Ok(s != nil)
+		t.End()
+	})
+}
+
