@@ -46,7 +46,7 @@ func TestFindNoOnlyCalls(t *testing.T) {
 func TestFindOneOnlyCall(t *testing.T) {
 	AstTest(t, "ast: one Only call returns one result", func(t *AstT) {
 		t.OnlyCallsInFile("one-only.go", []tapeast.OnlyCall{
-			{Parent: "TestParser", Name: "parser: run action"},
+			{Parent: "TestOneOnlyParser", Name: "parser: run action"},
 		})
 		t.End()
 	})
@@ -55,8 +55,8 @@ func TestFindOneOnlyCall(t *testing.T) {
 func TestFindMultipleOnlyCalls(t *testing.T) {
 	AstTest(t, "ast: multiple Only calls in same func", func(t *AstT) {
 		t.OnlyCallsInFile("multi-only.go", []tapeast.OnlyCall{
-			{Parent: "TestParser", Name: "parser: fail action"},
-			{Parent: "TestParser", Name: "parser: run action"},
+			{Parent: "TestMultiParser", Name: "parser: fail action"},
+			{Parent: "TestMultiParser", Name: "parser: run action"},
 		})
 		t.End()
 	})
@@ -65,8 +65,8 @@ func TestFindMultipleOnlyCalls(t *testing.T) {
 func TestFindCrossFuncOnlyCalls(t *testing.T) {
 	AstTest(t, "ast: Only calls across different TestXxx functions", func(t *AstT) {
 		t.OnlyCallsInFile("cross-func.go", []tapeast.OnlyCall{
-			{Parent: "TestParser", Name: "parser: run action"},
-			{Parent: "TestRunner", Name: "runner: starts"},
+			{Parent: "TestCrossParser", Name: "parser: run action"},
+			{Parent: "TestCrossRunner", Name: "runner: starts"},
 		})
 		t.End()
 	})
