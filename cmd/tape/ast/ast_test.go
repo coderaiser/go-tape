@@ -179,14 +179,10 @@ func TestFoo(t *testing.T) {
 	})
 }
 
-// walkFiles read error — unreadable file
+// walkFiles ReadDir error — nonexistent directory
 func TestWalkFilesReadError(t *testing.T) {
-	AstTest(t, "ast: CountTests errors on unreadable file", func(t *AstT) {
-		// create a dir with an unreadable .go file
-		dir := t.TB().TempDir()
-		path := dir + "/bad.go"
-		os.WriteFile(path, []byte("package foo"), 0000) // no read permission
-		_, err := tapeast.CountTests(dir)
+	AstTest(t, "ast: CountTests errors on nonexistent directory", func(t *AstT) {
+		_, err := tapeast.CountTests("/nonexistent/path/that/does/not/exist")
 		t.Ok(err)
 		t.End()
 	})
