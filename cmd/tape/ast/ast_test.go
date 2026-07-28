@@ -9,6 +9,8 @@ import (
 	tapeast "github.com/coderaiser/go-tape/cmd/tape/ast"
 )
 
+// -- 100% coverage helpers --
+
 // AstT extends tape.T with fixture operators.
 type AstT struct{ *tape.T }
 
@@ -159,6 +161,64 @@ func TestFindDuplicatesMissingDir(t *testing.T) {
 	AstTest(t, "ast: FindDuplicates errors on missing dir", func(t *AstT) {
 		_, err := tapeast.FindDuplicates("nonexistent")
 		t.Error(err)
+		t.End()
+	})
+}
+
+// isTapeCall *ast.Ident branch — call tape.Only without package qualifier
+func TestFindOnlyCallsUnqualified(t *testing.T) {
+	AstTest(t, "ast: finds Only call without package qualifier", func(t *AstT) {
+		src := `package foo
+import "testing"
+func TestFoo(t *testing.T) {
+    Only(t, "foo: bar", func(t *T) {})
+}`
+		_, err := tapeast.FindOnlyCallsInSource(src)
+		t.NotOk(err)
+		t.End()
+	})
+}
+
+// walkFiles read error — unreadable file
+func TestWalkFilesReadError(t *testing.T) {
+	AstTest(t, "ast: CountTests errors on unreadable file", func(t *AstT) {
+		// create a dir with an unreadable .go file
+		dir := t.TB().TempDir()
+		path := dir + "/bad.go"
+		os.WriteFile(path, []byte("package foo"), 0000) // no read permission
+		_, err := tapeast.CountTests(dir)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+// findCallNames parse error — invalid Go in file
+func TestCountTestsInvalidGo(t *testing.T) {
+	AstTest(t, "ast: CountTests errors on invalid Go source in file", func(t *AstT) {
+		dir := t.TB().TempDir()
+		os.WriteFile(dir+"/bad.go", []byte("not go code {{{{"), 0644)
+		_, err := tapeast.CountTests(dir)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+func TestFindDuplicatesInvalidGo(t *testing.T) {
+	AstTest(t, "ast: FindDuplicates errors on invalid Go source", func(t *AstT) {
+		dir := t.TB().TempDir()
+		os.WriteFile(dir+"/bad.go", []byte("not go code {{{{"), 0644)
+		_, err := tapeast.FindDuplicates(dir)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+func TestFindOnlyCallsDirInvalidGo(t *testing.T) {
+	AstTest(t, "ast: FindOnlyCalls errors on invalid Go source", func(t *AstT) {
+		dir := t.TB().TempDir()
+		os.WriteFile(dir+"/bad.go", []byte("not go code {{{{"), 0644)
+		_, err := tapeast.FindOnlyCalls(dir)
+		t.Ok(err)
 		t.End()
 	})
 }
