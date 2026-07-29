@@ -202,6 +202,26 @@ func TestSkipDoesNotSkipParent(t *testing.T) {
 	}
 }
 
+func TestSkipDoesNotRunFn(t *testing.T) {
+	ran := false
+	Skip(t, "tape: fn must not run", func(t *T) {
+		ran = true
+		t.End()
+	})
+	if ran {
+		t.Fatal("Skip must not execute fn")
+	}
+}
+
+func TestSkipParentIsNotMarkedSkipped(t *testing.T) {
+	Skip(t, "tape: parent stays clean", func(t *T) {
+		t.End()
+	})
+	if t.Skipped() {
+		t.Fatal("parent test must not be marked skipped by Skip()")
+	}
+}
+
 // -- Extend --
 
 func TestExtend(t *testing.T) {

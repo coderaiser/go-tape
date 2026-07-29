@@ -66,12 +66,20 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 
-	// count tests for progress bar total
+	// count skipped tests (Skip calls never run, counted separately like supertape)
+	skipCount, err := tapeast.CountSkipCallsInTestFiles(dir)
+	if err != nil {
+		fmt.Fprintf(stderr, "tape: count skips: %v\n", err)
+		return 1
+	}
+
+	// count tests for progress bar total — Skip calls don't run, so exclude them
 	total, err := tapeast.CountTestsInTestFiles(dir)
 	if err != nil {
 		fmt.Fprintf(stderr, "tape: count tests: %v\n", err)
 		return 1
 	}
+	total -= skipCount
 
 	// find Only calls — restrict run if any found
 	onlyCalls, err := tapeast.FindOnlyCalls(dir)
@@ -106,18 +114,24 @@ func run(args []string, stdout, stderr io.Writer) int {
 		f.FromEvent(event)
 	}
 
-	passed, failed, skipped := store.Summary()
+	passed, failed, _ := store.Summary()
 
 	// When Only calls are present, tests that didn't run need to be counted as skipped.
+	extraSkipped := 0
 	if len(onlyCalls) > 0 {
 		allNames, err := tapeast.FindAllTestNames(dir)
 		if err == nil {
 			store.MarkSkipped(allNames)
-			passed, failed, skipped = store.Summary()
+			passed, failed, _ = store.Summary()
+			// non-only tests that didn't run are implicitly skipped
+			extraSkipped = total - len(passed) - len(failed)
+			if extraSkipped < 0 {
+				extraSkipped = 0
+			}
 		}
 	}
 
-	f.End(len(passed), len(failed), len(skipped))
+	f.End(len(passed), len(failed), skipCount+extraSkipped)
 
 	if len(failed) > 0 {
 		return 1

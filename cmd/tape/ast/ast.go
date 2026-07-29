@@ -224,6 +224,21 @@ func CountTestsInTestFiles(dir string) (int, error) {
 	return total, err
 }
 
+// CountSkipCallsInTestFiles counts only tape.Skip calls in *_test.go files.
+// Skip calls never run — they are counted separately like supertape's model.
+func CountSkipCallsInTestFiles(dir string) (int, error) {
+	total := 0
+	err := walkTestFiles(dir, func(src string) error {
+		names, err := findCallNames(src, "Skip")
+		if err != nil {
+			return err
+		}
+		total += len(names)
+		return nil
+	})
+	return total, err
+}
+
 // FindAllTestNames returns all tape.Test/Only/Skip name strings in *_test.go files.
 func FindAllTestNames(dir string) ([]string, error) {
 	var all []string

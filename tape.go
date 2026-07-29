@@ -48,10 +48,6 @@ func Only(t *testing.T, name string, fn func(t *T)) {
 }
 
 // Skip marks a test as skipped.
-// Only the sub-test is skipped — not the parent.
-func Skip(t *testing.T, name string, fn func(t *T)) {
-	assert.CheckScopeName(t, name, scope.Valid(name), config.CheckScopes())
-	t.Run(name, func(t *testing.T) {
-		t.Skip("tape: skipped")
-	})
-}
+// The fn is never executed — matching supertape's model where skipped tests
+// are filtered out before running, not run-and-skipped via the test runner.
+func Skip(_ *testing.T, _ string, _ func(t *T)) {}
