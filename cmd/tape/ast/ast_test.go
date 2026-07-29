@@ -189,15 +189,31 @@ func TestFindDuplicatesMissingDir(t *testing.T) {
 }
 
 // isTapeCall *ast.Ident branch — call tape.Only without package qualifier
-func TestFindOnlyCallsUnqualified(t *testing.T) {
-	AstTest(t, "ast: finds Only call without package qualifier", func(t *AstT) {
+func TestFindOnlyCallsUnqualifiedNoError(t *testing.T) {
+	AstTest(t, "ast: finds Only call without package qualifier no error", func(t *AstT) {
+		src := `package foo
+import "testing"
+func TestFoo(t *testing.T) {
+    Only(t, "foo: bar", func(t *T) {})
+}`
+		_, err := tapeast.FindOnlyCallsInSource(src)
+		t.NotOk(err)
+		t.End()
+	})
+}
+
+func TestFindOnlyCallsUnqualifiedResult(t *testing.T) {
+	AstTest(t, "ast: finds Only call without package qualifier result", func(t *AstT) {
 		src := `package foo
 import "testing"
 func TestFoo(t *testing.T) {
     Only(t, "foo: bar", func(t *T) {})
 }`
 		calls, err := tapeast.FindOnlyCallsInSource(src)
-		t.NotOk(err)
+		if err != nil {
+			t.End()
+			return
+		}
 		t.DeepEqual(calls, []tapeast.OnlyCall{{Parent: "TestFoo", Name: "foo: bar"}})
 		t.End()
 	})
@@ -254,15 +270,27 @@ func TestWalkFilesReadFileError(t *testing.T) {
 }
 
 // isTapeCall fallthrough — call expression with non-ident, non-selector func
-func TestIsTapeCallNonCallExpr(t *testing.T) {
-	AstTest(t, "ast: non-call expression is not a tape call", func(t *AstT) {
+func TestIsTapeCallNonCallExprNoError(t *testing.T) {
+	AstTest(t, "ast: non-call expression is not a tape call no error", func(t *AstT) {
 		src := `package foo
 import "testing"
 func TestFoo(t *testing.T) {
     (func(){})()
 }`
-		calls, err := tapeast.FindOnlyCallsInSource(src)
+		_, err := tapeast.FindOnlyCallsInSource(src)
 		t.NotOk(err)
+		t.End()
+	})
+}
+
+func TestIsTapeCallNonCallExprEmpty(t *testing.T) {
+	AstTest(t, "ast: non-call expression produces no Only calls", func(t *AstT) {
+		src := `package foo
+import "testing"
+func TestFoo(t *testing.T) {
+    (func(){})()
+}`
+		calls, _ := tapeast.FindOnlyCallsInSource(src)
 		t.Ok(len(calls) == 0)
 		t.End()
 	})
