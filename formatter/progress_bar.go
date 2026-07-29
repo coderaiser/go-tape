@@ -34,12 +34,24 @@ func NewProgressBar(total int) *ProgressBarFormatter {
 	}
 
 	min := 100
+	if v := os.Getenv("TAPE_PROGRESS_BAR_MIN"); v != "" {
+		if n, err := fmt.Sscanf(v, "%d", &min); n != 1 || err != nil {
+			min = 100
+		}
+	}
+
+	show := total >= min
+	if v := os.Getenv("TAPE_PROGRESS_BAR"); v == "1" {
+		show = true
+	} else if v == "0" {
+		show = false
+	}
 
 	return &ProgressBarFormatter{
 		total:    total,
 		color:    color,
 		stackEnv: os.Getenv("TAPE_PROGRESS_BAR_STACK"),
-		show: total >= min,
+		show:     show,
 	}
 }
 

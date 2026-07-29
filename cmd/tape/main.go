@@ -146,4 +146,10 @@ Options:
   --no-check-scopes            do not check that messages contain scope: 'scope: message'
   --no-check-assertions-count  do not check that assertion count is no more than 1
   --no-check-duplicates        do not check messages for duplicates
+
+Environment variables:
+  TAPE_PROGRESS_BAR=1|0        force progress bar on (1) or off (0)
+  TAPE_PROGRESS_BAR_MIN=100    minimum test count to show progress bar (default: 100)
+  TAPE_PROGRESS_BAR_COLOR      progress bar color (ANSI escape or hex, default: yellow)
+  TAPE_PROGRESS_BAR_STACK=0    set to 0 to hide error stack traces
 `
