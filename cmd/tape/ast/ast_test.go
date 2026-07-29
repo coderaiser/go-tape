@@ -9,8 +9,6 @@ import (
 	tapeast "github.com/coderaiser/go-tape/cmd/tape/ast"
 )
 
-// -- 100% coverage helpers --
-
 // AstT extends tape.T with fixture operators.
 type AstT struct{ *tape.T }
 
@@ -292,6 +290,47 @@ func TestFoo(t *testing.T) {
 }`
 		calls, _ := tapeast.FindOnlyCallsInSource(src)
 		t.Ok(len(calls) == 0)
+		t.End()
+	})
+}
+
+func TestCountTestsRecursive(t *testing.T) {
+	AstTest(t, "ast: CountTests counts tests in subdirectories", func(t *AstT) {
+		dir := t.TB().TempDir()
+
+		err := os.Mkdir(dir+"/sub", 0o755)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		err = os.WriteFile(dir+"/root_test.go", []byte(`package foo
+import tape "github.com/coderaiser/go-tape"
+import "testing"
+
+func TestRoot(t *testing.T) {
+	tape.Test(t, "root: one", func(t *tape.T) { t.End() })
+}`), 0o644)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		err = os.WriteFile(dir+"/sub/sub_test.go", []byte(`package sub
+import tape "github.com/coderaiser/go-tape"
+import "testing"
+
+func TestSub(t *testing.T) {
+	tape.Test(t, "sub: one", func(t *tape.T) { t.End() })
+}`), 0o644)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		n, err := tapeast.CountTests(dir)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		t.Equal(n, 2)
 		t.End()
 	})
 }

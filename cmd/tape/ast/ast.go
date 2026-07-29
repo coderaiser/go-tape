@@ -6,6 +6,8 @@ import (
 	"go/token"
 	"os"
 	"strings"
+		"io/fs"
+    	"path/filepath"
 )
 
 // OnlyCall represents a tape.Only() call with its parent TestXxx function.
@@ -153,30 +155,30 @@ func isTapeCall(call *ast.CallExpr, name string) bool {
 }
 
 func walkFiles(dir string, fn func(string) error) error {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return err
-	}
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		if !strings.HasSuffix(e.Name(), ".go") {
-			continue
-		}
-		src, err := os.ReadFile(dir + "/" + e.Name())
+	return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		// skip files with //go:build ignore
-		if hasBuildIgnore(string(src)) {
-			continue
+
+		if d.IsDir() {
+			return nil
 		}
-		if err := fn(string(src)); err != nil {
+
+		if filepath.Ext(path) != ".go" {
+			return nil
+		}
+
+		src, err := os.ReadFile(path)
+		if err != nil {
 			return err
 		}
-	}
-	return nil
+
+		if hasBuildIgnore(string(src)) {
+			return nil
+		}
+
+		return fn(string(src))
+	})
 }
 
 // hasBuildIgnore returns true if the source contains //go:build ignore.
