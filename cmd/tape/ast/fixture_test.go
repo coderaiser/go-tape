@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	dedent "github.com/lithammer/dedent"
+	dedent "github.com/coderaiser/go-tape/internal/dedent"
 )
 
 // Fixture creates an isolated temporary directory and returns:

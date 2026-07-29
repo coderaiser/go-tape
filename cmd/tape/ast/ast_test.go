@@ -7,7 +7,7 @@ import (
 
 	tape "github.com/coderaiser/go-tape"
 	tapeast "github.com/coderaiser/go-tape/cmd/tape/ast"
-	dedent "github.com/lithammer/dedent"
+	dedent "github.com/coderaiser/go-tape/internal/dedent"
 )
 
 // AstT extends tape.T with fixture operators.
