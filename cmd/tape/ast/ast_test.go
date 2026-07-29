@@ -159,7 +159,7 @@ func TestFoo(t *testing.T) {
 func TestFindOnlyCallsMissingDir(t *testing.T) {
 	AstTest(t, "ast: FindOnlyCalls errors on missing dir", func(t *AstT) {
 		_, err := tapeast.FindOnlyCalls("nonexistent")
-		t.Error(err)
+		t.Ok(err)
 		t.End()
 	})
 }
@@ -167,7 +167,7 @@ func TestFindOnlyCallsMissingDir(t *testing.T) {
 func TestFindOnlyCallsInSourceInvalid(t *testing.T) {
 	AstTest(t, "ast: FindOnlyCallsInSource errors on invalid Go source", func(t *AstT) {
 		_, err := tapeast.FindOnlyCallsInSource("not go {{{{")
-		t.Error(err)
+		t.Ok(err)
 		t.End()
 	})
 }
@@ -175,7 +175,7 @@ func TestFindOnlyCallsInSourceInvalid(t *testing.T) {
 func TestCountTestsMissingDir(t *testing.T) {
 	AstTest(t, "ast: CountTests errors on missing dir", func(t *AstT) {
 		_, err := tapeast.CountTests("nonexistent")
-		t.Error(err)
+		t.Ok(err)
 		t.End()
 	})
 }
@@ -183,7 +183,7 @@ func TestCountTestsMissingDir(t *testing.T) {
 func TestFindDuplicatesMissingDir(t *testing.T) {
 	AstTest(t, "ast: FindDuplicates errors on missing dir", func(t *AstT) {
 		_, err := tapeast.FindDuplicates("nonexistent")
-		t.Error(err)
+		t.Ok(err)
 		t.End()
 	})
 }

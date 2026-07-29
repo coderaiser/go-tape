@@ -112,7 +112,7 @@ func TestFindOnlyCallsInDir(t *testing.T) {
 func TestFindOnlyCallsMissingDir(t *testing.T) {
 	runOnlyTest(t, "only: FindOnlyCalls errors on missing dir", func(t *OnlyT) {
 		_, err := only.FindOnlyCalls("nonexistent")
-		t.Error(err)
+		t.Ok(err)
 		t.End()
 	})
 }
@@ -120,7 +120,7 @@ func TestFindOnlyCallsMissingDir(t *testing.T) {
 func TestFindOnlyCallsInSourceInvalidGo(t *testing.T) {
 	runOnlyTest(t, "only: FindOnlyCallsInSource errors on invalid Go", func(t *OnlyT) {
 		_, err := only.FindOnlyCallsInSource("this is not go code {{{{\"")
-		t.Error(err)
+		t.Ok(err)
 		t.End()
 	})
 }

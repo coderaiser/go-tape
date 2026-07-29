@@ -35,3 +35,20 @@ func TestHitTwiceWithCountEnabled(t *testing.T) {
 		t.Fatal("expected second hit to fail the test")
 	}
 }
+
+// TestTestTimeout verifies that Test() Fatalfs when the test function times out.
+// Only built with -tags coverage. Intentionally uses a timeout.
+func TestTestTimeout(t *testing.T) {
+	failed := false
+	t.Run("outer", func(outer *testing.T) {
+		defer func() { failed = outer.Failed() }()
+		outer.Setenv("TAPE_TIMEOUT", "1ms")
+		Test(outer, "tape: timeout fires", func(t *T) {
+			// never call t.End() — blocks until timeout
+			select {}
+		})
+	})
+	if !failed {
+		t.Fatal("expected test to time out")
+	}
+}

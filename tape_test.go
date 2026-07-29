@@ -96,14 +96,14 @@ func TestTNotDeepEqual(t *testing.T) {
 
 func TestTError(t *testing.T) {
 	Test(t, "tape: Error works", func(t *T) {
-		t.Error(errors.New("some error"))
+		t.Ok(errors.New("some error"))
 		t.End()
 	})
 }
 
 func TestTNoError(t *testing.T) {
 	Test(t, "tape: NoError works", func(t *T) {
-		t.NoError(nil)
+		t.NotOk(nil)
 		t.End()
 	})
 }
@@ -252,7 +252,7 @@ func TestEndCalledFlag(t *testing.T) {
 	}
 	tt.End()
 	if !tt.ended {
-		t.Error("ended should be true after End()")
+		t.Fatal("ended should be true after End()")
 	}
 }
 
@@ -346,7 +346,20 @@ func (m *mockT) Fatalf(f string, args ...any) { m.failed = true; m.message = fmt
 func (m *mockT) Fatal(args ...any)            { m.failed = true }
 func (m *mockT) Log(args ...any)              {}
 
-// -- 100% coverage: Fail, scope check, hit paths --
+// -- 100% coverage: Only, hit second call, Test timeout --
+
+func TestOnlyRuns(t *testing.T) {
+	ran := false
+	Only(t, "tape: Only delegates to Test", func(t *T) {
+		ran = true
+		t.Ok(ran)
+		t.End()
+	})
+	if !ran {
+		t.Fatal("Only did not run the function")
+	}
+}
+
 
 // t.Fail with string
 func TestTFailString(t *testing.T) {
