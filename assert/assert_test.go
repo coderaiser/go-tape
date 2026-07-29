@@ -322,7 +322,7 @@ func TestIsPrimitiveNil(t *testing.T) {
 	}
 }
 
-// -- truthy -- 
+// -- truthy --
 
 func TestTruthyBoolTrue(t *testing.T) {
 	if !truthy(true) {

@@ -10,7 +10,7 @@ import (
 
 func termWidth() int {
 	type winsize struct {
-		Row, Col        uint16
+		Row, Col       uint16
 		Xpixel, Ypixel uint16
 	}
 	ws := &winsize{}

@@ -13,8 +13,8 @@ func NewJSONLines(total int) *JSONLinesFormatter {
 	return &JSONLinesFormatter{total: total}
 }
 
-func (f *JSONLinesFormatter) Start(total int) string  { return "" }
-func (f *JSONLinesFormatter) Test(name string) string { return "" }
+func (f *JSONLinesFormatter) Start(total int) string    { return "" }
+func (f *JSONLinesFormatter) Test(name string) string   { return "" }
 func (f *JSONLinesFormatter) Comment(msg string) string { return "" }
 
 func (f *JSONLinesFormatter) TestEnd(count, total, failed int, name string) string {

@@ -360,7 +360,6 @@ func TestOnlyRuns(t *testing.T) {
 	}
 }
 
-
 // t.Fail with string
 func TestTFailString(t *testing.T) {
 	tt := &T{t: &testing.T{}}
@@ -387,5 +386,3 @@ func TestTFailDefault(t *testing.T) {
 	tt := &T{t: &testing.T{}}
 	tt.Fail(42)
 }
-
-

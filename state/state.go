@@ -102,9 +102,9 @@ func (s *Store) Apply(e model.Event) (TestState, error) {
 		return 0, nil
 	}
 
-if _, ok := s.outputs[e.Test]; !ok {
-    s.outputs[e.Test] = ""
-}
+	if _, ok := s.outputs[e.Test]; !ok {
+		s.outputs[e.Test] = ""
+	}
 
 	if e.Action == "output" {
 		s.outputs[e.Test] += e.Output

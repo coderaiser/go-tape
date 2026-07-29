@@ -15,15 +15,16 @@ const (
 	failEmoji   = "❌"
 	skipEmoji   = "⚠️"
 	okMark      = "✅"
-	YELLOW      = "\033[33m" 
+	YELLOW      = "\033[33m"
 )
 
 // ProgressBarFormatter outputs a progress bar to stderr and final output to stdout.
 type ProgressBarFormatter struct {
 	total    int
+	show     bool
 	color    string
 	stackEnv string
-	out      strings.Builder // stdout output buffered
+	out      strings.Builder
 }
 
 func NewProgressBar(total int) *ProgressBarFormatter {
@@ -31,10 +32,14 @@ func NewProgressBar(total int) *ProgressBarFormatter {
 	if color == "" {
 		color = YELLOW
 	}
+
+	min := 100
+
 	return &ProgressBarFormatter{
 		total:    total,
 		color:    color,
 		stackEnv: os.Getenv("TAPE_PROGRESS_BAR_STACK"),
+		show: total >= min,
 	}
 }
 
@@ -45,6 +50,10 @@ func (f *ProgressBarFormatter) Start(total int) string {
 func (f *ProgressBarFormatter) Test(name string) string { return "" }
 
 func (f *ProgressBarFormatter) TestEnd(count, total, failed int, name string) string {
+	if !f.show {
+		return ""
+	}
+
 	failStr := okEmoji
 	if failed > 0 {
 		failStr = fmt.Sprintf("\033[31m%d\033[0m", failed) // red
@@ -103,24 +112,37 @@ func (f *ProgressBarFormatter) Comment(message string) string {
 }
 
 func (f *ProgressBarFormatter) End(count, passed, failed, skipped int) string {
-	fmt.Fprintln(os.Stderr) // clear progress line
 	var sb strings.Builder
-	// flush buffered fail output
+
+	// clear progress line only if progress was shown
+	if f.show {
+		fmt.Fprintln(os.Stderr)
+	}
+
 	sb.WriteString(f.out.String())
-	sb.WriteString("\n")
+
+    if f.show {
+        sb.WriteString("\n")
+	}
+
 	fmt.Fprintf(&sb, "1..%d\n", count)
 	fmt.Fprintf(&sb, "# tests %d\n", count)
 	fmt.Fprintf(&sb, "# pass %d\n", passed)
+
 	if skipped > 0 {
 		fmt.Fprintf(&sb, "# %s skip %d\n", skipEmoji, skipped)
 	}
+
 	sb.WriteString("\n")
+
 	if failed > 0 {
 		fmt.Fprintf(&sb, "# %s fail %d\n", failEmoji, failed)
 	} else {
 		fmt.Fprintf(&sb, "# %s ok\n", okMark)
 	}
-	sb.WriteString("\n\n")
+
+	sb.WriteString("\n")
+
 	return sb.String()
 }
 

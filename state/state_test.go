@@ -112,12 +112,12 @@ func TestSummaryKeepsSubtestName(t *testing.T) {
 
 	s.Apply(model.Event{
 		Action: "run",
-		Test: "TestOnlyRuns/tape:_Only_delegates_to_Test",
+		Test:   "TestOnlyRuns/tape:_Only_delegates_to_Test",
 	})
 
 	s.Apply(model.Event{
 		Action: "pass",
-		Test: "TestOnlyRuns/tape:_Only_delegates_to_Test",
+		Test:   "TestOnlyRuns/tape:_Only_delegates_to_Test",
 	})
 
 	passed, _, _ := s.Summary()

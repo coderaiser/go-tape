@@ -630,7 +630,6 @@ func TestNewUnknownFormatter(t *testing.T) {
 	})
 }
 
-
 // progress-bar TestEnd with failures
 func TestProgressBarTestEndWithFailures(t *testing.T) {
 	tape.Test(t, "formatter: progress-bar TestEnd shows red count when failed > 0", func(t *tape.T) {

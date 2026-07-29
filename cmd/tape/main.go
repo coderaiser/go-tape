@@ -20,10 +20,10 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("go-tape", flag.ExitOnError)
-	format            := flags.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines")
-	help              := flags.Bool("h", false, "display this help and exit")
-	ver               := flags.Bool("v", false, "output version information and exit")
-	noCheckScopes     := flags.Bool("no-check-scopes", false, "do not check scope format")
+	format := flags.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines")
+	help := flags.Bool("h", false, "display this help and exit")
+	ver := flags.Bool("v", false, "output version information and exit")
+	noCheckScopes := flags.Bool("no-check-scopes", false, "do not check scope format")
 	noCheckAssertions := flags.Bool("no-check-assertions-count", false, "do not check assertion count")
 	noCheckDuplicates := flags.Bool("no-check-duplicates", false, "do not check for duplicates")
 	flags.Parse(args)

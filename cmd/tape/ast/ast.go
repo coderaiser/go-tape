@@ -4,10 +4,10 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
-		"io/fs"
-    	"path/filepath"
 )
 
 // OnlyCall represents a tape.Only() call with its parent TestXxx function.
