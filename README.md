@@ -4,6 +4,9 @@
 ## API
 
 ```go
+
+Test "github.com/coderaiser/go-tape"
+
 // -- operators happy path --
 
 func TestTEqual(t *testing.T) {
