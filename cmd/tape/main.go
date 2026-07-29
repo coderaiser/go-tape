@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	tapeast "github.com/coderaiser/go-tape/cmd/tape/ast"
 	"github.com/coderaiser/go-tape/formatter"
@@ -66,7 +67,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	// count tests for progress bar total
-	total, err := tapeast.CountTests(dir)
+	total, err := tapeast.CountTestsInTestFiles(dir)
 	if err != nil {
 		fmt.Fprintf(stderr, "tape: count tests: %v\n", err)
 		return 1
@@ -95,11 +96,27 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	for event := range ch {
+		// go test -json emits events for both the outer TestXxx wrapper and the
+		// inner t.Run subtest. Only the subtest (containing "/") is a tape.Test
+		// call — skip the wrapper to avoid double-counting.
+		if event.Test != "" && !strings.Contains(event.Test, "/") {
+			continue
+		}
 		store.Apply(event)
 		f.FromEvent(event)
 	}
 
 	passed, failed, skipped := store.Summary()
+
+	// When Only calls are present, tests that didn't run need to be counted as skipped.
+	if len(onlyCalls) > 0 {
+		allNames, err := tapeast.FindAllTestNames(dir)
+		if err == nil {
+			store.MarkSkipped(allNames)
+			passed, failed, skipped = store.Summary()
+		}
+	}
+
 	f.End(len(passed), len(failed), len(skipped))
 
 	if len(failed) > 0 {

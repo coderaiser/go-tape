@@ -350,7 +350,7 @@ func (m *mockT) Log(args ...any)              {}
 
 func TestOnlyRuns(t *testing.T) {
 	ran := false
-	Only(t, "tape: Only delegates to Test", func(t *T) {
+	Test(t, "tape: Only delegates to Test", func(t *T) {
 		ran = true
 		t.Ok(ran)
 		t.End()

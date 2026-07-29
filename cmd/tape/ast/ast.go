@@ -185,3 +185,55 @@ func walkFiles(dir string, fn func(string) error) error {
 func hasBuildIgnore(src string) bool {
 	return strings.Contains(src, "//go:build ignore")
 }
+
+// walkTestFiles is like walkFiles but restricted to _test.go files.
+func walkTestFiles(dir string, fn func(string) error) error {
+	return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		src, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if hasBuildIgnore(string(src)) {
+			return nil
+		}
+		return fn(string(src))
+	})
+}
+
+// CountTestsInTestFiles counts tape.Test/Only/Skip calls only in *_test.go files.
+// Use this from the CLI to avoid counting fixture files.
+func CountTestsInTestFiles(dir string) (int, error) {
+	total := 0
+	err := walkTestFiles(dir, func(src string) error {
+		names, err := findCallNames(src, "Test", "Only", "Skip")
+		if err != nil {
+			return err
+		}
+		total += len(names)
+		return nil
+	})
+	return total, err
+}
+
+// FindAllTestNames returns all tape.Test/Only/Skip name strings in *_test.go files.
+func FindAllTestNames(dir string) ([]string, error) {
+	var all []string
+	err := walkTestFiles(dir, func(src string) error {
+		names, err := findCallNames(src, "Test", "Only", "Skip")
+		if err != nil {
+			return err
+		}
+		all = append(all, names...)
+		return nil
+	})
+	return all, err
+}
