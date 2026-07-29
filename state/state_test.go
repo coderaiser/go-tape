@@ -107,16 +107,27 @@ func TestApplyInvalidTransitionReturnsCurrentState(t *testing.T) {
 	}
 }
 
-func TestSummaryHierarchicalName(t *testing.T) {
+func TestSummaryKeepsSubtestName(t *testing.T) {
 	s := New()
-	// state stored under "pkg" — output maps pkg/TestFoo -> pkg
-	s.Apply(model.Event{Action: "run", Test: "pkg"})
-	s.Apply(model.Event{Action: "pass", Test: "pkg"})
-	// output with subtest name "pkg/TestFoo" — LastIndex extracts "pkg"
-	s.Apply(model.Event{Action: "output", Test: "pkg/TestFoo", Output: "ok"})
+
+	s.Apply(model.Event{
+		Action: "run",
+		Test: "TestOnlyRuns/tape:_Only_delegates_to_Test",
+	})
+
+	s.Apply(model.Event{
+		Action: "pass",
+		Test: "TestOnlyRuns/tape:_Only_delegates_to_Test",
+	})
+
 	passed, _, _ := s.Summary()
+
 	if len(passed) != 1 {
-		t.Errorf("want 1 passed, got %d", len(passed))
+		t.Fatalf("want 1 passed, got %d", len(passed))
+	}
+
+	if passed[0] != "TestOnlyRuns/tape:_Only_delegates_to_Test" {
+		t.Fatalf("unexpected name: %s", passed[0])
 	}
 }
 

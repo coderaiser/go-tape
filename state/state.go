@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/coderaiser/go-tape/model"
 	"github.com/coderaiser/go-tape/statemachine"
@@ -103,6 +102,10 @@ func (s *Store) Apply(e model.Event) (TestState, error) {
 		return 0, nil
 	}
 
+if _, ok := s.outputs[e.Test]; !ok {
+    s.outputs[e.Test] = ""
+}
+
 	if e.Action == "output" {
 		s.outputs[e.Test] += e.Output
 		return 0, nil
@@ -154,22 +157,12 @@ func (s *Store) GetOutput(test string) string {
 
 // Summary returns the test names grouped by state.
 func (s *Store) Summary() (passed, failed, skipped []string) {
-	allStates := map[string]struct{}{}
 	for test := range s.outputs {
-		if idx := strings.LastIndex(test, "/"); idx >= 0 {
-			allStates[test[:idx]] = struct{}{}
-		} else {
-			allStates[test] = struct{}{}
-		}
-	}
-	for test := range allStates {
 		ptr, err := s.adapter.Get(test)
-		if err != nil {
+		if err != nil || ptr == nil {
 			continue
 		}
-		if ptr == nil {
-			continue
-		}
+
 		switch *ptr {
 		case StatePassed:
 			passed = append(passed, test)
@@ -177,9 +170,21 @@ func (s *Store) Summary() (passed, failed, skipped []string) {
 			failed = append(failed, test)
 		case StateSkipped:
 			skipped = append(skipped, test)
-		case StateIdle, StateRunning:
-			// not yet in a terminal state — skip
 		}
 	}
+
 	return
+}
+
+func (s *Store) MarkSkipped(names []string) {
+	for _, name := range names {
+		ptr, _ := s.adapter.Get(name)
+
+		if ptr != nil {
+			continue
+		}
+
+		s.adapter.Set(name, StateSkipped)
+		s.outputs[name] = ""
+	}
 }
