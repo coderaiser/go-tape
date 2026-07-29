@@ -81,7 +81,6 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	goArgs := []string{"test", "-json", "-v", path}
 	if pattern := tapeast.BuildRunPattern(onlyCalls); pattern != "" {
-		fmt.Fprintf(stderr, "tape: Only mode — %s\n", pattern)
 		goArgs = append(goArgs, "-run", pattern)
 	}
 
