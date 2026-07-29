@@ -4,84 +4,111 @@
 ## API
 
 ```go
-
-Test "github.com/coderaiser/go-tape"
-
-// -- operators happy path --
+import (
+    Test "github.com/coderaiser/go-tape"
+)
 
 func TestTEqual(t *testing.T) {
 	Test(t, "tape: Equal works", func(t *T) {
-		t.Equal(42, 42)
+		result := 42
+		expected := 42
+		
+		t.Equal(result, expected)
 		t.End()
 	})
 }
 
 func TestTNotEqual(t *testing.T) {
 	Test(t, "tape: NotEqual works", func(t *T) {
-		t.NotEqual(1, 2)
+		result := 1
+		expected := 2
+		
+		t.NotEqual(result, exptected)
 		t.End()
 	})
 }
 
 func TestTOk(t *testing.T) {
 	Test(t, "tape: Ok works", func(t *T) {
-		t.Ok(true)
+		result := true
+		
+		t.Ok(result)
 		t.End()
 	})
 }
 
 func TestTNotOk(t *testing.T) {
 	Test(t, "tape: NotOk works", func(t *T) {
-		t.NotOk(false)
+		result = false
+		
+		t.NotOk(result)
 		t.End()
 	})
 }
 
 func TestTDeepEqual(t *testing.T) {
 	Test(t, "tape: DeepEqual works", func(t *T) {
-		t.DeepEqual([]int{1, 2}, []int{1, 2})
+		result := []int{1, 2}
+		expected := []int{1, 2}
+		
+		t.DeepEqual(result, expected)
 		t.End()
 	})
 }
 
 func TestTNotDeepEqual(t *testing.T) {
 	Test(t, "tape: NotDeepEqual works", func(t *T) {
-		t.NotDeepEqual([]int{1}, []int{2})
+		result := []int{1}
+		expected := []int{2}
+		
+		t.NotDeepEqual(result, expected)
 		t.End()
 	})
 }
 
 func TestTError(t *testing.T) {
 	Test(t, "tape: Error works", func(t *T) {
-		t.Ok(errors.New("some error"))
+		result := errors.New("some error")
+		
+		t.Ok(result)
 		t.End()
 	})
 }
 
 func TestTNoError(t *testing.T) {
 	Test(t, "tape: NoError works", func(t *T) {
-		t.NotOk(nil)
+		result := nil
+		
+		t.NotOk(result)
 		t.End()
 	})
 }
 
 func TestTMatch(t *testing.T) {
 	Test(t, "tape: Match works with string pattern", func(t *T) {
-		t.Match("hello 123", `hello \d+`)
+		result := "hello 123"
+		expected := `hello \d+`
+		
+		t.Match(result, expected)
 		t.End()
 	})
 }
 
 func TestTMatchRegexp(t *testing.T) {
 	Test(t, "tape: Match works with regexp pattern", func(t *T) {
-		t.Match("hello 123", regexp.MustCompile(`hello \d+`))
+		result := "hello 123"
+		expected := regexp.MustCompile(`hello \d+`)
+		
+		t.Match(result, expected)
 		t.End()
 	})
 }
 
 func TestTNotMatch(t *testing.T) {
 	Test(t, "tape: NotMatch works", func(t *T) {
-		t.NotMatch("hello", `\d+`)
+		result :=	"hello"
+		expected := `\d+`
+		t.NotMatch(result, expected)
 		t.End()
 	})
 }
@@ -95,8 +122,10 @@ func TestTPass(t *testing.T) {
 
 func TestTComment(t *testing.T) {
 	Test(t, "tape: Comment does not count as assertion", func(t *T) {
+		const result = true;
+		
 		t.Comment("just a note")
-		t.Ok(true)
+		t.Ok(result)
 		t.End()
 	})
 }
