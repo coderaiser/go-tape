@@ -159,9 +159,6 @@ func walkFiles(dir string, fn func(string) error) error {
 	}
 	for _, e := range entries {
 		if e.IsDir() {
-			if err := walkFiles(dir+"/"+e.Name(), fn); err != nil {
-				return err
-			}
 			continue
 		}
 		if !strings.HasSuffix(e.Name(), ".go") {
@@ -171,9 +168,18 @@ func walkFiles(dir string, fn func(string) error) error {
 		if err != nil {
 			return err
 		}
+		// skip files with //go:build ignore
+		if hasBuildIgnore(string(src)) {
+			continue
+		}
 		if err := fn(string(src)); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// hasBuildIgnore returns true if the source contains //go:build ignore.
+func hasBuildIgnore(src string) bool {
+	return strings.Contains(src, "//go:build ignore")
 }

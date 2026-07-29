@@ -102,7 +102,15 @@ func TestBuildPatternMultiple(t *testing.T) {
 
 func TestCountTests(t *testing.T) {
 	AstTest(t, "ast: CountTests counts Test Only and Skip calls", func(t *AstT) {
-		n, err := tapeast.CountTests("fixture")
+		dir := t.TB().TempDir()
+		os.WriteFile(dir+"/foo_test.go", []byte(`package foo
+import tape "github.com/coderaiser/go-tape"
+import "testing"
+func TestFoo(t *testing.T) {
+	tape.Test(t, "foo: bar", func(t *tape.T) { t.Ok(true); t.End() })
+	tape.Only(t, "foo: baz", func(t *tape.T) { t.Ok(true); t.End() })
+}`), 0644)
+		n, err := tapeast.CountTests(dir)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -113,7 +121,15 @@ func TestCountTests(t *testing.T) {
 
 func TestFindDuplicatesFound(t *testing.T) {
 	AstTest(t, "ast: FindDuplicates finds duplicate names", func(t *AstT) {
-		dups, err := tapeast.FindDuplicates("fixture")
+		dir := t.TB().TempDir()
+		os.WriteFile(dir+"/foo_test.go", []byte(`package foo
+import tape "github.com/coderaiser/go-tape"
+import "testing"
+func TestFoo(t *testing.T) {
+	tape.Test(t, "foo: bar", func(t *tape.T) { t.Ok(true); t.End() })
+	tape.Test(t, "foo: bar", func(t *tape.T) { t.Ok(true); t.End() })
+}`), 0644)
+		dups, err := tapeast.FindDuplicates(dir)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -124,7 +140,14 @@ func TestFindDuplicatesFound(t *testing.T) {
 
 func TestFindOnlyCallsDir(t *testing.T) {
 	AstTest(t, "ast: FindOnlyCalls reads all go files in dir", func(t *AstT) {
-		calls, err := tapeast.FindOnlyCalls("fixture")
+		dir := t.TB().TempDir()
+		os.WriteFile(dir+"/foo_test.go", []byte(`package foo
+import tape "github.com/coderaiser/go-tape"
+import "testing"
+func TestFoo(t *testing.T) {
+	tape.Only(t, "foo: bar", func(t *tape.T) { t.Ok(true); t.End() })
+}`), 0644)
+		calls, err := tapeast.FindOnlyCalls(dir)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
