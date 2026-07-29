@@ -158,7 +158,13 @@ func walkFiles(dir string, fn func(string) error) error {
 		return err
 	}
 	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") {
+		if e.IsDir() {
+			if err := walkFiles(dir+"/"+e.Name(), fn); err != nil {
+				return err
+			}
+			continue
+		}
+		if !strings.HasSuffix(e.Name(), ".go") {
 			continue
 		}
 		src, err := os.ReadFile(dir + "/" + e.Name())

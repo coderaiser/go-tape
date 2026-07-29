@@ -54,6 +54,11 @@ func (f *ProgressBarFormatter) TestEnd(count, total, failed int, name string) st
 	}
 	truncName := Truncate(name, 40)
 	line := fmt.Sprintf("%s %d%% | %s | %d/%d | %s", bar, pct, failStr, count, total, truncName)
+	width := termWidth()
+	visible := []rune(line)
+	if len(visible) > width {
+		line = string(visible[:width])
+	}
 	fmt.Fprintf(os.Stderr, "\r%s", line)
 	return ""
 }
@@ -131,3 +136,4 @@ func Truncate(s string, n int) string {
 	}
 	return string([]rune(s)[:n-3]) + "..."
 }
+
