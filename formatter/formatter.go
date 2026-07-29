@@ -33,12 +33,10 @@ type State struct {
 // Auto-detects CI: CI=true → tap.
 // Defaults to progress-bar in terminal.
 func New(format string, w io.Writer, total int) *State {
-	if format == "" {
-		if os.Getenv("CI") == "true" {
-			format = "tap"
-		} else {
-			format = "progress-bar"
-		}
+	if os.Getenv("CI") == "true" {
+		format = "tap"
+	} else if format == "" {
+		format = "progress-bar"
 	}
 	var f Formatter
 	switch format {

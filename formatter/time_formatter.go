@@ -48,10 +48,6 @@ func (f *TimeFormatter) TestEnd(count, total, failed int, name string) string {
 	truncName := Truncate(name, 30)
 	line := fmt.Sprintf("%s %d%% | %s | %d/%d | %s | %s",
 		bar, pct, failStr, count, total, timeStr, truncName)
-	if f.isCI {
-		fmt.Fprintln(os.Stderr, line)
-	} else {
-		fmt.Fprintf(os.Stderr, "\r%s", line)
-	}
+	fmt.Fprintf(os.Stderr, "\r%s", line)
 	return ""
 }

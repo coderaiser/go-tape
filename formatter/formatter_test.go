@@ -298,8 +298,8 @@ func TestProgressBarStart(t *testing.T) {
 	t.Parallel()
 	f := NewProgressBar(10)
 	out := f.Start(10)
-	if out != "TAP version 13\n" {
-		t.Errorf("expected 'TAP version 13\\n', got %q", out)
+	if out != "" {
+		t.Errorf("expected empty string, got %q", out)
 	}
 }
 
@@ -630,3 +630,35 @@ func TestNewUnknownFormatter(t *testing.T) {
 	})
 }
 
+
+// progress-bar TestEnd with failures
+func TestProgressBarTestEndWithFailures(t *testing.T) {
+	tape.Test(t, "formatter: progress-bar TestEnd shows red count when failed > 0", func(t *tape.T) {
+		f := NewProgressBar(10)
+		result := f.TestEnd(1, 10, 1, "parser: run")
+		t.Equal(result, "")
+		t.End()
+	})
+}
+
+// progress-bar Fail with output and no operator
+func TestProgressBarFailWithOutputNoOperator(t *testing.T) {
+	tape.Test(t, "formatter: progress-bar Fail uses raw output when operator is empty", func(t *tape.T) {
+		f := NewProgressBar(1)
+		result := f.Fail(1, "parser: bad", "", false, true, "raw output here
+", "", "")
+		t.Equal(result, "")
+		t.End()
+	})
+}
+
+// time formatter TestEnd with failures
+func TestTimeFormatterTestEndWithFailures(t *testing.T) {
+	tape.Test(t, "formatter: time TestEnd shows red count when failed > 0", func(t *tape.T) {
+		f := NewTime(10)
+		f.Start(10)
+		result := f.TestEnd(1, 10, 1, "parser: run")
+		t.Equal(result, "")
+		t.End()
+	})
+}

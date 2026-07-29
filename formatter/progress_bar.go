@@ -19,7 +19,6 @@ const (
 // ProgressBarFormatter outputs a progress bar to stderr and final output to stdout.
 type ProgressBarFormatter struct {
 	total    int
-	isCI     bool
 	color    string
 	stackEnv string
 	out      strings.Builder // stdout output buffered
@@ -32,14 +31,13 @@ func NewProgressBar(total int) *ProgressBarFormatter {
 	}
 	return &ProgressBarFormatter{
 		total:    total,
-		isCI:     os.Getenv("CI") == "true" || os.Getenv("TAPE_PROGRESS_BAR") == "1",
 		color:    color,
 		stackEnv: os.Getenv("TAPE_PROGRESS_BAR_STACK"),
 	}
 }
 
 func (f *ProgressBarFormatter) Start(total int) string {
-	return "TAP version 13\n"
+	return ""
 }
 
 func (f *ProgressBarFormatter) Test(name string) string { return "" }
@@ -56,11 +54,7 @@ func (f *ProgressBarFormatter) TestEnd(count, total, failed int, name string) st
 	}
 	truncName := Truncate(name, 40)
 	line := fmt.Sprintf("%s %d%% | %s | %d/%d | %s", bar, pct, failStr, count, total, truncName)
-	if f.isCI {
-		fmt.Fprintln(os.Stderr, line)
-	} else {
-		fmt.Fprintf(os.Stderr, "\r%s", line)
-	}
+	fmt.Fprintf(os.Stderr, "\r%s", line)
 	return ""
 }
 

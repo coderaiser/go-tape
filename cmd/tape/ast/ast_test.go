@@ -179,7 +179,6 @@ func TestFoo(t *testing.T) {
 	})
 }
 
-// walkFiles ReadDir error — nonexistent directory
 func TestWalkFilesReadError(t *testing.T) {
 	AstTest(t, "ast: CountTests errors on nonexistent directory", func(t *AstT) {
 		_, err := tapeast.CountTests("/nonexistent/path/that/does/not/exist")
