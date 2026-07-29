@@ -645,8 +645,7 @@ func TestProgressBarTestEndWithFailures(t *testing.T) {
 func TestProgressBarFailWithOutputNoOperator(t *testing.T) {
 	tape.Test(t, "formatter: progress-bar Fail uses raw output when operator is empty", func(t *tape.T) {
 		f := NewProgressBar(1)
-		result := f.Fail(1, "parser: bad", "", false, true, "raw output here
-", "", "")
+		result := f.Fail(1, "parser: bad", "", false, true, "raw output here\n", "", "")
 		t.Equal(result, "")
 		t.End()
 	})

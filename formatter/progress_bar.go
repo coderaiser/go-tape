@@ -117,6 +117,9 @@ func RenderBar(done, total int, color string) string {
 		return fmt.Sprintf("%s%s\033[0m", color, strings.Repeat(string(barEmpty), barWidth))
 	}
 	filled := done * barWidth / total
+	if filled > barWidth {
+		filled = barWidth
+	}
 	bar := strings.Repeat(string(barComplete), filled) + strings.Repeat(string(barEmpty), barWidth-filled)
 	return fmt.Sprintf("%s%s\033[0m", color, bar)
 }
