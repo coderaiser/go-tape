@@ -137,29 +137,66 @@ func truncateANSI(s string, n int) string {
 	visible := 0
 	var out []byte
 	i := 0
-	runes := []byte(s)
-	for i < len(runes) {
-		if runes[i] == 0x1b && i+1 < len(runes) && runes[i+1] == '[' {
-			// consume escape sequence
+	b := []byte(s)
+	for i < len(b) {
+		// Detect and pass through ANSI escape sequences unchanged.
+		if b[i] == 0x1b && i+1 < len(b) && b[i+1] == '[' {
 			j := i + 2
-			for j < len(runes) && runes[j] != 'm' {
+			for j < len(b) && b[j] != 'm' {
 				j++
 			}
-			if j < len(runes) {
+			if j < len(b) {
 				j++
 			}
-			out = append(out, runes[i:j]...)
+			out = append(out, b[i:j]...)
 			i = j
 			continue
 		}
 		if visible >= n {
 			break
 		}
-		out = append(out, runes[i])
+		// Decode one UTF-8 rune so multi-byte characters (e.g. █ ░) count
+		// as a single visible position, matching visibleLen behaviour.
+		r, size := decodeRuneAt(b, i)
+		_ = r
+		out = append(out, b[i:i+size]...)
 		visible++
-		i++
+		i += size
 	}
 	return string(out)
+}
+
+// decodeRuneAt decodes the first UTF-8 rune in b[i:] and returns it with its
+// byte width. Falls back to (RuneError, 1) for invalid sequences.
+func decodeRuneAt(b []byte, i int) (rune, int) {
+	// Fast path for ASCII.
+	if b[i] < 0x80 {
+		return rune(b[i]), 1
+	}
+	// Determine sequence length from leading byte.
+	var size int
+	switch {
+	case b[i]&0xE0 == 0xC0:
+		size = 2
+	case b[i]&0xF0 == 0xE0:
+		size = 3
+	case b[i]&0xF8 == 0xF0:
+		size = 4
+	default:
+		return '\uFFFD', 1
+	}
+	if i+size > len(b) {
+		return '\uFFFD', 1
+	}
+	// Assemble rune value.
+	r := rune(b[i] & (0xFF >> size))
+	for k := 1; k < size; k++ {
+		if b[i+k]&0xC0 != 0x80 {
+			return '\uFFFD', 1
+		}
+		r = r<<6 | rune(b[i+k]&0x3F)
+	}
+	return r, size
 }
 
 // RenderBar renders a progress bar string.
@@ -182,4 +219,3 @@ func Truncate(s string, n int) string {
 	}
 	return string([]rune(s)[:n-3]) + "..."
 }
-
