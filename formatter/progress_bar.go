@@ -15,7 +15,7 @@ const (
 	failEmoji   = "❌"
 	skipEmoji   = "⚠️"
 	okMark      = "✅"
-	YELLOW      = "\033[33m"
+	DEFAULT_COLOR = "#f9d472" // same as supertape
 )
 
 // ProgressBarFormatter outputs a progress bar to stderr and final output to stdout.
@@ -30,7 +30,7 @@ type ProgressBarFormatter struct {
 func NewProgressBar(total int) *ProgressBarFormatter {
 	color := os.Getenv("TAPE_PROGRESS_BAR_COLOR")
 	if color == "" {
-		color = YELLOW
+		color = DEFAULT_COLOR
 	}
 
 	min := 100
@@ -126,9 +126,9 @@ func (f *ProgressBarFormatter) Comment(message string) string {
 func (f *ProgressBarFormatter) End(count, passed, failed, skipped int) string {
 	var sb strings.Builder
 
-	// clear progress line only if progress was shown
+	// erase progress line only if progress was shown
 	if f.show {
-		fmt.Fprintln(os.Stderr)
+		fmt.Fprintf(os.Stderr, "\r\033[2K")
 	}
 
 	sb.WriteString(f.out.String())
@@ -233,17 +233,45 @@ func decodeRuneAt(b []byte, i int) (rune, int) {
 	return r, size
 }
 
+// hexToANSI converts a CSS hex color (#rrggbb) to an ANSI 24-bit foreground
+// escape sequence. Returns the original string unchanged for non-hex values.
+func hexToANSI(color string) string {
+	if len(color) != 7 || color[0] != '#' {
+		return color
+	}
+	parse := func(s string) int {
+		n := 0
+		for _, c := range s {
+			n <<= 4
+			switch {
+			case c >= '0' && c <= '9':
+				n |= int(c - '0')
+			case c >= 'a' && c <= 'f':
+				n |= int(c-'a') + 10
+			case c >= 'A' && c <= 'F':
+				n |= int(c-'A') + 10
+			}
+		}
+		return n
+	}
+	r := parse(color[1:3])
+	g := parse(color[3:5])
+	b := parse(color[5:7])
+	return fmt.Sprintf("\033[38;2;%d;%d;%dm", r, g, b)
+}
+
 // RenderBar renders a progress bar string.
 func RenderBar(done, total int, color string) string {
+	ansi := hexToANSI(color)
 	if total == 0 {
-		return fmt.Sprintf("%s%s\033[0m", color, strings.Repeat(string(barEmpty), barWidth))
+		return fmt.Sprintf("%s%s\033[0m", ansi, strings.Repeat(string(barEmpty), barWidth))
 	}
 	filled := done * barWidth / total
 	if filled > barWidth {
 		filled = barWidth
 	}
 	bar := strings.Repeat(string(barComplete), filled) + strings.Repeat(string(barEmpty), barWidth-filled)
-	return fmt.Sprintf("%s%s\033[0m", color, bar)
+	return fmt.Sprintf("%s%s\033[0m", ansi, bar)
 }
 
 // Truncate truncates a string to n runes, adding "..." if shortened.
