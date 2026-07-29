@@ -3,6 +3,7 @@ package formatter
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -14,6 +15,7 @@ const (
 	failEmoji   = "❌"
 	skipEmoji   = "⚠️"
 	okMark      = "✅"
+	YELLOW      = "\033[33m" 
 )
 
 // ProgressBarFormatter outputs a progress bar to stderr and final output to stdout.
@@ -27,7 +29,7 @@ type ProgressBarFormatter struct {
 func NewProgressBar(total int) *ProgressBarFormatter {
 	color := os.Getenv("TAPE_PROGRESS_BAR_COLOR")
 	if color == "" {
-		color = "\033[33m" // yellow ANSI
+		color = YELLOW
 	}
 	return &ProgressBarFormatter{
 		total:    total,
@@ -51,13 +53,19 @@ func (f *ProgressBarFormatter) TestEnd(count, total, failed int, name string) st
 	pct := 0
 	if total > 0 {
 		pct = count * 100 / total
+		if pct > 100 {
+			pct = 100
+		}
+	}
+	displayTotal := total
+	if count > displayTotal {
+		displayTotal = count
 	}
 	truncName := Truncate(name, 40)
-	line := fmt.Sprintf("%s %d%% | %s | %d/%d | %s", bar, pct, failStr, count, total, truncName)
+	line := fmt.Sprintf("%s %d%% | %s | %d/%d | %s", bar, pct, failStr, count, displayTotal, truncName)
 	width := termWidth()
-	visible := []rune(line)
-	if len(visible) > width {
-		line = string(visible[:width])
+	if visibleLen(line) > width {
+		line = truncateANSI(line, width)
 	}
 	fmt.Fprintf(os.Stderr, "\r%s", line)
 	return ""
@@ -114,6 +122,44 @@ func (f *ProgressBarFormatter) End(count, passed, failed, skipped int) string {
 	}
 	sb.WriteString("\n\n")
 	return sb.String()
+}
+
+// ansiEscape matches ANSI escape sequences.
+var ansiEscape = regexp.MustCompile("\x1b\\[[0-9;]*m")
+
+// visibleLen returns the visible length of a string ignoring ANSI escape codes.
+func visibleLen(s string) int {
+	return len([]rune(ansiEscape.ReplaceAllString(s, "")))
+}
+
+// truncateANSI truncates s to n visible runes, preserving ANSI codes.
+func truncateANSI(s string, n int) string {
+	visible := 0
+	var out []byte
+	i := 0
+	runes := []byte(s)
+	for i < len(runes) {
+		if runes[i] == 0x1b && i+1 < len(runes) && runes[i+1] == '[' {
+			// consume escape sequence
+			j := i + 2
+			for j < len(runes) && runes[j] != 'm' {
+				j++
+			}
+			if j < len(runes) {
+				j++
+			}
+			out = append(out, runes[i:j]...)
+			i = j
+			continue
+		}
+		if visible >= n {
+			break
+		}
+		out = append(out, runes[i])
+		visible++
+		i++
+	}
+	return string(out)
 }
 
 // RenderBar renders a progress bar string.
