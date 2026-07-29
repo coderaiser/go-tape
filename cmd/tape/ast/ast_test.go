@@ -196,8 +196,9 @@ import "testing"
 func TestFoo(t *testing.T) {
     Only(t, "foo: bar", func(t *T) {})
 }`
-		_, err := tapeast.FindOnlyCallsInSource(src)
+		calls, err := tapeast.FindOnlyCallsInSource(src)
 		t.NotOk(err)
+		t.DeepEqual(calls, []tapeast.OnlyCall{{Parent: "TestFoo", Name: "foo: bar"}})
 		t.End()
 	})
 }
@@ -237,6 +238,32 @@ func TestFindOnlyCallsDirInvalidGo(t *testing.T) {
 		os.WriteFile(dir+"/bad.go", []byte("not go code {{{{"), 0644)
 		_, err := tapeast.FindOnlyCalls(dir)
 		t.Ok(err)
+		t.End()
+	})
+}
+
+// walkFiles os.ReadFile error — broken symlink
+func TestWalkFilesReadFileError(t *testing.T) {
+	AstTest(t, "ast: CountTests errors when file cannot be read", func(t *AstT) {
+		dir := t.TB().TempDir()
+		os.Symlink("/nonexistent", dir+"/broken.go")
+		_, err := tapeast.CountTests(dir)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+// isTapeCall fallthrough — call expression with non-ident, non-selector func
+func TestIsTapeCallNonCallExpr(t *testing.T) {
+	AstTest(t, "ast: non-call expression is not a tape call", func(t *AstT) {
+		src := `package foo
+import "testing"
+func TestFoo(t *testing.T) {
+    (func(){})()
+}`
+		calls, err := tapeast.FindOnlyCallsInSource(src)
+		t.NotOk(err)
+		t.Ok(len(calls) == 0)
 		t.End()
 	})
 }

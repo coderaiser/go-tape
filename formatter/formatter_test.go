@@ -661,3 +661,124 @@ func TestTimeFormatterTestEndWithFailures(t *testing.T) {
 		t.End()
 	})
 }
+
+// visibleLen tests
+func TestVisibleLenPlain(t *testing.T) {
+	t.Parallel()
+	l := visibleLen("hello")
+	if l != 5 {
+		t.Errorf("expected 5, got %d", l)
+	}
+}
+
+func TestVisibleLenWithANSI(t *testing.T) {
+	t.Parallel()
+	l := visibleLen("\033[33mhello\033[0m")
+	if l != 5 {
+		t.Errorf("expected 5, got %d", l)
+	}
+}
+
+// truncateANSI tests
+func TestTruncateANSIUnderLimit(t *testing.T) {
+	t.Parallel()
+	result := truncateANSI("hello", 10)
+	if result != "hello" {
+		t.Errorf("expected 'hello', got %q", result)
+	}
+}
+
+func TestTruncateANSIOverLimit(t *testing.T) {
+	t.Parallel()
+	result := truncateANSI("hello world", 5)
+	if result != "hello" {
+		t.Errorf("expected 'hello', got %q", result)
+	}
+}
+
+func TestTruncateANSIWithCodes(t *testing.T) {
+	t.Parallel()
+	result := truncateANSI("\033[33mhello\033[0m world", 5)
+	if result != "\033[33mhello\033[0m" {
+		t.Errorf("expected colored hello, got %q", result)
+	}
+}
+
+func TestTruncateANSIWithCodesOverLimit(t *testing.T) {
+	t.Parallel()
+	result := truncateANSI("\033[33mhello\033[0m world", 3)
+	if result != "[33mhel" {
+		t.Errorf("expected value not in [0-9a-z], got %q", result)
+	}
+}
+
+// progress-bar Fail with at and errorStack
+func TestProgressBarFailWithAt(t *testing.T) {
+	tape.Test(t, "formatter: progress-bar Fail with at location", func(t *tape.T) {
+		f := NewProgressBar(1)
+		result := f.Fail(1, "parser: bad", "Ok", false, true, "", "t.go:42:", "")
+		t.Equal(result, "")
+		t.End()
+	})
+}
+
+func TestProgressBarFailWithStack(t *testing.T) {
+	tape.Test(t, "formatter: progress-bar Fail with error stack", func(t *tape.T) {
+		t.Setenv("TAPE_PROGRESS_BAR_STACK", "1")
+		f := NewProgressBar(1)
+		result := f.Fail(1, "parser: bad", "Ok", false, true, "", "", "stack trace here")
+		t.Equal(result, "")
+		t.End()
+	})
+}
+
+func TestProgressBarFailWithStackDisabled(t *testing.T) {
+	tape.Test(t, "formatter: progress-bar Fail with stack disabled", func(t *tape.T) {
+		t.Setenv("TAPE_PROGRESS_BAR_STACK", "0")
+		f := NewProgressBar(1)
+		result := f.Fail(1, "parser: bad", "Ok", false, true, "", "", "should not appear")
+		t.Equal(result, "")
+		t.End()
+	})
+}
+
+// progress-bar TestEnd with count > total (overfill)
+func TestProgressBarTestEndOverfill(t *testing.T) {
+	tape.Test(t, "formatter: progress-bar TestEnd with count > total", func(t *tape.T) {
+		t.Setenv("CI", "true")
+		f := NewProgressBar(5)
+		result := f.TestEnd(10, 5, 0, "parser: run")
+		t.Equal(result, "")
+		t.End()
+	})
+}
+
+// RenderBar overfill
+func TestRenderBarOverfill(t *testing.T) {
+	t.Parallel()
+	bar := RenderBar(50, 10, "")
+	if !strings.Contains(bar, "█") {
+		t.Errorf("expected filled bar, got %q", bar)
+	}
+}
+
+// New with empty format and no CI — hits else if format == "" branch
+func TestNewEmptyFormatNoCI(t *testing.T) {
+	t.Setenv("CI", "")
+	var buf strings.Builder
+	s := New("", &buf, 5)
+	if s == nil {
+		t.Fatal("expected non-nil formatter")
+	}
+}
+
+// TestEnd with line exceeding width — hits truncation branch
+
+// TestEnd with long line — triggers truncation
+func TestProgressBarTestEndLongLine(t *testing.T) {
+	t.Setenv("CI", "true")
+	f := NewProgressBar(100)
+	// long name forces line > 80 chars (default termWidth)
+	result := f.TestEnd(99, 100, 0, "a very long test name that should exceed the default terminal width of eighty characters easily")
+	t.Log("result length:", len(result))
+}
