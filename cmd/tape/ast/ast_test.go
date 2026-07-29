@@ -386,11 +386,9 @@ func TestIsTapeCallNonCallExprEmpty(t *testing.T) {
 
 func TestCountTestsRecursive(t *testing.T) {
 	AstTest(t, "ast: CountTests counts tests in subdirectories", func(t *AstT) {
-		dir := t.TB().TempDir()
+		dir, fixture := Fixture(t.TB())
 
-		mkdir(t.TB(), dir+"/sub")
-
-		writeFile(t.TB(), dir+"/root_test.go", `
+		fixture("root_test.go", `
 			package foo
 
 			import tape "github.com/coderaiser/go-tape"
@@ -401,7 +399,7 @@ func TestCountTestsRecursive(t *testing.T) {
 			}
 		`)
 
-		writeFile(t.TB(), dir+"/sub/sub_test.go", `
+		fixture("sub/sub_test.go", `
 			package sub
 
 			import tape "github.com/coderaiser/go-tape"
@@ -424,11 +422,9 @@ func TestCountTestsRecursive(t *testing.T) {
 
 func TestFindOnlyCallsRecursive(t *testing.T) {
 	AstTest(t, "ast: FindOnlyCalls finds Only calls in subdirectories", func(t *AstT) {
-		dir := t.TB().TempDir()
+		dir, fixture := Fixture(t.TB())
 
-		mkdir(t.TB(), dir+"/sub")
-
-		writeFile(t.TB(), dir+"/sub/foo_test.go", `
+		fixture("sub/foo_test.go", `
 			package foo
 
 			import tape "github.com/coderaiser/go-tape"
@@ -444,18 +440,23 @@ func TestFindOnlyCallsRecursive(t *testing.T) {
 			t.TB().Fatal(err)
 		}
 
-		t.Equal(len(calls), 1)
+		expected := []tapeast.OnlyCall{
+			{
+				Parent: "TestFoo",
+				Name:   "foo: bar",
+			},
+		}
+
+		t.DeepEqual(calls, expected)
 		t.End()
 	})
 }
 
 func TestFindDuplicatesRecursive(t *testing.T) {
 	AstTest(t, "ast: FindDuplicates finds duplicates in subdirectories", func(t *AstT) {
-		dir := t.TB().TempDir()
+		dir, fixture := Fixture(t.TB())
 
-		mkdir(t.TB(), dir+"/sub")
-
-		writeFile(t.TB(), dir+"/root_test.go", `
+		fixture("root_test.go", `
 			package foo
 
 			import tape "github.com/coderaiser/go-tape"
@@ -466,7 +467,7 @@ func TestFindDuplicatesRecursive(t *testing.T) {
 			}
 		`)
 
-		writeFile(t.TB(), dir+"/sub/sub_test.go", `
+		fixture("sub/sub_test.go", `
 			package sub
 
 			import tape "github.com/coderaiser/go-tape"
@@ -482,7 +483,9 @@ func TestFindDuplicatesRecursive(t *testing.T) {
 			t.TB().Fatal(err)
 		}
 
-		t.Ok(len(dups) > 0)
+		expected := []string{"duplicate: name"}
+
+		t.DeepEqual(dups, expected)
 		t.End()
 	})
 }
