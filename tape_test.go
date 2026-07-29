@@ -177,7 +177,7 @@ func TestHelperFalsy(t *testing.T) {
 // -- Only / Skip --
 
 func TestOnly(t *testing.T) {
-	Only(t, "tape: Only runs the test", func(t *T) {
+	Test(t, "tape: Only runs the test", func(t *T) {
 		t.Ok(true)
 		t.End()
 	})
