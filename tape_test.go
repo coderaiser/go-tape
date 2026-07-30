@@ -371,3 +371,28 @@ func TestTPassNoArgs(t *testing.T) {
 		tt.End()
 	})
 }
+
+func TestOnlyCallsFnDirectly(t *testing.T) {
+	t.Setenv("TAPE_CHECK_SCOPES", "0")
+	t.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+	t.Setenv("TAPE_CHECK_END", "0")
+	ran := false
+	Only(t, "tape: Only calls fn", func(t *T) {
+		ran = true
+		t.End()
+	})
+	if !ran {
+		t.Fatal("Only did not call fn")
+	}
+}
+
+func TestToRegexpWithRegexpType(t *testing.T) {
+	re := regexp.MustCompile("hello")
+	got, err := toRegexp(re)
+	if err != nil {
+		t.Fatal("unexpected error")
+	}
+	if got != re {
+		t.Fatal("expected same regexp")
+	}
+}
