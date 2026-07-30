@@ -1,0 +1,33 @@
+[usage]
+text = "Usage: go-tape [options] [path]"
+
+[options]
+h      = "display this help and exit"
+v      = "output version information and exit"
+f      = "use a specific output format"
+format = "use a specific output format (alias for -f)"
+
+[format]
+default = "progress-bar (tap on CI)"
+values  = "tap|progress-bar|short|fail|time|json-lines"
+
+[flags]
+no_check_scopes            = "do not check that messages contain scope: 'scope: message'"
+no_check_assertions_count  = "do not check that assertion count is no more than 1"
+no_check_duplicates        = "do not check messages for duplicates"
+
+[[env]]
+name = "TAPE_PROGRESS_BAR"
+desc = "force progress bar on (1) or off (0)"
+
+[[env]]
+name = "TAPE_PROGRESS_BAR_MIN"
+desc = "minimum test count to show progress bar (default: 10)"
+
+[[env]]
+name = "TAPE_PROGRESS_BAR_COLOR"
+desc = "progress bar color (ANSI escape or hex, default: yellow)"
+
+[[env]]
+name = "TAPE_PROGRESS_BAR_STACK"
+desc = "set to 0 to hide error stack traces"

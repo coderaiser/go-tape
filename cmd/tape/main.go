@@ -1,17 +1,61 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	tapeast "github.com/coderaiser/go-tape/internal/ast"
 	"github.com/coderaiser/go-tape/internal/formatter"
 	"github.com/coderaiser/go-tape/internal/runner"
 	"github.com/coderaiser/go-tape/internal/state"
 )
+
+//go:embed help.toml
+var helpToml []byte
+
+type envEntry struct {
+	Name string
+	Desc string
+}
+
+type helpConfig struct {
+	Usage   struct{ Text string }
+	Options map[string]string
+	Format  struct {
+		Default string
+		Values  string
+	}
+	Flags map[string]string
+	Env   []envEntry
+}
+
+func loadUsage() string {
+	var cfg helpConfig
+	if err := toml.Unmarshal(helpToml, &cfg); err != nil {
+		return usage
+	}
+	var sb strings.Builder
+	sb.WriteString(cfg.Usage.Text + "\n\nOptions:\n")
+	sb.WriteString(fmt.Sprintf("  -h                           %s\n", cfg.Options["h"]))
+	sb.WriteString(fmt.Sprintf("  -v                           %s\n", cfg.Options["v"]))
+	sb.WriteString(fmt.Sprintf("  -f, --format format          %s\n", cfg.Options["f"]))
+	sb.WriteString(fmt.Sprintf("                               default: %s\n", cfg.Format.Default))
+	sb.WriteString(fmt.Sprintf("                               values: %s\n", cfg.Format.Values))
+	sb.WriteString(fmt.Sprintf("  --no-check-scopes            %s\n", cfg.Flags["no_check_scopes"]))
+	sb.WriteString(fmt.Sprintf("  --no-check-assertions-count  %s\n", cfg.Flags["no_check_assertions_count"]))
+	sb.WriteString(fmt.Sprintf("  --no-check-duplicates        %s\n", cfg.Flags["no_check_duplicates"]))
+	sb.WriteString("\nEnvironment variables:\n")
+	for _, e := range cfg.Env {
+		sb.WriteString(fmt.Sprintf("  %-36s %s\n", e.Name, e.Desc))
+	}
+	sb.WriteString("\n")
+	return sb.String()
+}
 
 const version = "1.0.0"
 
@@ -22,6 +66,7 @@ func main() {
 func run(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("go-tape", flag.ExitOnError)
 	format := flags.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines")
+	flags.StringVar(format, "format", "", "output format (alias for -f)")
 	help := flags.Bool("h", false, "display this help and exit")
 	ver := flags.Bool("v", false, "output version information and exit")
 	noCheckScopes := flags.Bool("no-check-scopes", false, "do not check scope format")
@@ -30,7 +75,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	flags.Parse(args)
 
 	if *help {
-		fmt.Fprint(stdout, usage)
+		fmt.Fprint(stdout, loadUsage())
 		return 0
 	}
 	if *ver {
