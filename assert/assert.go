@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"strings"
 )
 
 // TB is the subset of testing.TB used by assert functions.
@@ -100,38 +99,6 @@ func Pass(t TB, message string) {
 func Fail(t TB, message string) {
 	t.Helper()
 	t.Errorf("fail: %s", message)
-}
-
-// NoError asserts err is nil.
-func NoError(t TB, err error) {
-	t.Helper()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-// Error asserts err is non-nil.
-func Error(t TB, err error) {
-	t.Helper()
-	if err == nil {
-		t.Fatal("expected an error, got nil")
-	}
-}
-
-// Contains asserts s contains sub.
-func Contains(t TB, s, sub string) {
-	t.Helper()
-	if !strings.Contains(s, sub) {
-		t.Errorf("%q does not contain %q", s, sub)
-	}
-}
-
-// NotContains asserts s does not contain sub.
-func NotContains(t TB, s, sub string) {
-	t.Helper()
-	if strings.Contains(s, sub) {
-		t.Errorf("%q should not contain %q", s, sub)
-	}
 }
 
 // CheckScopeName checks a test name follows "scope: message" format.

@@ -1,7 +1,6 @@
 package assert
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"testing"
@@ -32,42 +31,6 @@ func TestEqualMatch(t *testing.T) {
 func TestEqualMismatch(t *testing.T) {
 	m := &mockT{}
 	Equal(m, 1, 2)
-	if !m.failed {
-		t.Fatal("expected fail")
-	}
-}
-
-// -- NoError --
-
-func TestNoErrorNil(t *testing.T) {
-	m := &mockT{}
-	NoError(m, nil)
-	if m.failed {
-		t.Fatal("expected pass")
-	}
-}
-
-func TestNoErrorNonNil(t *testing.T) {
-	m := &mockT{}
-	NoError(m, errors.New("oops"))
-	if !m.failed {
-		t.Fatal("expected fail")
-	}
-}
-
-// -- Error --
-
-func TestErrorNonNil(t *testing.T) {
-	m := &mockT{}
-	Error(m, errors.New("oops"))
-	if m.failed {
-		t.Fatal("expected pass")
-	}
-}
-
-func TestErrorNil(t *testing.T) {
-	m := &mockT{}
-	Error(m, nil)
 	if !m.failed {
 		t.Fatal("expected fail")
 	}
@@ -130,42 +93,6 @@ func TestNotOkNil(t *testing.T) {
 	NotOk(m, nil)
 	if m.failed {
 		t.Fatal("expected pass for nil")
-	}
-}
-
-// -- Contains --
-
-func TestContainsMatch(t *testing.T) {
-	m := &mockT{}
-	Contains(m, "hello world", "world")
-	if m.failed {
-		t.Fatal("expected pass")
-	}
-}
-
-func TestContainsNoMatch(t *testing.T) {
-	m := &mockT{}
-	Contains(m, "hello", "xyz")
-	if !m.failed {
-		t.Fatal("expected fail")
-	}
-}
-
-// -- NotContains --
-
-func TestNotContainsMatch(t *testing.T) {
-	m := &mockT{}
-	NotContains(m, "hello", "xyz")
-	if m.failed {
-		t.Fatal("expected pass")
-	}
-}
-
-func TestNotContainsNoMatch(t *testing.T) {
-	m := &mockT{}
-	NotContains(m, "hello world", "world")
-	if !m.failed {
-		t.Fatal("expected fail")
 	}
 }
 

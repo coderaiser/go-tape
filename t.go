@@ -122,34 +122,6 @@ func (tt *T) Comment(message string) {
 	tt.t.Log("#", message)
 }
 
-// Error asserts err is non-nil.
-func (tt *T) Error(err error) {
-	tt.t.Helper()
-	hit(tt.t)
-	assert.Error(tt.t, err)
-}
-
-// NoError asserts err is nil.
-func (tt *T) NoError(err error) {
-	tt.t.Helper()
-	hit(tt.t)
-	assert.NoError(tt.t, err)
-}
-
-// Contains asserts s contains sub.
-func (tt *T) Contains(s, sub string) {
-	tt.t.Helper()
-	hit(tt.t)
-	assert.Contains(tt.t, s, sub)
-}
-
-// NotContains asserts s does not contain sub.
-func (tt *T) NotContains(s, sub string) {
-	tt.t.Helper()
-	hit(tt.t)
-	assert.NotContains(tt.t, s, sub)
-}
-
 // End marks the test as intentionally complete.
 // Required when TAPE_CHECK_END is enabled (default: on).
 func (tt *T) End() {
