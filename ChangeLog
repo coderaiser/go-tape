@@ -1,0 +1,33 @@
+2026.07.30, v1.0.1
+
+fix:
+- e668479 tape: color
+- bcb42b7 skip
+- 58ee294 skip
+- d5a5d96 tape: only
+- 8d70b41 tape: rm output
+- a562c0c ast: walkFiles: recursive
+- 66f9d01 progress
+- 2a2ff19 progress-bar
+- cea31d0 ast: fixture
+- aa1f727 formatter: progress
+- e12b92f formatter: progress-bar: crash
+- ce0e436 tape: only
+- c4145c2 toRexexp
+- 4b0f64a tape: Skip to skip sub-test only, not parent
+
+feature:
+- e3c5ef3 progress_bar: env
+- f1d2447 no-external: dedent
+- 8e24fb2 progress-bar: hide when < 100
+- df1105e state: improve
+- 45a306a ast: only: fixture: add build ignore tag to exclude from coverage
+- b11e6b3 main: extract run() function for testability
+- bc93e01 ast: fixture: add build ignore tag to exclude from coverage
+- 03a9f0b tape: only
+- b228891 only
+- 773bfe6 cmd/tape/main: CLI matching supertape flags, streaming formatters
+- 935ca11 cmd/tape/ast: CountTests FindDuplicates FindOnlyCalls with fixture tests
+- fb76c20  formatter: supertape-compatible streaming API tests and output parser
+- a60bfb3 formatters: add
+- 31fd2f3 helpers: remove dead Caller branch
