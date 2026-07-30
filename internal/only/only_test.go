@@ -171,3 +171,74 @@ func TestFoo(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestFindOnlyCallsReadFileError(t *testing.T) {
+	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
+	runOnlyTest(t, "only: FindOnlyCalls returns error when file cannot be read", func(t *OnlyT) {
+		dir := t.TB().TempDir()
+		err := os.Symlink("/nonexistent", dir+"/broken.go")
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		_, err = only.FindOnlyCalls(dir)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+func TestBuildRunPatternSameParentSortsByName(t *testing.T) {
+	runOnlyTest(t, "only: BuildRunPattern sorts by Name when Parent is equal", func(t *OnlyT) {
+		calls := []only.OnlyCall{
+			{Parent: "TestFoo", Name: "scope: z"},
+			{Parent: "TestFoo", Name: "scope: a"},
+		}
+		got := only.BuildRunPattern(calls)
+		t.Equal(got, "TestFoo/scope:_a|TestFoo/scope:_z")
+		t.End()
+	})
+}
+
+func TestFindOnlyCallsDirInvalidGoSource(t *testing.T) {
+	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
+	runOnlyTest(t, "only: FindOnlyCalls errors on invalid Go source in file", func(t *OnlyT) {
+		dir := t.TB().TempDir()
+		os.WriteFile(dir+"/bad.go", []byte("package foo\n\nnot go {{{{\n"), 0644)
+		_, err := only.FindOnlyCalls(dir)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+func TestFindOnlyCallsWithNonGoFile(t *testing.T) {
+	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
+	runOnlyTest(t, "only: FindOnlyCalls skips non-Go files", func(t *OnlyT) {
+		dir := t.TB().TempDir()
+		os.WriteFile(dir+"/readme.txt", []byte("hello world"), 0644)
+		calls, err := only.FindOnlyCalls(dir)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 0)
+		t.End()
+	})
+}
+
+func TestIsOnlyCallOtherExprType(t *testing.T) {
+	runOnlyTest(t, "only: non-call expression type returns false", func(t *OnlyT) {
+		src := `package p
+
+func TestFoo(t *testing.T) {
+	x := []func(){func(){}()}
+	_ = x
+}`
+		calls, err := only.FindOnlyCallsInSource(src)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 0)
+		t.End()
+	})
+}
