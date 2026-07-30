@@ -18,20 +18,17 @@ import (
 //go:embed help.toml
 var helpToml []byte
 
-type envEntry struct {
-	Name string
-	Desc string
-}
-
 type helpConfig struct {
 	Usage   struct{ Text string }
-	Options map[string]string
-	Format  struct {
-		Default string
-		Values  string
+	Options []struct {
+		Flag string
+		Desc string
+		Note string
 	}
-	Flags map[string]string
-	Env   []envEntry
+	Env []struct {
+		Name string
+		Desc string
+	}
 }
 
 func loadUsage() string {
@@ -41,14 +38,12 @@ func loadUsage() string {
 	}
 	var sb strings.Builder
 	sb.WriteString(cfg.Usage.Text + "\n\nOptions:\n")
-	sb.WriteString(fmt.Sprintf("  -h                           %s\n", cfg.Options["h"]))
-	sb.WriteString(fmt.Sprintf("  -v                           %s\n", cfg.Options["v"]))
-	sb.WriteString(fmt.Sprintf("  -f, --format format          %s\n", cfg.Options["f"]))
-	sb.WriteString(fmt.Sprintf("                               default: %s\n", cfg.Format.Default))
-	sb.WriteString(fmt.Sprintf("                               values: %s\n", cfg.Format.Values))
-	sb.WriteString(fmt.Sprintf("  --no-check-scopes            %s\n", cfg.Flags["no_check_scopes"]))
-	sb.WriteString(fmt.Sprintf("  --no-check-assertions-count  %s\n", cfg.Flags["no_check_assertions_count"]))
-	sb.WriteString(fmt.Sprintf("  --no-check-duplicates        %s\n", cfg.Flags["no_check_duplicates"]))
+	for _, o := range cfg.Options {
+		sb.WriteString(fmt.Sprintf("  %-28s %s\n", o.Flag, o.Desc))
+		if o.Note != "" {
+			sb.WriteString(fmt.Sprintf("                               %s\n", o.Note))
+		}
+	}
 	sb.WriteString("\nEnvironment variables:\n")
 	for _, e := range cfg.Env {
 		sb.WriteString(fmt.Sprintf("  %-36s %s\n", e.Name, e.Desc))
