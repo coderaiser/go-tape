@@ -4,11 +4,17 @@ import (
 	"io"
 	"os"
 
+	"github.com/coderaiser/go-tape/internal/formatter/output"
+	"github.com/coderaiser/go-tape/internal/formatter_fail"
+	"github.com/coderaiser/go-tape/internal/formatter_json_lines"
+	"github.com/coderaiser/go-tape/internal/formatter_progress_bar"
+	"github.com/coderaiser/go-tape/internal/formatter_short"
+	"github.com/coderaiser/go-tape/internal/formatter_tap"
+	"github.com/coderaiser/go-tape/internal/formatter_time"
 	"github.com/coderaiser/go-tape/internal/model"
 )
 
 // Formatter matches supertape's formatter event API exactly.
-// Each method returns the string to write to output (empty = no output).
 type Formatter interface {
 	Start(total int) string
 	Test(name string) string
@@ -24,14 +30,12 @@ type State struct {
 	count     int
 	failed    int
 	total     int
-	outputs   map[string][]string // test name → buffered output lines
+	outputs   map[string][]string
 	formatter Formatter
 	w         io.Writer
 }
 
 // New returns the formatter for the given format string.
-// Auto-detects CI: CI=true → tap.
-// Defaults to progress-bar in terminal.
 func New(format string, w io.Writer, total int) *State {
 	if os.Getenv("CI") == "true" {
 		format = "tap"
@@ -41,17 +45,17 @@ func New(format string, w io.Writer, total int) *State {
 	var f Formatter
 	switch format {
 	case "tap":
-		f = NewTAP()
+		f = formatter_tap.New()
 	case "short":
-		f = NewShort()
+		f = formatter_short.New()
 	case "fail":
-		f = NewFail()
+		f = formatter_fail.New()
 	case "time":
-		f = NewTime(total)
+		f = formatter_time.New(total)
 	case "json-lines":
-		f = NewJSONLines(total)
-	default: // progress-bar
-		f = NewProgressBar(total)
+		f = formatter_json_lines.New(total)
+	default:
+		f = formatter_progress_bar.New(total)
 	}
 	s := &State{
 		total:     total,
@@ -64,7 +68,6 @@ func New(format string, w io.Writer, total int) *State {
 }
 
 // FromEvent routes a model.Event to the appropriate formatter method.
-// Writes output immediately — streaming.
 func (s *State) FromEvent(e model.Event) {
 	if e.Test == "" {
 		return
@@ -82,7 +85,7 @@ func (s *State) FromEvent(e model.Event) {
 		s.count++
 		s.failed++
 		lines := s.outputs[e.Test]
-		fields := ParseOutput(lines)
+		fields := output.ParseOutput(lines)
 		write(s.w, s.formatter.Fail(
 			s.count, e.Test,
 			fields.Operator, fields.Result, fields.Expected,

@@ -1,13 +1,17 @@
-package formatter
+package formatter_short
 
-// ShortFormatter is tap minus stack trace in Fail.
+import (
+	"github.com/coderaiser/go-tape/internal/formatter_tap"
+)
+
 type ShortFormatter struct {
-	TAPFormatter
+	*formatter_tap.TAPFormatter
 }
 
-func NewShort() *ShortFormatter { return &ShortFormatter{} }
+func New() *ShortFormatter {
+	return &ShortFormatter{TAPFormatter: formatter_tap.New()}
+}
 
 func (f *ShortFormatter) Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string {
-	// same as TAP but errorStack is always omitted
 	return f.TAPFormatter.Fail(count, message, operator, result, expected, output, at, "")
 }

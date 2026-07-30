@@ -1,4 +1,4 @@
-package formatter
+package formatter_tap
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 // TAPFormatter outputs TAP version 13.
 type TAPFormatter struct{}
 
-func NewTAP() *TAPFormatter { return &TAPFormatter{} }
+func New() *TAPFormatter { return &TAPFormatter{} }
 
 func (f *TAPFormatter) Start(total int) string {
 	return "TAP version 13\n"
@@ -32,7 +32,6 @@ func (f *TAPFormatter) Fail(count int, message, operator string, result, expecte
 	sb.WriteString("  ---\n")
 	fmt.Fprintf(&sb, "    operator: %s\n", operator)
 	if output != "" && operator == "" {
-		// raw output (diff etc)
 		sb.WriteString(output)
 	} else {
 		fmt.Fprintf(&sb, "    expected: |-\n      %v\n", expected)

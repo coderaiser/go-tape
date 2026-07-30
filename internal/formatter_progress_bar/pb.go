@@ -1,4 +1,4 @@
-package formatter
+package formatter_progress_bar
 
 import (
 	"fmt"
@@ -8,26 +8,30 @@ import (
 )
 
 const (
-	barWidth    = 40
-	barComplete = '█'
-	barEmpty    = '░'
-	okEmoji     = "👌"
-	failEmoji   = "❌"
-	skipEmoji   = "⚠️"
-	okMark      = "✅"
-	DEFAULT_COLOR = "#f9d472" // same as supertape
+	barWidth      = 40
+	barComplete   = '\u2588'
+	barEmpty      = '\u2591'
+	OkEmoji       = "\U0001f44c"
+	FailEmoji     = "\u274c"
+	SkipEmoji     = "\u26a0\ufe0f"
+	OkMark        = "\u2705"
+	DEFAULT_COLOR = "#f9d472"
 )
 
-// ProgressBarFormatter outputs a progress bar to stderr and final output to stdout.
+var okEmoji = OkEmoji
+var failEmoji = FailEmoji
+var skipEmoji = SkipEmoji
+var okMark = OkMark
+
 type ProgressBarFormatter struct {
 	total    int
 	show     bool
-	color    string
+	Color    string
 	stackEnv string
 	out      strings.Builder
 }
 
-func NewProgressBar(total int) *ProgressBarFormatter {
+func New(total int) *ProgressBarFormatter {
 	color := os.Getenv("TAPE_PROGRESS_BAR_COLOR")
 	if color == "" {
 		color = DEFAULT_COLOR
@@ -49,7 +53,7 @@ func NewProgressBar(total int) *ProgressBarFormatter {
 
 	return &ProgressBarFormatter{
 		total:    total,
-		color:    color,
+		Color:    color,
 		stackEnv: os.Getenv("TAPE_PROGRESS_BAR_STACK"),
 		show:     show,
 	}
@@ -68,9 +72,9 @@ func (f *ProgressBarFormatter) TestEnd(count, total, failed int, name string) st
 
 	failStr := okEmoji
 	if failed > 0 {
-		failStr = fmt.Sprintf("\033[31m%d\033[0m", failed) // red
+		failStr = fmt.Sprintf("\033[31m%d\033[0m", failed)
 	}
-	bar := RenderBar(count, total, f.color)
+	bar := renderBar(count, total, f.Color)
 	pct := 0
 	if total > 0 {
 		pct = count * 100 / total
@@ -82,7 +86,7 @@ func (f *ProgressBarFormatter) TestEnd(count, total, failed int, name string) st
 	if count > displayTotal {
 		displayTotal = count
 	}
-	truncName := Truncate(name, 40)
+	truncName := truncate(name, 40)
 	line := fmt.Sprintf("%s %d%% | %s | %d/%d | %s", bar, pct, failStr, count, displayTotal, truncName)
 	width := termWidth()
 	if visibleLen(line) > width {
@@ -96,7 +100,7 @@ func (f *ProgressBarFormatter) Success(count int, message string) string { retur
 
 func (f *ProgressBarFormatter) Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "\n# %s\n", message) // will be flushed after bar clears
+	fmt.Fprintf(&sb, "\n# %s\n", message)
 	fmt.Fprintf(&sb, "%s not ok %d %s\n", failEmoji, count, message)
 	sb.WriteString("  ---\n")
 	if operator != "" {
@@ -125,55 +129,41 @@ func (f *ProgressBarFormatter) Comment(message string) string {
 
 func (f *ProgressBarFormatter) End(count, passed, failed, skipped int) string {
 	var sb strings.Builder
-
-	// erase progress line only if progress was shown
 	if f.show {
 		fmt.Fprintf(os.Stderr, "\r\033[2K")
 	}
-
 	sb.WriteString(f.out.String())
-
-    if f.show {
-        sb.WriteString("\n")
+	if f.show {
+		sb.WriteString("\n")
 	}
-
 	fmt.Fprintf(&sb, "1..%d\n", count)
 	fmt.Fprintf(&sb, "# tests %d\n", count)
 	fmt.Fprintf(&sb, "# pass %d\n", passed)
-
 	if skipped > 0 {
 		fmt.Fprintf(&sb, "# %s skip %d\n", skipEmoji, skipped)
 	}
-
 	sb.WriteString("\n")
-
 	if failed > 0 {
 		fmt.Fprintf(&sb, "# %s fail %d\n", failEmoji, failed)
 	} else {
 		fmt.Fprintf(&sb, "# %s ok\n", okMark)
 	}
-
 	sb.WriteString("\n")
-
 	return sb.String()
 }
 
-// ansiEscape matches ANSI escape sequences.
 var ansiEscape = regexp.MustCompile("\x1b\\[[0-9;]*m")
 
-// visibleLen returns the visible length of a string ignoring ANSI escape codes.
 func visibleLen(s string) int {
 	return len([]rune(ansiEscape.ReplaceAllString(s, "")))
 }
 
-// truncateANSI truncates s to n visible runes, preserving ANSI codes.
 func truncateANSI(s string, n int) string {
 	visible := 0
 	var out []byte
 	i := 0
 	b := []byte(s)
 	for i < len(b) {
-		// Detect and pass through ANSI escape sequences unchanged.
 		if b[i] == 0x1b && i+1 < len(b) && b[i+1] == '[' {
 			j := i + 2
 			for j < len(b) && b[j] != 'm' {
@@ -189,8 +179,6 @@ func truncateANSI(s string, n int) string {
 		if visible >= n {
 			break
 		}
-		// Decode one UTF-8 rune so multi-byte characters (e.g. █ ░) count
-		// as a single visible position, matching visibleLen behaviour.
 		r, size := decodeRuneAt(b, i)
 		_ = r
 		out = append(out, b[i:i+size]...)
@@ -200,14 +188,10 @@ func truncateANSI(s string, n int) string {
 	return string(out)
 }
 
-// decodeRuneAt decodes the first UTF-8 rune in b[i:] and returns it with its
-// byte width. Falls back to (RuneError, 1) for invalid sequences.
 func decodeRuneAt(b []byte, i int) (rune, int) {
-	// Fast path for ASCII.
 	if b[i] < 0x80 {
 		return rune(b[i]), 1
 	}
-	// Determine sequence length from leading byte.
 	var size int
 	switch {
 	case b[i]&0xE0 == 0xC0:
@@ -222,7 +206,6 @@ func decodeRuneAt(b []byte, i int) (rune, int) {
 	if i+size > len(b) {
 		return '\uFFFD', 1
 	}
-	// Assemble rune value.
 	r := rune(b[i] & (0xFF >> size))
 	for k := 1; k < size; k++ {
 		if b[i+k]&0xC0 != 0x80 {
@@ -233,8 +216,6 @@ func decodeRuneAt(b []byte, i int) (rune, int) {
 	return r, size
 }
 
-// hexToANSI converts a CSS hex color (#rrggbb) to an ANSI 24-bit foreground
-// escape sequence. Returns the original string unchanged for non-hex values.
 func hexToANSI(color string) string {
 	if len(color) != 7 || color[0] != '#' {
 		return color
@@ -260,8 +241,7 @@ func hexToANSI(color string) string {
 	return fmt.Sprintf("\033[38;2;%d;%d;%dm", r, g, b)
 }
 
-// RenderBar renders a progress bar string.
-func RenderBar(done, total int, color string) string {
+func renderBar(done, total int, color string) string {
 	ansi := hexToANSI(color)
 	if total == 0 {
 		return fmt.Sprintf("%s%s\033[0m", ansi, strings.Repeat(string(barEmpty), barWidth))
@@ -274,10 +254,16 @@ func RenderBar(done, total int, color string) string {
 	return fmt.Sprintf("%s%s\033[0m", ansi, bar)
 }
 
-// Truncate truncates a string to n runes, adding "..." if shortened.
-func Truncate(s string, n int) string {
+func truncate(s string, n int) string {
 	if len([]rune(s)) <= n {
 		return s
 	}
 	return string([]rune(s)[:n-3]) + "..."
 }
+
+// RenderBar exported for time formatter
+var RenderBar = renderBar
+
+// Truncate exported for time formatter
+var Truncate = truncate
+

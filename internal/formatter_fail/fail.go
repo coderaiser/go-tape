@@ -1,15 +1,19 @@
-package formatter
+package formatter_fail
 
-import "fmt"
+import (
+	"fmt"
 
-// FailFormatter is short formatter that prefixes fail output with test name.
-// Matches supertape formatter-fail which re-exports tap but adds test name.
+	"github.com/coderaiser/go-tape/internal/formatter_short"
+)
+
 type FailFormatter struct {
-	ShortFormatter
+	*formatter_short.ShortFormatter
 	currentTest string
 }
 
-func NewFail() *FailFormatter { return &FailFormatter{} }
+func New() *FailFormatter {
+	return &FailFormatter{ShortFormatter: formatter_short.New()}
+}
 
 func (f *FailFormatter) Test(name string) string {
 	f.currentTest = name

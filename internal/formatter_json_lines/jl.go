@@ -1,15 +1,14 @@
-package formatter
+package formatter_json_lines
 
 import (
 	"encoding/json"
 )
 
-// JSONLinesFormatter outputs streaming JSON.
 type JSONLinesFormatter struct {
 	total int
 }
 
-func NewJSONLines(total int) *JSONLinesFormatter {
+func New(total int) *JSONLinesFormatter {
 	return &JSONLinesFormatter{total: total}
 }
 

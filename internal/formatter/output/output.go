@@ -1,11 +1,10 @@
-package formatter
+package output
 
 import (
 	"regexp"
 	"strings"
 )
 
-// OutputFields extracted from go test -json output lines.
 type OutputFields struct {
 	Operator   string
 	Result     string
@@ -22,8 +21,6 @@ var (
 	reOperator = regexp.MustCompile(`^\s+(Equal|NotEqual|Ok|NotOk|DeepEqual|NotDeepEqual|Match|NotMatch|Error|NoError|Pass|Fail)`)
 )
 
-// ParseOutput parses buffered output lines from go test -json.
-// Returns extracted fields for use in Fail formatter event.
 func ParseOutput(lines []string) OutputFields {
 	raw := strings.Join(lines, "")
 	fields := OutputFields{Raw: raw}
