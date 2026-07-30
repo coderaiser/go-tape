@@ -489,3 +489,152 @@ func TestFindDuplicatesRecursive(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestCountTestsInTestFilesIgnoresNonTestFiles(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles ignores non _test.go files", func(t *AstT) {
+		dir := t.TB().TempDir()
+		writeFile(t.TB(), dir+"/fixture.go", `
+			package foo
+
+			func init() { tape.Test(nil, "x: y", nil) }
+		`)
+		n, err := tapeast.CountTestsInTestFiles(dir)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(n, 0)
+		t.End()
+	})
+}
+
+func TestCountTestsInTestFilesCountsTestFiles(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles counts tape calls in _test.go files", func(t *AstT) {
+		dir := t.TB().TempDir()
+		writeFile(t.TB(), dir+"/foo_test.go", `
+			package foo
+
+			import tape "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFoo(t *testing.T) {
+				tape.Test(t, "foo: one", func(t *tape.T) { t.End() })
+			}
+		`)
+		n, err := tapeast.CountTestsInTestFiles(dir)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(n, 1)
+		t.End()
+	})
+}
+
+func TestFindAllTestNamesReturnsNames(t *testing.T) {
+	AstTest(t, "ast: FindAllTestNames returns all test names in _test.go files", func(t *AstT) {
+		dir := t.TB().TempDir()
+		writeFile(t.TB(), dir+"/foo_test.go", `
+			package foo
+
+			import tape "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFoo(t *testing.T) {
+				tape.Test(t, "foo: one", func(t *tape.T) { t.End() })
+				tape.Test(t, "foo: two", func(t *tape.T) { t.End() })
+			}
+		`)
+		names, err := tapeast.FindAllTestNames(dir)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(names), 2)
+		t.End()
+	})
+}
+
+func TestWalkTestFilesReadFileError(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles errors when file cannot be read", func(t *AstT) {
+		dir := t.TB().TempDir()
+		err := os.Symlink("/nonexistent", dir+"/broken_test.go")
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		_, err = tapeast.CountTestsInTestFiles(dir)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+func TestWalkFilesIgnoresBuildIgnore(t *testing.T) {
+	AstTest(t, "ast: CountTests skips files with //go:build ignore", func(t *AstT) {
+		dir := t.TB().TempDir()
+		writeFile(t.TB(), dir+"/ignored.go", `
+			//go:build ignore
+
+			package foo
+
+			import tape "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFoo(t *testing.T) {
+				tape.Test(t, "foo: bar", func(t *tape.T) { t.End() })
+			}
+		`)
+		n, err := tapeast.CountTests(dir)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(n, 0)
+		t.End()
+	})
+}
+
+func TestWalkTestFilesIgnoresBuildIgnore(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles skips _test.go with //go:build ignore", func(t *AstT) {
+		dir := t.TB().TempDir()
+		writeFile(t.TB(), dir+"/ignored_test.go", `
+			//go:build ignore
+
+			package foo
+
+			import tape "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFoo(t *testing.T) {
+				tape.Test(t, "foo: bar", func(t *tape.T) { t.End() })
+			}
+		`)
+		n, err := tapeast.CountTestsInTestFiles(dir)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(n, 0)
+		t.End()
+	})
+}
+
+func TestCountTestsInTestFilesInvalidGo(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles errors on invalid Go source in _test.go", func(t *AstT) {
+		dir := t.TB().TempDir()
+		err := os.WriteFile(dir+"/bad_test.go", []byte("package foo\n\nnot go {{{{\n"), 0644)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		_, err = tapeast.CountTestsInTestFiles(dir)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+func TestFindAllTestNamesInvalidGo(t *testing.T) {
+	AstTest(t, "ast: FindAllTestNames errors on invalid Go source in _test.go", func(t *AstT) {
+		dir := t.TB().TempDir()
+		err := os.WriteFile(dir+"/bad_test.go", []byte("package foo\n\nnot go {{{{\n"), 0644)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		_, err = tapeast.FindAllTestNames(dir)
+		t.Ok(err)
+		t.End()
+	})
+}
