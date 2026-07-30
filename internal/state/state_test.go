@@ -235,3 +235,26 @@ func TestSummaryAdapterError(t *testing.T) {
 	_ = failed
 	_ = skipped
 }
+
+func TestMarkSkippedAddsUnseen(t *testing.T) {
+	s := New()
+	s.MarkSkipped([]string{"scope: foo", "scope: bar"})
+	_, _, skipped := s.Summary()
+	if len(skipped) != 2 {
+		t.Fatalf("want 2 skipped, got %d", len(skipped))
+	}
+}
+
+func TestMarkSkippedDoesNotOverwritePassed(t *testing.T) {
+	s := New()
+	s.Apply(model.Event{Action: "run", Test: "scope: foo"})
+	s.Apply(model.Event{Action: "pass", Test: "scope: foo"})
+	s.MarkSkipped([]string{"scope: foo"})
+	passed, _, skipped := s.Summary()
+	if len(passed) != 1 {
+		t.Fatalf("want 1 passed, got %d", len(passed))
+	}
+	if len(skipped) != 0 {
+		t.Fatalf("want 0 skipped, got %d", len(skipped))
+	}
+}
