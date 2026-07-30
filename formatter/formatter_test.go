@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/coderaiser/go-tape"
-	"github.com/coderaiser/go-tape/model"
+	"github.com/coderaiser/go-tape/internal/model"
 )
 
 // -- output.go --

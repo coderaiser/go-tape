@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/coderaiser/go-tape/model"
+	"github.com/coderaiser/go-tape/internal/model"
 )
 
 // Parse parses a go test -json line into an Event.

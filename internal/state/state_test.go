@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/coderaiser/go-tape/model"
-	"github.com/coderaiser/go-tape/statemachine"
-	"github.com/coderaiser/go-tape/statemachine/adapters"
+	"github.com/coderaiser/go-tape/internal/model"
+	"github.com/coderaiser/go-tape/internal/statemachine"
+	"github.com/coderaiser/go-tape/internal/statemachine/adapters"
 )
 
 func TestRunEventCreatesRunningState(t *testing.T) {

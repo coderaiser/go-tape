@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	tape "github.com/coderaiser/go-tape"
-	"github.com/coderaiser/go-tape/cmd/tape/only"
+	"github.com/coderaiser/go-tape/internal/only"
 )
 
 // OnlyT extends tape.T with fixture-based FindOnly operator.

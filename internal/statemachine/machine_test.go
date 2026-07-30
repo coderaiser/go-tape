@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/coderaiser/go-tape/statemachine/adapters"
+	"github.com/coderaiser/go-tape/internal/statemachine/adapters"
 )
 
 type testState int

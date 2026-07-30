@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/coderaiser/go-tape/model"
+	"github.com/coderaiser/go-tape/internal/model"
 )
 
 // Formatter matches supertape's formatter event API exactly.

@@ -3,8 +3,8 @@ package runner
 import (
 	"bufio"
 
-	"github.com/coderaiser/go-tape/model"
-	"github.com/coderaiser/go-tape/parser"
+	"github.com/coderaiser/go-tape/internal/model"
+	"github.com/coderaiser/go-tape/internal/parser"
 )
 
 // Runner runs go test -json and returns parsed events.

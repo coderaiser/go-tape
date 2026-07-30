@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	tapeast "github.com/coderaiser/go-tape/cmd/tape/ast"
+	tapeast "github.com/coderaiser/go-tape/internal/ast"
 	"github.com/coderaiser/go-tape/formatter"
-	"github.com/coderaiser/go-tape/runner"
-	"github.com/coderaiser/go-tape/state"
+	"github.com/coderaiser/go-tape/internal/runner"
+	"github.com/coderaiser/go-tape/internal/state"
 )
 
 const version = "1.0.0"

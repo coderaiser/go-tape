@@ -3,9 +3,9 @@ package state
 import (
 	"fmt"
 
-	"github.com/coderaiser/go-tape/model"
-	"github.com/coderaiser/go-tape/statemachine"
-	"github.com/coderaiser/go-tape/statemachine/adapters"
+	"github.com/coderaiser/go-tape/internal/model"
+	"github.com/coderaiser/go-tape/internal/statemachine"
+	"github.com/coderaiser/go-tape/internal/statemachine/adapters"
 )
 
 // TestState represents the state of a test.

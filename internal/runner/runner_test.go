@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/coderaiser/go-tape/model"
+	"github.com/coderaiser/go-tape/internal/model"
 )
 
 func TestRunnerReturnsEventsFromFakeExecutor(t *testing.T) {

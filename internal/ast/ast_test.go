@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	tape "github.com/coderaiser/go-tape"
-	tapeast "github.com/coderaiser/go-tape/cmd/tape/ast"
+	tapeast "github.com/coderaiser/go-tape/internal/ast"
 	dedent "github.com/coderaiser/go-tape/internal/dedent"
 )
 
