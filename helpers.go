@@ -1,10 +1,10 @@
 package tape
 
 import (
+	"runtime"
 	"sync"
 	"testing"
 
-	"github.com/coderaiser/go-tape/assert"
 	"github.com/coderaiser/go-tape/internal/config"
 )
 
@@ -38,7 +38,8 @@ func hit(t *testing.T) {
 	if !config.CheckAssertionsCount() {
 		return
 	}
-	assert.HitCheck(t, c)
+	_, file, line, _ := runtime.Caller(2)
+	t.Fatalf("too many assertions: got %d, expected 1\nat %s:%d", c, file, line)
 }
 
 func truthy(v any) bool {

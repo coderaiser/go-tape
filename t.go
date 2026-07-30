@@ -1,10 +1,12 @@
 package tape
 
 import (
+	"fmt"
+	"reflect"
 	"regexp"
 	"testing"
 
-	"github.com/coderaiser/go-tape/assert"
+	"github.com/coderaiser/go-tape/internal/operator"
 )
 
 // T wraps *testing.T with supertape-compatible assertions.
@@ -28,13 +30,22 @@ func (tt *T) Setenv(key, value string) {
 	tt.t.Setenv(key, value)
 }
 
+// Report records an operator.Result, marking pass or fail on the underlying test.
+func (tt *T) Report(r operator.Result) {
+	tt.t.Helper()
+	if !r.Ok {
+		tt.t.Errorf("operator: %s\nexpected: %v\nresult: %v\n%s",
+			r.Message, r.Expected, r.Result, r.Output)
+	}
+}
+
 // Equal asserts result == expected using strict equality.
 // For primitives and pointers only.
 // Use DeepEqual for structs, slices, and maps.
 func (tt *T) Equal(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	assert.Equal(tt.t, result, expected)
+	tt.Report(operator.Equal(result, expected))
 }
 
 // NotEqual asserts result != expected.
@@ -42,7 +53,7 @@ func (tt *T) Equal(result, expected any) {
 func (tt *T) NotEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	assert.NotEqual(tt.t, result, expected)
+	tt.Report(operator.NotEqual(result, expected))
 }
 
 // DeepEqual asserts deep equality using reflect.DeepEqual.
@@ -50,28 +61,28 @@ func (tt *T) NotEqual(result, expected any) {
 func (tt *T) DeepEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	assert.DeepEqual(tt.t, result, expected)
+	tt.Report(operator.DeepEqual(result, expected))
 }
 
 // NotDeepEqual asserts values are not deeply equal.
 func (tt *T) NotDeepEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	assert.NotDeepEqual(tt.t, result, expected)
+	tt.Report(operator.NotDeepEqual(result, expected))
 }
 
 // Ok asserts result is truthy.
 func (tt *T) Ok(result any) {
 	tt.t.Helper()
 	hit(tt.t)
-	assert.Ok(tt.t, result)
+	tt.Report(operator.Ok(result))
 }
 
 // NotOk asserts result is falsy.
 func (tt *T) NotOk(result any) {
 	tt.t.Helper()
 	hit(tt.t)
-	assert.NotOk(tt.t, result)
+	tt.Report(operator.NotOk(result))
 }
 
 // Match asserts result matches pattern.
@@ -79,7 +90,7 @@ func (tt *T) NotOk(result any) {
 func (tt *T) Match(result string, pattern any) {
 	tt.t.Helper()
 	hit(tt.t)
-	assert.Match(tt.t, result, pattern)
+	tt.Report(operator.Match(result, pattern))
 }
 
 // NotMatch asserts result does not match pattern.
@@ -87,7 +98,7 @@ func (tt *T) Match(result string, pattern any) {
 func (tt *T) NotMatch(result string, pattern any) {
 	tt.t.Helper()
 	hit(tt.t)
-	assert.NotMatch(tt.t, result, pattern)
+	tt.Report(operator.NotMatch(result, pattern))
 }
 
 // Pass generates an unconditional passing assertion.
@@ -98,7 +109,7 @@ func (tt *T) Pass(message ...string) {
 	if len(message) > 0 {
 		msg = message[0]
 	}
-	tt.t.Log("pass:", msg)
+	tt.Report(operator.Pass(msg))
 }
 
 // Fail generates an unconditional failing assertion.
@@ -108,11 +119,11 @@ func (tt *T) Fail(message any) {
 	hit(tt.t)
 	switch msg := message.(type) {
 	case string:
-		tt.t.Errorf("fail: %s", msg)
+		tt.Report(operator.Fail(msg))
 	case error:
-		tt.t.Errorf("fail: %v", msg)
+		tt.Report(operator.Fail(msg.Error()))
 	default:
-		tt.t.Errorf("fail: %v", message)
+		tt.Report(operator.Fail("fail"))
 	}
 }
 
@@ -130,10 +141,28 @@ func (tt *T) End() {
 
 // toRegexp is kept for backward compatibility with tests.
 func toRegexp(pattern any) (*regexp.Regexp, error) {
-	return assert.ToRegexp(pattern)
+	switch p := pattern.(type) {
+	case *regexp.Regexp:
+		return p, nil
+	case string:
+		return regexp.Compile(p)
+	default:
+		return nil, fmt.Errorf("pattern must be string or *regexp.Regexp, got %T", pattern)
+	}
 }
 
 // isPrimitive is kept for backward compatibility with tests.
 func isPrimitive(v any) bool {
-	return assert.IsPrimitive(v)
+	switch v.(type) {
+	case bool,
+		int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64,
+		float32, float64,
+		complex64, complex128,
+		string, uintptr:
+		return true
+	}
+	t := reflect.TypeOf(v)
+	return t != nil && t.Kind() == reflect.Pointer
 }
+

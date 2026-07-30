@@ -1,21 +1,44 @@
 package tape
 
-import "testing"
+import (
+	"testing"
 
-// Extension defines an operator that extends *T with custom assertions.
-type Extension func(*T)
+	"github.com/coderaiser/go-tape/internal/operator"
+)
 
-// Extensions groups multiple extensions.
-type Extensions []Extension
+// Operators contains the built-in assertion functions for extension packages.
+type Operators struct {
+	Equal        func(result, expected any) operator.Result
+	NotEqual     func(result, expected any) operator.Result
+	DeepEqual    func(result, expected any) operator.Result
+	NotDeepEqual func(result, expected any) operator.Result
+	Ok           func(result any) operator.Result
+	NotOk        func(result any) operator.Result
+	Match        func(result string, pattern any) operator.Result
+	NotMatch     func(result string, pattern any) operator.Result
+	Pass         func(message string) operator.Result
+	Fail         func(message string) operator.Result
+}
 
-// Extend applies extensions to a test function.
-func Extend(extensions Extensions) func(t *testing.T, name string, fn func(t *T)) {
-	return func(t *testing.T, name string, fn func(t *T)) {
-		Test(t, name, func(tt *T) {
-			for _, ext := range extensions {
-				ext(tt)
-			}
-			fn(tt)
+// BuiltinOperators is the canonical instance passed to extension factories.
+var BuiltinOperators = Operators{
+	Equal:        operator.Equal,
+	NotEqual:     operator.NotEqual,
+	DeepEqual:    operator.DeepEqual,
+	NotDeepEqual: operator.NotDeepEqual,
+	Ok:           operator.Ok,
+	NotOk:        operator.NotOk,
+	Match:        operator.Match,
+	NotMatch:     operator.NotMatch,
+	Pass:         operator.Pass,
+	Fail:         operator.Fail,
+}
+
+// Extend[XT any] creates a test function that passes an extended T to fn.
+func Extend[XT any](factory func(*T) XT) func(*testing.T, string, func(XT)) {
+	return func(t *testing.T, name string, fn func(XT)) {
+		Test(t, name, func(base *T) {
+			fn(factory(base))
 		})
 	}
 }

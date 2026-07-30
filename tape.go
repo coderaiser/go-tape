@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coderaiser/go-tape/assert"
 	"github.com/coderaiser/go-tape/internal/config"
 	"github.com/coderaiser/go-tape/internal/scope"
 )
@@ -14,7 +13,9 @@ func Test(t *testing.T, name string, fn func(t *T)) {
 	t.Helper()
 
 	// guard 1: scope check
-	assert.CheckScopeName(t, name, scope.Valid(name), config.CheckScopes())
+	if config.CheckScopes() && !scope.Valid(name) {
+		t.Fatalf("tape: invalid scope name: %q — expected 'scope: message'", name)
+	}
 
 	t.Run(name, func(t *testing.T) {
 		t.Helper()
@@ -38,16 +39,16 @@ func Test(t *testing.T, name string, fn func(t *T)) {
 		}
 
 		// guard 4: t.End() check
-		assert.CheckEndCalled(t, tt.ended, config.CheckEnd())
+		if config.CheckEnd() && !tt.ended {
+			t.Fatal("tape: t.End() not called")
+		}
 	})
 }
 
-// Only runs a single test, skipping all others.
+// Only runs a single test.
 func Only(t *testing.T, name string, fn func(t *T)) {
 	Test(t, name, fn)
 }
 
 // Skip marks a test as skipped.
-// The fn is never executed — matching supertape's model where skipped tests
-// are filtered out before running, not run-and-skipped via the test runner.
 func Skip(_ *testing.T, _ string, _ func(t *T)) {}

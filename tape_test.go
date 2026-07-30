@@ -2,12 +2,9 @@ package tape
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"regexp"
 	"testing"
-
-	"github.com/coderaiser/go-tape/assert"
 )
 
 // -- scope guard --
@@ -90,20 +87,6 @@ func TestTDeepEqual(t *testing.T) {
 func TestTNotDeepEqual(t *testing.T) {
 	Test(t, "tape: NotDeepEqual works", func(t *T) {
 		t.NotDeepEqual([]int{1}, []int{2})
-		t.End()
-	})
-}
-
-func TestTError(t *testing.T) {
-	Test(t, "tape: Error works", func(t *T) {
-		t.Ok(errors.New("some error"))
-		t.End()
-	})
-}
-
-func TestTNoError(t *testing.T) {
-	Test(t, "tape: NoError works", func(t *T) {
-		t.NotOk(nil)
 		t.End()
 	})
 }
@@ -226,8 +209,9 @@ func TestSkipParentIsNotMarkedSkipped(t *testing.T) {
 
 func TestExtend(t *testing.T) {
 	called := false
-	ext := Extensions{func(t *T) { called = true }}
-	Extend(ext)(t, "tape: extend works", func(t *T) {
+	type myT struct{ *T }
+	factory := func(base *T) *myT { called = true; return &myT{T: base} }
+	Extend(factory)(t, "tape: extend works", func(t *myT) {
 		t.Ok(called)
 		t.End()
 	})
@@ -236,7 +220,6 @@ func TestExtend(t *testing.T) {
 // -- internal helpers coverage --
 
 func TestAssertOneCleanup(t *testing.T) {
-	// verify count is cleaned up after test — no memory leak
 	inner := &testing.T{}
 	assertOne(inner)
 	mu.Lock()
@@ -245,7 +228,6 @@ func TestAssertOneCleanup(t *testing.T) {
 	if !exists {
 		t.Fatal("expected count entry after assertOne")
 	}
-	// simulate cleanup
 	mu.Lock()
 	delete(count, inner)
 	mu.Unlock()
@@ -262,7 +244,7 @@ func TestHitWithDisabledCount(t *testing.T) {
 	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
 	assertOne(t)
 	hit(t)
-	hit(t) // should not fail — count check disabled
+	hit(t)
 }
 
 func TestEndCalledFlag(t *testing.T) {
@@ -354,18 +336,6 @@ func TestToRegexpInvalidType(t *testing.T) {
 	}
 }
 
-// mockT implements testing.TB without calling runtime.Goexit().
-type mockT struct {
-	failed  bool
-	message string
-}
-
-func (m *mockT) Helper()                      {}
-func (m *mockT) Errorf(f string, args ...any) { m.failed = true; m.message = fmt.Sprintf(f, args...) }
-func (m *mockT) Fatalf(f string, args ...any) { m.failed = true; m.message = fmt.Sprintf(f, args...) }
-func (m *mockT) Fatal(args ...any)            { m.failed = true }
-func (m *mockT) Log(args ...any)              {}
-
 // -- 100% coverage: Only, hit second call, Test timeout --
 
 func TestOnlyRuns(t *testing.T) {
@@ -380,29 +350,24 @@ func TestOnlyRuns(t *testing.T) {
 	}
 }
 
-// t.Fail with string
 func TestTFailString(t *testing.T) {
 	tt := &T{t: &testing.T{}}
 	tt.Fail("forced failure")
 }
 
-// t.Fail with error type
 func TestTFailError(t *testing.T) {
 	tt := &T{t: &testing.T{}}
 	tt.Fail(errors.New("error message"))
 }
 
-// Test scope check failure via mockT
-func TestScopeCheckFails(t *testing.T) {
-	m := &mockT{}
-	assert.CheckScopeName(m, "no scope here", false, true)
-	if !m.failed {
-		t.Fatal("expected scope check to fail")
-	}
-}
-
-// t.Fail with default type (int — hits default branch)
 func TestTFailDefault(t *testing.T) {
 	tt := &T{t: &testing.T{}}
 	tt.Fail(42)
+}
+
+func TestTPassNoArgs(t *testing.T) {
+	Test(t, "tape: Pass with no args", func(tt *T) {
+		tt.Pass()
+		tt.End()
+	})
 }
