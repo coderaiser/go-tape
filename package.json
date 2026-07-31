@@ -1,7 +1,7 @@
 {
   "name": "go-tape",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Tape for Go",
   "main": "index.js",
   "scripts": {

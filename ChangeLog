@@ -1,3 +1,9 @@
+2026.07.31, v1.0.4
+
+fix:
+- 62f82a3 release: rm test
+- dd9aa95 ast: rm unused
+
 2026.07.31, v1.0.3
 
 fix:
