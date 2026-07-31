@@ -1,15 +1,15 @@
 version: 2
 
-project_name: coverage
+project_name: tape
 
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - id: coverage
-    main: ./cmd/coverage
-    binary: coverage
+  - id: tape
+    main: ./cmd/tape
+    binary: tape
     env:
       - CGO_ENABLED=0
     ldflags:
@@ -47,7 +47,7 @@ changelog:
 
 release:
   github:
-    owner: your-org
-    name: coverage
+    owner: coderaiser
+    name: go-tape
   draft: false
   prerelease: auto
