@@ -14,6 +14,11 @@ tasks:
     desc: Build the binary for the current platform
     cmds:
       - go build -o tape ./cmd/tape
+  report:
+    desc: |
+      Coverage Report
+    cmds:
+      - go test $(go list ./... | grep -Ev '/(diff|dedent|node_modules|tape)/') -coverprofile=coverage.out
   release:snapshot:
     desc: |
       Dry-run GoReleaser locally — builds all platform binaries into ./dist
