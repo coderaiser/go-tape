@@ -1,6 +1,12 @@
 {
-  "transitions": {
-    "idle":    {"run": "running"},
-    "running": {"pass": "passed", "fail": "failed", "skip": "skipped"}
-  }
+    "transitions": {
+        "idle": {
+            "run": "running"
+        },
+        "running": {
+            "pass": "passed",
+            "fail": "failed",
+            "skip": "skipped"
+        }
+    }
 }

@@ -1,10 +1,14 @@
 *.swp
 *.log
+*.lock
 
 .idea
 .DS_Store
+
 coverage.out
 coverage.html
 tape.out
-/tape
 coverage_gaps.out
+
+/tape
+coverage

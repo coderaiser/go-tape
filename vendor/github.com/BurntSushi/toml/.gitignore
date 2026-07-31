@@ -1,2 +1,10 @@
+*.swp
+*.log
+*.lock
+
+.idea
+
 /toml.test
+
 /toml-test
+coverage
