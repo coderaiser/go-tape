@@ -18,11 +18,11 @@ jobs:
       - name: Install
         run: |
           bun install putout redrun palabra -g
-          palabra i task golangci-lint
+          bun i --no-save
+          palabra i task coverage tape golangci-lint
       - name: Lint
         run: |
-          putout . --fix
-          golangci-lint run --fix
+          redrun fix:lint
       - name: Typos
         uses: coderaiser/typos.ai@v1.1.8
         with:
