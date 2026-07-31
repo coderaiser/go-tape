@@ -165,4 +165,3 @@ func isPrimitive(v any) bool {
 	t := reflect.TypeOf(v)
 	return t != nil && t.Kind() == reflect.Pointer
 }
-

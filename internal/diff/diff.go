@@ -47,7 +47,7 @@ func prettyValue(v reflect.Value, depth int) string {
 	if !v.IsValid() {
 		return "nil"
 	}
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return fmt.Sprintf("(%s)(nil)", v.Type())
 		}
@@ -141,10 +141,8 @@ func lcs(a, b []string) [][]int {
 		for j := 1; j <= n; j++ {
 			if a[i-1] == b[j-1] {
 				dp[i][j] = dp[i-1][j-1] + 1
-			} else if dp[i-1][j] >= dp[i][j-1] {
-				dp[i][j] = dp[i-1][j]
 			} else {
-				dp[i][j] = dp[i][j-1]
+				dp[i][j] = max(dp[i-1][j], dp[i][j-1])
 			}
 		}
 	}
@@ -156,14 +154,17 @@ func buildEdits(a, b []string) []edit {
 	var edits []edit
 	i, j := len(a), len(b)
 	for i > 0 || j > 0 {
-		if i > 0 && j > 0 && a[i-1] == b[j-1] {
+		switch {
+		case i > 0 && j > 0 && a[i-1] == b[j-1]:
 			edits = append(edits, edit{opEqual, a[i-1]})
 			i--
 			j--
-		} else if j > 0 && (i == 0 || dp[i][j-1] >= dp[i-1][j]) {
+
+		case j > 0 && (i == 0 || dp[i][j-1] >= dp[i-1][j]):
 			edits = append(edits, edit{opInsert, b[j-1]})
 			j--
-		} else {
+
+		default:
 			edits = append(edits, edit{opDelete, a[i-1]})
 			i--
 		}

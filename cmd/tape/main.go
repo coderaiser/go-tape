@@ -39,14 +39,14 @@ func loadUsage() string {
 	var sb strings.Builder
 	sb.WriteString(cfg.Usage.Text + "\n\nOptions:\n")
 	for _, o := range cfg.Options {
-		sb.WriteString(fmt.Sprintf("  %-28s %s\n", o.Flag, o.Desc))
+		fmt.Fprintf(&sb, "  %-28s %s\n", o.Flag, o.Desc)
 		if o.Note != "" {
-			sb.WriteString(fmt.Sprintf("                               %s\n", o.Note))
+			fmt.Fprintf(&sb, "                               %s\n", o.Note)
 		}
 	}
 	sb.WriteString("\nEnvironment variables:\n")
 	for _, e := range cfg.Env {
-		sb.WriteString(fmt.Sprintf("  %-36s %s\n", e.Name, e.Desc))
+		fmt.Fprintf(&sb, "  %-36s %s\n", e.Name, e.Desc)
 	}
 	sb.WriteString("\n")
 	return sb.String()

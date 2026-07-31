@@ -266,4 +266,3 @@ var RenderBar = renderBar
 
 // Truncate exported for time formatter
 var Truncate = truncate
-
