@@ -1,0 +1,6 @@
+version: 2
+builds:
+  - main: ./cmd/tape
+    binary: tape
+archives:
+  - format: binary
