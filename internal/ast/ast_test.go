@@ -56,15 +56,6 @@ func writeFile(t *testing.T, path, src string) {
 	}
 }
 
-func mkdir(t *testing.T, path string) {
-	t.Helper()
-
-	err := os.MkdirAll(path, 0755)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestFindNoOnlyCalls(t *testing.T) {
 	AstTest(t, "ast: no Only calls returns nil", func(t *AstT) {
 		t.OnlyCallsInFile("no-only.go", nil)
