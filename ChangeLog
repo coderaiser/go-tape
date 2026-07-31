@@ -1,3 +1,8 @@
+2026.07.31, v1.0.3
+
+fix:
+- 21cdf76 goreleaser
+
 2026.07.31, v1.0.2
 
 feature:
