@@ -16,10 +16,19 @@ func TestRunHelp(t *testing.T) {
 	})
 }
 
-func TestRunVersion(t *testing.T) {
+func TestRunV(t *testing.T) {
 	Test(t, "main: -v prints version", func(t *T) {
 		var out, errOut strings.Builder
 		code := run([]string{"-v"}, &out, &errOut)
+		t.Equal(code, 0)
+		t.End()
+	})
+}
+
+func TestRunVersion(t *testing.T) {
+	Test(t, "main: --version prints version", func(t *T) {
+		var out, errOut strings.Builder
+		code := run([]string{"--version"}, &out, &errOut)
 		t.Equal(code, 0)
 		t.End()
 	})
@@ -34,10 +43,19 @@ func TestRunVersionOutput(t *testing.T) {
 	})
 }
 
-func TestRunHelpOutput(t *testing.T) {
+func TestRunHOutput(t *testing.T) {
 	Test(t, "main: -h output contains Usage", func(t *T) {
 		var out, errOut strings.Builder
 		run([]string{"-h"}, &out, &errOut)
+		t.Match(out.String(), `Usage`)
+		t.End()
+	})
+}
+
+func TestRunHelpOutput(t *testing.T) {
+	Test(t, "main: --help output contains Usage", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"--help"}, &out, &errOut)
 		t.Match(out.String(), `Usage`)
 		t.End()
 	})
