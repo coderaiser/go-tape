@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	tape "github.com/coderaiser/go-tape"
+	. "github.com/coderaiser/go-tape"
 )
 
 func TestRunHelp(t *testing.T) {
-	tape.Test(t, "main: -h prints usage", func(t *tape.T) {
+	Test(t, "main: -h prints usage", func(t *T) {
 		var out, errOut strings.Builder
 		code := run([]string{"-h"}, &out, &errOut)
 		t.Equal(code, 0)
@@ -17,7 +17,7 @@ func TestRunHelp(t *testing.T) {
 }
 
 func TestRunVersion(t *testing.T) {
-	tape.Test(t, "main: -v prints version", func(t *tape.T) {
+	Test(t, "main: -v prints version", func(t *T) {
 		var out, errOut strings.Builder
 		code := run([]string{"-v"}, &out, &errOut)
 		t.Equal(code, 0)
@@ -26,7 +26,7 @@ func TestRunVersion(t *testing.T) {
 }
 
 func TestRunVersionOutput(t *testing.T) {
-	tape.Test(t, "main: -v output contains version string", func(t *tape.T) {
+	Test(t, "main: -v output contains version string", func(t *T) {
 		var out, errOut strings.Builder
 		run([]string{"-v"}, &out, &errOut)
 		t.Match(out.String(), `\d+\.\d+\.\d+`)
@@ -35,7 +35,7 @@ func TestRunVersionOutput(t *testing.T) {
 }
 
 func TestRunHelpOutput(t *testing.T) {
-	tape.Test(t, "main: -h output contains Usage", func(t *tape.T) {
+	Test(t, "main: -h output contains Usage", func(t *T) {
 		var out, errOut strings.Builder
 		run([]string{"-h"}, &out, &errOut)
 		t.Match(out.String(), `Usage`)
@@ -43,15 +43,8 @@ func TestRunHelpOutput(t *testing.T) {
 	})
 }
 
-func TestUsage(t *testing.T) {
-	tape.Test(t, "main: usage contains go-tape", func(t *tape.T) {
-		t.Match(usage, `go-tape`)
-		t.End()
-	})
-}
-
 func TestVersionConst(t *testing.T) {
-	tape.Test(t, "main: version is 1.0.0", func(t *tape.T) {
+	Test(t, "main: version is 1.0.0", func(t *T) {
 		t.Equal(version, "1.0.0")
 		t.End()
 	})

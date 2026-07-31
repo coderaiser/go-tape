@@ -34,7 +34,7 @@ type helpConfig struct {
 func loadUsage() string {
 	var cfg helpConfig
 	if err := toml.Unmarshal(helpToml, &cfg); err != nil {
-		return usage
+		return `Usage: tape [options] [path]`
 	}
 	var sb strings.Builder
 	sb.WriteString(cfg.Usage.Text + "\n\nOptions:\n")
@@ -59,7 +59,7 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
-	flags := flag.NewFlagSet("go-tape", flag.ExitOnError)
+	flags := flag.NewFlagSet("tape", flag.ExitOnError)
 	format := flags.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines")
 	flags.StringVar(format, "format", "", "output format (alias for -f)")
 	help := flags.Bool("h", false, "display this help and exit")
@@ -174,22 +174,3 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	return 0
 }
-
-const usage = `Usage: go-tape [options] [path]
-
-Options:
-  -h                           display this help and exit
-  -v                           output version information and exit
-  -f format                    use a specific output format
-                               default: progress-bar (tap on CI)
-                               values: tap|progress-bar|short|fail|time|json-lines
-  --no-check-scopes            do not check that messages contain scope: 'scope: message'
-  --no-check-assertions-count  do not check that assertion count is no more than 1
-  --no-check-duplicates        do not check messages for duplicates
-
-Environment variables:
-  TAPE_PROGRESS_BAR=1|0        force progress bar on (1) or off (0)
-  TAPE_PROGRESS_BAR_MIN=10     minimum test count to show progress bar (default: 10)
-  TAPE_PROGRESS_BAR_COLOR      progress bar color (ANSI escape or hex, default: yellow)
-  TAPE_PROGRESS_BAR_STACK=0    set to 0 to hide error stack traces
-`
