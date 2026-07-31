@@ -1,12 +1,6 @@
-# comment line
-[transitions.idle]
-run = "running"
-
-# blank line follows
+[transitions]
+idle = {run = "running"}
+running = {pass = "passed", fail = "failed"}
 
 [states]
 initial = "idle"
-
-[transitions.running]
-pass = "passed"
-fail = "failed"

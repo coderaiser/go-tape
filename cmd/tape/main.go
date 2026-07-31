@@ -62,15 +62,15 @@ func run(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("tape", flag.ExitOnError)
 	format := flags.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines")
 	flags.StringVar(format, "format", "", "output format (alias for -f)")
-	
+
 	var help bool
-    flags.BoolVar(&help, "h", false, "display this help and exit")
-    flags.BoolVar(&help, "help", false, "display this help and exit")
-    
-    var ver bool
-    flags.BoolVar(&ver, "v", false, "output version information and exit")
-    flags.BoolVar(&ver, "version", false, "output version information and exit")
-    
+	flags.BoolVar(&help, "h", false, "display this help and exit")
+	flags.BoolVar(&help, "help", false, "display this help and exit")
+
+	var ver bool
+	flags.BoolVar(&ver, "v", false, "output version information and exit")
+	flags.BoolVar(&ver, "version", false, "output version information and exit")
+
 	noCheckScopes := flags.Bool("no-check-scopes", false, "do not check scope format")
 	noCheckAssertions := flags.Bool("no-check-assertions-count", false, "do not check assertion count")
 	noCheckDuplicates := flags.Bool("no-check-duplicates", false, "do not check for duplicates")

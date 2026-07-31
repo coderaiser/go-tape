@@ -1,7 +1,3 @@
-[transitions.idle]
-run = "running"
-
-[transitions.running]
-pass = "passed"
-fail = "failed"
-skip = "skipped"
+[transitions]
+idle = {run = "running"}
+running = {pass = "passed", fail = "failed", skip = "skipped"}

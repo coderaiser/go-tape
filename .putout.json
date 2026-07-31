@@ -1,5 +1,15 @@
 {
+    "rules": {
+        "goreleaser": "off"
+    },
+    "match": {
+        ".goreleaser.yaml": {
+            "goreleaser": "on"
+        }
+    },
+    "plugins": ["goreleaser"],
     "ignore": [
-        "invalid.json"
+        "invalid.json",
+        "vendor"
     ]
 }

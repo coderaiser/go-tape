@@ -1,14 +1,13 @@
 *.swp
 *.log
 *.lock
+*.out
 
 .idea
 .DS_Store
 
-coverage.out
 coverage.html
-tape.out
-coverage_gaps.out
 
+node_modules
 /tape
 coverage
