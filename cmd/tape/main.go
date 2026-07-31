@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -59,7 +60,7 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
-	flags := flag.NewFlagSet("tape", flag.ExitOnError)
+	flags := flag.NewFlagSet("tape", flag.ContinueOnError)
 	format := flags.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines")
 	flags.StringVar(format, "format", "", "output format (alias for -f)")
 
@@ -74,21 +75,36 @@ func run(args []string, stdout, stderr io.Writer) int {
 	noCheckScopes := flags.Bool("no-check-scopes", false, "do not check scope format")
 	noCheckAssertions := flags.Bool("no-check-assertions-count", false, "do not check assertion count")
 	noCheckDuplicates := flags.Bool("no-check-duplicates", false, "do not check for duplicates")
-	flags.Parse(args)
+	if err := flags.Parse(args); err != nil {
+		if _, werr := fmt.Fprintf(stderr, "tape: %v\n", err); werr != nil {
+			log.Fatal(werr)
+		}
+		return 2
+	}
 
 	if help {
-		fmt.Fprint(stdout, loadUsage())
+		if _, err := fmt.Fprint(stdout, loadUsage()); err != nil {
+			log.Fatal(err)
+		}
 		return 0
 	}
 	if ver {
-		fmt.Fprintln(stdout, version)
+		if _, err := fmt.Fprintln(stdout, version); err != nil {
+			log.Fatal(err)
+		}
 		return 0
 	}
 	if *noCheckScopes {
-		os.Setenv("TAPE_CHECK_SCOPES", "0")
+		if err := os.Setenv("TAPE_CHECK_SCOPES", "0"); err != nil {
+			_, _ = fmt.Fprintf(stderr, "tape: setenv: %v\n", err)
+			return 1
+		}
 	}
 	if *noCheckAssertions {
-		os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+		if err := os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0"); err != nil {
+			_, _ = fmt.Fprintf(stderr, "tape: setenv: %v\n", err)
+			return 1
+		}
 	}
 
 	path := "./..."
@@ -101,13 +117,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if !*noCheckDuplicates {
 		dups, err := tapeast.FindDuplicates(dir)
 		if err != nil {
-			fmt.Fprintf(stderr, "tape: scan duplicates: %v\n", err)
+			_, _ = fmt.Fprintf(stderr, "tape: scan duplicates: %v\n", err)
 			return 1
 		}
 		if len(dups) > 0 {
-			fmt.Fprintf(stderr, "tape: duplicate test names found:\n")
+			_, _ = fmt.Fprintf(stderr, "tape: duplicate test names found:\n")
 			for _, d := range dups {
-				fmt.Fprintf(stderr, "  %s\n", d)
+				_, _ = fmt.Fprintf(stderr, "  %s\n", d)
 			}
 			return 1
 		}
@@ -116,14 +132,14 @@ func run(args []string, stdout, stderr io.Writer) int {
 	// count tests for progress bar total
 	total, err := tapeast.CountTestsInTestFiles(dir)
 	if err != nil {
-		fmt.Fprintf(stderr, "tape: count tests: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "tape: count tests: %v\n", err)
 		return 1
 	}
 
 	// find Only calls — restrict run if any found
 	onlyCalls, err := tapeast.FindOnlyCalls(dir)
 	if err != nil {
-		fmt.Fprintf(stderr, "tape: scan Only: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "tape: scan Only: %v\n", err)
 		return 1
 	}
 
@@ -138,7 +154,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	ch, err := r.Run(goArgs...)
 	if err != nil {
-		fmt.Fprintf(stderr, "tape: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "tape: %v\n", err)
 		return 1
 	}
 
@@ -149,7 +165,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if event.Test != "" && !strings.Contains(event.Test, "/") {
 			continue
 		}
-		store.Apply(event)
+		if _, err := store.Apply(event); err != nil {
+			_, _ = fmt.Fprintf(stderr, "tape: apply event: %v\n", err)
+			continue
+		}
 		f.FromEvent(event)
 	}
 

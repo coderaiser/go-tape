@@ -2,6 +2,7 @@ package formatter
 
 import (
 	"io"
+	"log"
 	"os"
 
 	"github.com/coderaiser/go-tape/internal/formatter/output"
@@ -104,7 +105,10 @@ func (s *State) End(passed, failed, skipped int) {
 }
 
 func write(w io.Writer, s string) {
-	if s != "" {
-		w.Write([]byte(s))
+	if s == "" {
+		return
+	}
+	if _, err := w.Write([]byte(s)); err != nil {
+		log.Fatal(err)
 	}
 }

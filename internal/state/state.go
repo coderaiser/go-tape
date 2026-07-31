@@ -170,6 +170,8 @@ func (s *Store) Summary() (passed, failed, skipped []string) {
 			failed = append(failed, test)
 		case StateSkipped:
 			skipped = append(skipped, test)
+		case StateIdle, StateRunning:
+			panic(fmt.Sprintf("unexpected test state in Summary: %v for test %q", *ptr, test))
 		}
 	}
 
@@ -184,7 +186,9 @@ func (s *Store) MarkSkipped(names []string) {
 			continue
 		}
 
-		s.adapter.Set(name, StateSkipped)
+		if err := s.adapter.Set(name, StateSkipped); err != nil {
+			panic(fmt.Sprintf("state.MarkSkipped: Set failed: %v", err))
+		}
 		s.outputs[name] = ""
 	}
 }
