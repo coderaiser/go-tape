@@ -1,3 +1,13 @@
+2026.08.01, v1.0.7
+
+fix:
+- b3b7814 formatter-progress-bar: ??
+- ead7e45 state
+
+feature:
+- 327d31c coverage: cover ast walk branches, exclude helpers
+- 3578ed3 lint: handle unchecked errors and exhaustive switches
+
 2026.07.31, v1.0.6
 
 feature:
