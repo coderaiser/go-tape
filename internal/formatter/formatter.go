@@ -101,6 +101,12 @@ func (s *State) FromEvent(e model.Event) {
 
 // End writes the final summary.
 func (s *State) End(passed, failed, skipped int) {
+	// On a cached run, packages that use plain Go subtests (not tape.Test) emit
+	// no subtest events, so s.count may be short of s.total. Emit one synthetic
+	// TestEnd at 100% so the progress bar reaches completion before it is cleared.
+	if s.count < s.total {
+		write(s.w, s.formatter.TestEnd(s.total, s.total, s.failed, ""))
+	}
 	write(s.w, s.formatter.End(s.count, passed, failed, skipped))
 }
 
