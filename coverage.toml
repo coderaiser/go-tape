@@ -1,2 +1,2 @@
 [exclude]
-files = ["tape.go", "**/cmd/tape/main.go", "**/internal/dedent", "**/internal/diff"]
+files = ["helpers.go", "tape.go", "**/cmd/tape/main.go", "**/internal/dedent", "**/internal/diff"]

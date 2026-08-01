@@ -661,3 +661,11 @@ func TestWalkTestFilesSkipsNonTestGoFiles(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestCountTestsInTestFilesMissingDir(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles errors on missing dir", func(t *AstT) {
+		_, err := tapeast.CountTestsInTestFiles("nonexistent")
+		t.Ok(err)
+		t.End()
+	})
+}
