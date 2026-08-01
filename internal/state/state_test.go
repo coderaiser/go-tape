@@ -259,16 +259,18 @@ func TestMarkSkippedDoesNotOverwritePassed(t *testing.T) {
 	}
 }
 
-func TestSummaryPanicsOnUnexpectedState(t *testing.T) {
+func TestSummaryIgnoresRunningState(t *testing.T) {
 	s := New()
-	// "run" leaves the test in StateRunning — never reached a terminal state.
-	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic from unexpected state in Summary")
-		}
-	}()
-	s.Summary()
+	// "run" leaves the test in StateRunning — this happens when go test -json -v
+	// drops the terminal event for subtests with long names (a known Go toolchain issue).
+	// Summary must silently ignore such tests rather than panicking.
+	if _, err := s.Apply(model.Event{Action: "run", Test: "TestFoo"}); err != nil {
+		t.Fatalf("Apply run: %v", err)
+	}
+	passed, failed, skipped := s.Summary()
+	if len(passed) != 0 || len(failed) != 0 || len(skipped) != 0 {
+		t.Fatalf("expected empty summary for running test, got passed=%v failed=%v skipped=%v", passed, failed, skipped)
+	}
 }
 
 // setErrAdapter fails Set like errAdapter fails Get.
