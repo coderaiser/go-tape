@@ -7,7 +7,7 @@
 [CoverageURL]: https://coveralls.io/github/coderaiser/go-tape?branch=master
 [CoverageIMGURL]: https://coveralls.io/repos/coderaiser/go-tape/badge.svg?branch=master&service=github
 
-📼[**Supertape**](https://github.com/coderaiser/supertape) for Go.
+📼[**Supertape**](https://github.com/coderaiser/supertape) for Go with the same assertions and philosophy.
 
 ## API
 
