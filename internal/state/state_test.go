@@ -258,3 +258,37 @@ func TestMarkSkippedDoesNotOverwritePassed(t *testing.T) {
 		t.Fatalf("want 0 skipped, got %d", len(skipped))
 	}
 }
+
+func TestSummaryPanicsOnUnexpectedState(t *testing.T) {
+	s := New()
+	// "run" leaves the test in StateRunning — never reached a terminal state.
+	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic from unexpected state in Summary")
+		}
+	}()
+	s.Summary()
+}
+
+// setErrAdapter fails Set like errAdapter fails Get.
+type setErrAdapter struct{ *adapters.Memory[TestState] }
+
+func (a setErrAdapter) Set(id string, state TestState) error {
+	return errors.New("adapter set error")
+}
+
+func TestMarkSkippedPanicsOnSetError(t *testing.T) {
+	s := New()
+	mem, ok := s.adapter.(*adapters.Memory[TestState])
+	if !ok {
+		t.Fatal("expected memory adapter")
+	}
+	s.adapter = setErrAdapter{mem}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic from Set error in MarkSkipped")
+		}
+	}()
+	s.MarkSkipped([]string{"scope: foo"})
+}
