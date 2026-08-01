@@ -1,12 +1,50 @@
 package tape
 
 import (
+	"runtime"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/coderaiser/go-tape/internal/config"
 	"github.com/coderaiser/go-tape/internal/scope"
 )
+
+var (
+	mu    sync.Mutex
+	count = make(map[*testing.T]int)
+)
+
+// assertOne resets the assertion counter for a test and removes it on cleanup.
+func assertOne(t *testing.T) {
+	t.Helper()
+	mu.Lock()
+	count[t] = 0
+	mu.Unlock()
+	// cleanup prevents memory leak — removes entry after test finishes
+	t.Cleanup(func() {
+		mu.Lock()
+		delete(count, t)
+		mu.Unlock()
+	})
+}
+
+// hit increments the assertion counter and fails if it exceeds one.
+func hit(t *testing.T) {
+	t.Helper()
+	mu.Lock()
+	count[t]++
+	c := count[t]
+	mu.Unlock()
+	if c <= 1 {
+		return
+	}
+	if !config.CheckAssertionsCount() {
+		return
+	}
+	_, file, line, _ := runtime.Caller(2)
+	t.Fatalf("too many assertions: got %d, expected 1\nat %s:%d", c, file, line)
+}
 
 // Test runs a subtest with guards: scope check, assertion count, timeout, End check.
 func Test(t *testing.T, name string, fn func(t *T)) {

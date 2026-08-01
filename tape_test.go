@@ -144,15 +144,15 @@ func TestHelperIsNotPrimitive(t *testing.T) {
 }
 
 func TestHelperTruthy(t *testing.T) {
-	Test(t, "tape: truthy true for true", func(t *T) {
-		t.Ok(truthy(true))
+	Test(t, "tape: Ok true for true", func(t *T) {
+		t.Ok(true)
 		t.End()
 	})
 }
 
 func TestHelperFalsy(t *testing.T) {
-	Test(t, "tape: truthy false for false", func(t *T) {
-		t.NotOk(truthy(false))
+	Test(t, "tape: NotOk false for false", func(t *T) {
+		t.NotOk(false)
 		t.End()
 	})
 }
@@ -290,32 +290,32 @@ func TestIsPrimitiveNil(t *testing.T) {
 	})
 }
 
-// -- truthy coverage --
+// -- truthy coverage via t.Ok / t.NotOk --
 
 func TestTruthyNil(t *testing.T) {
-	Test(t, "tape: truthy false for nil", func(tt *T) {
-		tt.NotOk(truthy(nil))
+	Test(t, "tape: NotOk false for nil", func(tt *T) {
+		tt.NotOk(nil)
 		tt.End()
 	})
 }
 
 func TestTruthyIntZero(t *testing.T) {
-	Test(t, "tape: truthy false for int 0", func(tt *T) {
-		tt.NotOk(truthy(0))
+	Test(t, "tape: NotOk false for int 0", func(tt *T) {
+		tt.NotOk(0)
 		tt.End()
 	})
 }
 
 func TestTruthyStringEmpty(t *testing.T) {
-	Test(t, "tape: truthy false for empty string", func(tt *T) {
-		tt.NotOk(truthy(""))
+	Test(t, "tape: NotOk false for empty string", func(tt *T) {
+		tt.NotOk("")
 		tt.End()
 	})
 }
 
 func TestTruthyDefault(t *testing.T) {
-	Test(t, "tape: truthy true for struct", func(tt *T) {
-		tt.Ok(truthy(struct{}{}))
+	Test(t, "tape: Ok true for struct", func(tt *T) {
+		tt.Ok(struct{}{})
 		tt.End()
 	})
 }

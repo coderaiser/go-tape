@@ -1,6 +1,5 @@
 [exclude]
 files = [
-    "tape.go",
     "**/cmd/tape/main.go",
     "**/internal/dedent",
     "**/node_modules"
