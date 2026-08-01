@@ -336,8 +336,6 @@ func TestToRegexpInvalidType(t *testing.T) {
 	}
 }
 
-// -- 100% coverage: Only, hit second call, Test timeout --
-
 func TestOnlyRuns(t *testing.T) {
 	ran := false
 	Test(t, "tape: Only delegates to Test", func(t *T) {
@@ -377,7 +375,8 @@ func TestOnlyCallsFnDirectly(t *testing.T) {
 	t.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	t.Setenv("TAPE_CHECK_END", "0")
 	ran := false
-	Only(t, "tape: Only calls fn", func(t *T) {
+call := Only;
+	call(t, "tape: Only calls fn", func(t *T) {
 		ran = true
 		t.End()
 	})
