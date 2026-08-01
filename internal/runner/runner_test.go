@@ -7,137 +7,132 @@ import (
 	"os/exec"
 	"testing"
 
+	tape "github.com/coderaiser/go-tape"
 	"github.com/coderaiser/go-tape/internal/model"
 )
 
 func TestRunnerReturnsEventsFromFakeExecutor(t *testing.T) {
-	lines := []string{
-		`{"Action":"run","Package":"mypkg","Test":"TestFoo"}`,
-		`{"Action":"pass","Package":"mypkg","Test":"TestFoo","Elapsed":0.1}`,
-	}
-	executor := &FakeExecutor{Lines: lines}
-	r := New(executor)
+	tape.Test(t, "runner: returns run and pass events", func(t *tape.T) {
+		lines := []string{
+			`{"Action":"run","Package":"mypkg","Test":"TestFoo"}`,
+			`{"Action":"pass","Package":"mypkg","Test":"TestFoo","Elapsed":0.1}`,
+		}
+		executor := &FakeExecutor{Lines: lines}
+		r := New(executor)
 
-	ch, err := r.Run("test", "-json")
-	if err != nil {
-		t.Fatal(err)
-	}
+		ch, err := r.Run("test", "-json")
 
-	var events []model.Event
-	for e := range ch {
-		events = append(events, e)
-	}
+		var events []model.Event
+		for e := range ch {
+			events = append(events, e)
+		}
 
-	if len(events) != 2 {
-		t.Fatalf("expected 2 events, got %d", len(events))
-	}
-	if events[0].Action != "run" {
-		t.Errorf("expected run, got %s", events[0].Action)
-	}
-	if events[1].Action != "pass" {
-		t.Errorf("expected pass, got %s", events[1].Action)
-	}
+		t.Ok(err == nil && len(events) == 2 &&
+			events[0].Action == "run" && events[1].Action == "pass")
+		t.End()
+	})
 }
 
 func TestRunnerSkipsInvalidJSON(t *testing.T) {
-	lines := []string{
-		`not json`,
-	}
-	executor := &FakeExecutor{Lines: lines}
-	r := New(executor)
+	tape.Test(t, "runner: skips invalid json lines", func(t *tape.T) {
+		executor := &FakeExecutor{Lines: []string{"not json"}}
+		r := New(executor)
 
-	ch, err := r.Run("test", "-json")
-	if err != nil {
-		t.Fatal(err)
-	}
+		ch, err := r.Run("test", "-json")
 
-	count := 0
-	for range ch {
-		count++
-	}
+		count := 0
+		for range ch {
+			count++
+		}
 
-	if count != 0 {
-		t.Errorf("expected 0 events, got %d", count)
-	}
+		t.Ok(err == nil && count == 0)
+		t.End()
+	})
 }
 
 func TestFakeExecutorReturnsLines(t *testing.T) {
-	e := &FakeExecutor{Lines: []string{"line1", "line2"}}
-	rc, _ := e.Run()
-	buf := make([]byte, 100)
-	n, _ := rc.Read(buf)
-	got := string(buf[:n])
-	if got != "line1\n" {
-		t.Errorf("expected line1, got %s", got)
-	}
+	tape.Test(t, "runner: fake executor yields queued lines", func(t *tape.T) {
+		e := &FakeExecutor{Lines: []string{"line1", "line2"}}
+		rc, _ := e.Run()
+		buf := make([]byte, 100)
+		n, _ := rc.Read(buf)
+		t.Equal(string(buf[:n]), "line1\n")
+		t.End()
+	})
 }
 
 func TestOSExecutorRun(t *testing.T) {
-	// inject echo as the command — no real go test spawned
-	e := &OSExecutor{
-		Command: func(name string, args ...string) *exec.Cmd {
-			return exec.Command("echo", `{"Action":"run","Test":"TestFoo"}`)
-		},
-	}
-	rc, err := e.Run("test", "-json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer rc.Close()
-	buf := make([]byte, 256)
-	n, _ := rc.Read(buf)
-	if n == 0 {
-		t.Fatal("expected output")
-	}
+	tape.Test(t, "runner: OS executor reads output", func(t *tape.T) {
+		// inject echo as the command — no real go test spawned
+		e := &OSExecutor{
+			Command: func(name string, args ...string) *exec.Cmd {
+				return exec.Command("echo", `{"Action":"run","Test":"TestFoo"}`)
+			},
+		}
+		rc, err := e.Run("test", "-json")
+		if err == nil {
+			defer rc.Close()
+		}
+		buf := make([]byte, 256)
+		n := 0
+		if rc != nil {
+			n, _ = rc.Read(buf)
+		}
+		t.Ok(err == nil && rc != nil && n > 0)
+		t.End()
+	})
 }
 
 func TestRunnerClosesChannelOnEmptyInput(t *testing.T) {
-	executor := &FakeExecutor{Lines: []string{}}
-	r := New(executor)
-	ch, err := r.Run("test", "-json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	count := 0
-	for range ch {
-		count++
-	}
-	if count != 0 {
-		t.Errorf("expected 0 events, got %d", count)
-	}
+	tape.Test(t, "runner: closes channel on empty input", func(t *tape.T) {
+		executor := &FakeExecutor{Lines: []string{}}
+		r := New(executor)
+		ch, err := r.Run("test", "-json")
+		count := 0
+		for range ch {
+			count++
+		}
+		t.Ok(err == nil && count == 0)
+		t.End()
+	})
 }
 
 func TestOSExecutorStartError(t *testing.T) {
-	e := &OSExecutor{
-		Command: func(name string, args ...string) *exec.Cmd {
-			// nonexistent command — Start() will fail
-			return exec.Command("nonexistent-command-xyz")
-		},
-	}
-	_, err := e.Run("test")
-	if err == nil {
-		t.Fatal("expected error from failed Start()")
-	}
+	tape.Test(t, "runner: reports Start error", func(t *tape.T) {
+		e := &OSExecutor{
+			Command: func(name string, args ...string) *exec.Cmd {
+				// nonexistent command — Start() will fail
+				return exec.Command("nonexistent-command-xyz")
+			},
+		}
+		_, err := e.Run("test")
+		t.Ok(err != nil)
+		t.End()
+	})
 }
 
 func TestOSExecutorConformsToInterface(t *testing.T) {
-	var e Executor = NewOSExecutor()
-	_ = e
+	tape.Test(t, "runner: OS executor implements Executor", func(t *tape.T) {
+		var e Executor = NewOSExecutor()
+		t.Ok(e != nil)
+		t.End()
+	})
 }
 
 func TestOSExecutorStdoutPipeError(t *testing.T) {
-	e := &OSExecutor{
-		Command: func(name string, args ...string) *exec.Cmd {
-			cmd := exec.Command("echo", "hello")
-			// pre-assign stdout — StdoutPipe will fail
-			cmd.Stdout = os.Stdout
-			return cmd
-		},
-	}
-	_, err := e.Run("test")
-	if err == nil {
-		t.Fatal("expected error when StdoutPipe fails")
-	}
+	tape.Test(t, "runner: reports StdoutPipe error", func(t *tape.T) {
+		e := &OSExecutor{
+			Command: func(name string, args ...string) *exec.Cmd {
+				cmd := exec.Command("echo", "hello")
+				// pre-assign stdout — StdoutPipe will fail
+				cmd.Stdout = os.Stdout
+				return cmd
+			},
+		}
+		_, err := e.Run("test")
+		t.Ok(err != nil)
+		t.End()
+	})
 }
 
 // errReader returns an error after the first read
@@ -162,14 +157,17 @@ func (e errExecutor) Run(args ...string) (io.ReadCloser, error) {
 }
 
 func TestRunnerHandlesScannerError(t *testing.T) {
-	r := New(errExecutor{})
-	ch, err := r.Run("test", "-json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// drain channel — scanner error causes goroutine to exit
-	for range ch {
-	}
+	tape.Test(t, "runner: survives scanner error", func(t *tape.T) {
+		r := New(errExecutor{})
+		ch, err := r.Run("test", "-json")
+		if err == nil {
+			// drain channel — scanner error causes goroutine to exit
+			for range ch {
+			}
+		}
+		t.Ok(err == nil)
+		t.End()
+	})
 }
 
 // errExecutorRunError always fails
@@ -180,9 +178,10 @@ func (e errExecutorRunError) Run(args ...string) (io.ReadCloser, error) {
 }
 
 func TestRunnerExecutorError(t *testing.T) {
-	r := New(errExecutorRunError{})
-	_, err := r.Run("test")
-	if err == nil {
-		t.Fatal("expected executor error")
-	}
+	tape.Test(t, "runner: reports executor error", func(t *tape.T) {
+		r := New(errExecutorRunError{})
+		_, err := r.Run("test")
+		t.Ok(err != nil)
+		t.End()
+	})
 }
