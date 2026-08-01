@@ -10,7 +10,7 @@ import (
 )
 
 func TestRunEventCreatesRunningState(t *testing.T) {
-	s := New()
+	s, _ := New()
 	_, err := s.Apply(model.Event{Action: "run", Test: "TestFoo"})
 	if err != nil {
 		t.Fatal(err)
@@ -22,7 +22,7 @@ func TestRunEventCreatesRunningState(t *testing.T) {
 }
 
 func TestPassEventMarksTestPassed(t *testing.T) {
-	s := New()
+	s, _ := New()
 	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
 	s.Apply(model.Event{Action: "pass", Test: "TestFoo"})
 	st, _ := s.Get("TestFoo")
@@ -32,7 +32,7 @@ func TestPassEventMarksTestPassed(t *testing.T) {
 }
 
 func TestFailEventMarksTestFailed(t *testing.T) {
-	s := New()
+	s, _ := New()
 	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
 	s.Apply(model.Event{Action: "fail", Test: "TestFoo"})
 	st, _ := s.Get("TestFoo")
@@ -42,7 +42,7 @@ func TestFailEventMarksTestFailed(t *testing.T) {
 }
 
 func TestSkipEventMarksTestSkipped(t *testing.T) {
-	s := New()
+	s, _ := New()
 	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
 	s.Apply(model.Event{Action: "skip", Test: "TestFoo"})
 	st, _ := s.Get("TestFoo")
@@ -52,7 +52,7 @@ func TestSkipEventMarksTestSkipped(t *testing.T) {
 }
 
 func TestOutputAppendedToLogs(t *testing.T) {
-	s := New()
+	s, _ := New()
 	s.Apply(model.Event{Action: "output", Test: "TestFoo", Output: "line1\n"})
 	s.Apply(model.Event{Action: "output", Test: "TestFoo", Output: "line2\n"})
 	got := s.GetOutput("TestFoo")
@@ -62,7 +62,7 @@ func TestOutputAppendedToLogs(t *testing.T) {
 }
 
 func TestPackageEventNoTestID(t *testing.T) {
-	s := New()
+	s, _ := New()
 	_, err := s.Apply(model.Event{Action: "pass", Package: "mypkg"})
 	if err != nil {
 		t.Fatal(err)
@@ -70,7 +70,7 @@ func TestPackageEventNoTestID(t *testing.T) {
 }
 
 func TestInvalidActionError(t *testing.T) {
-	s := New()
+	s, _ := New()
 	_, err := s.Apply(model.Event{Test: "TestFoo", Action: "invalid"})
 	if err == nil {
 		t.Fatal("expected error for invalid action")
@@ -78,7 +78,7 @@ func TestInvalidActionError(t *testing.T) {
 }
 
 func TestRunTwice(t *testing.T) {
-	s := New()
+	s, _ := New()
 	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
 	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
 	st, _ := s.Get("TestFoo")
@@ -88,7 +88,7 @@ func TestRunTwice(t *testing.T) {
 }
 
 func TestGetNonExistent(t *testing.T) {
-	s := New()
+	s, _ := New()
 	_, err := s.Get("nonexistent")
 	if err == nil {
 		t.Error("expected error for nonexistent test")
@@ -96,7 +96,7 @@ func TestGetNonExistent(t *testing.T) {
 }
 
 func TestApplyInvalidTransitionReturnsCurrentState(t *testing.T) {
-	s := New()
+	s, _ := New()
 	// pass without run — invalid transition
 	state, err := s.Apply(model.Event{Action: "pass", Test: "TestA"})
 	if err != nil {
@@ -108,7 +108,7 @@ func TestApplyInvalidTransitionReturnsCurrentState(t *testing.T) {
 }
 
 func TestSummaryKeepsSubtestName(t *testing.T) {
-	s := New()
+	s, _ := New()
 
 	s.Apply(model.Event{
 		Action: "run",
@@ -132,7 +132,7 @@ func TestSummaryKeepsSubtestName(t *testing.T) {
 }
 
 func TestSummaryPassedFailedSkipped(t *testing.T) {
-	s := New()
+	s, _ := New()
 	s.Apply(model.Event{Action: "run", Test: "TestA"})
 	s.Apply(model.Event{Action: "pass", Test: "TestA"})
 	s.Apply(model.Event{Action: "output", Test: "TestA", Output: "ok"})
@@ -169,7 +169,7 @@ func TestParseTestEventUnknown(t *testing.T) {
 }
 
 func TestSummaryWithOutputOnly(t *testing.T) {
-	s := New()
+	s, _ := New()
 	// output-only test — never applied with a state transition
 	s.Apply(model.Event{Action: "output", Test: "orphan", Output: "some output"})
 	passed, failed, skipped := s.Summary()
@@ -178,8 +178,11 @@ func TestSummaryWithOutputOnly(t *testing.T) {
 	}
 }
 
-func TestNewPanic(t *testing.T) {
-	s := New()
+func TestNew(t *testing.T) {
+	s, err := New()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if s == nil {
 		t.Fatal("expected non-nil store")
 	}
@@ -192,13 +195,11 @@ func (s errSource) Load() ([]statemachine.TransitionDef, error) {
 	return nil, errors.New("source failed")
 }
 
-func TestNewPanicsOnBadSource(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic from bad source")
-		}
-	}()
-	newFromSource(errSource{})
+func TestNewFromSourceError(t *testing.T) {
+	_, err := newFromSource(errSource{})
+	if err == nil {
+		t.Fatal("expected error from bad source")
+	}
 }
 
 // errAdapter always fails Get
@@ -209,7 +210,7 @@ func (a errAdapter) Get(id string) (*TestState, error) {
 }
 
 func TestGetAdapterError(t *testing.T) {
-	s := New()
+	s, _ := New()
 	mem, ok := s.adapter.(*adapters.Memory[TestState])
 	if !ok {
 		t.Fatal("expected memory adapter")
@@ -222,7 +223,7 @@ func TestGetAdapterError(t *testing.T) {
 }
 
 func TestSummaryAdapterError(t *testing.T) {
-	s := New()
+	s, _ := New()
 	s.Apply(model.Event{Action: "output", Test: "TestFoo", Output: "ok"})
 	mem, ok := s.adapter.(*adapters.Memory[TestState])
 	if !ok {
@@ -237,7 +238,7 @@ func TestSummaryAdapterError(t *testing.T) {
 }
 
 func TestMarkSkippedAddsUnseen(t *testing.T) {
-	s := New()
+	s, _ := New()
 	s.MarkSkipped([]string{"scope: foo", "scope: bar"})
 	_, _, skipped := s.Summary()
 	if len(skipped) != 2 {
@@ -246,7 +247,7 @@ func TestMarkSkippedAddsUnseen(t *testing.T) {
 }
 
 func TestMarkSkippedDoesNotOverwritePassed(t *testing.T) {
-	s := New()
+	s, _ := New()
 	s.Apply(model.Event{Action: "run", Test: "scope: foo"})
 	s.Apply(model.Event{Action: "pass", Test: "scope: foo"})
 	s.MarkSkipped([]string{"scope: foo"})
@@ -260,7 +261,7 @@ func TestMarkSkippedDoesNotOverwritePassed(t *testing.T) {
 }
 
 func TestSummaryIgnoresRunningState(t *testing.T) {
-	s := New()
+	s, _ := New()
 	// "run" leaves the test in StateRunning — this happens when go test -json -v
 	// drops the terminal event for subtests with long names (a known Go toolchain issue).
 	// Summary must silently ignore such tests rather than panicking.
@@ -281,7 +282,7 @@ func (a setErrAdapter) Set(id string, state TestState) error {
 }
 
 func TestMarkSkippedPanicsOnSetError(t *testing.T) {
-	s := New()
+	s, _ := New()
 	mem, ok := s.adapter.(*adapters.Memory[TestState])
 	if !ok {
 		t.Fatal("expected memory adapter")

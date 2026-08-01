@@ -149,7 +149,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	f := formatter.New(*format, stdout, total)
-	store := state.New()
+	store, err := state.New()
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "tape: init state: %v\n", err)
+		return 1
+	}
 	r := runner.New(runner.NewOSExecutor())
 
 	ch, err := r.Run(goArgs...)

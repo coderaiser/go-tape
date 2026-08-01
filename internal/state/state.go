@@ -69,8 +69,8 @@ type Store struct {
 }
 
 // New creates a new Store.
-func New() *Store {
-	s := newFromSource(&statemachine.MemorySource{
+func New() (*Store, error) {
+	return newFromSource(&statemachine.MemorySource{
 		Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "running"},
 			{From: "running", Event: "pass", To: "passed"},
@@ -78,22 +78,21 @@ func New() *Store {
 			{From: "running", Event: "skip", To: "skipped"},
 		},
 	})
-	return s
 }
 
 // newFromSource creates a Store from a TransitionSource.
 // Exported for testing.
-func newFromSource(src statemachine.TransitionSource) *Store {
+func newFromSource(src statemachine.TransitionSource) (*Store, error) {
 	adapter := adapters.NewMemory[TestState]()
 	m, err := statemachine.New(src, parseTestState, parseTestEvent, adapter)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	return &Store{
 		machine: m,
 		adapter: adapter,
 		outputs: make(map[string]string),
-	}
+	}, nil
 }
 
 // Apply processes a model.Event and updates state.
