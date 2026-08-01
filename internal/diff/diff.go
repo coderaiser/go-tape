@@ -119,9 +119,6 @@ func prettyValue(v reflect.Value, depth int) string {
 		reflect.Complex64, reflect.Complex128:
 		return fmt.Sprintf("%v", v.Interface())
 
-	case reflect.Chan, reflect.Func,
-		reflect.Interface, reflect.Pointer, reflect.UnsafePointer:
-		panic(fmt.Sprintf("unhandled reflect.Kind in prettyValue: %v", v.Kind()))
 	default:
 		return fmt.Sprintf("%v", v.Interface())
 	}
