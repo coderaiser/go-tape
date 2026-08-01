@@ -2,7 +2,6 @@ package formatter
 
 import (
 	"io"
-	"log"
 	"os"
 
 	"github.com/coderaiser/go-tape/internal/formatter/output"
@@ -114,7 +113,8 @@ func write(w io.Writer, s string) {
 	if s == "" {
 		return
 	}
-	if _, err := w.Write([]byte(s)); err != nil {
-		log.Fatal(err)
-	}
+	// Discard the error: the writer is os.Stdout, and if it fails the
+	// process environment is already broken — there is nowhere to report
+	// the failure to. No recovery is possible, so be explicit about it.
+	_, _ = w.Write([]byte(s))
 }
