@@ -3,6 +3,4 @@ builds:
   - main: ./cmd/tape
     binary: tape
 archives:
-  - format_overrides:
-      - formats:
-          - binary
+    - formats: ["binary"]
