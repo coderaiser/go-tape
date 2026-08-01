@@ -57,7 +57,7 @@ func TestNewValidMachine(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	m, err := New(src, parseState, parseEvent, adapter, false)
+	m, err := New(src, parseState, parseEvent, adapter)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestApplyValidTransition(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter, false)
+	m, _ := New(src, parseState, parseEvent, adapter)
 
 	next, err := m.Apply("test-1", eventRun, nil)
 	if err != nil {
@@ -91,30 +91,12 @@ func TestApplyInvalidTransitionNonStrict(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter, false)
+	m, _ := New(src, parseState, parseEvent, adapter)
 
 	_, err := m.Apply("test-1", eventFinish, nil)
 	if err == nil {
 		t.Fatal("expected error for invalid transition")
 	}
-}
-
-func TestApplyInvalidTransitionStrictPanics(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
-			{From: "idle", Event: "run", To: "running"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter, true)
-
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic for strict invalid transition")
-		}
-	}()
-
-	m.Apply("test-1", eventFinish, nil)
 }
 
 func TestHookCalledOnTransition(t *testing.T) {
@@ -124,7 +106,7 @@ func TestHookCalledOnTransition(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter, false)
+	m, _ := New(src, parseState, parseEvent, adapter)
 
 	called := false
 	m.Hook(stateIdle, eventRun, func(ctx Context[testState, testEvent]) error {
@@ -145,7 +127,7 @@ func TestHookErrorReturned(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter, false)
+	m, _ := New(src, parseState, parseEvent, adapter)
 
 	m.Hook(stateIdle, eventRun, func(ctx Context[testState, testEvent]) error {
 		return errors.New("hook failed")
@@ -164,7 +146,7 @@ func TestApplyStoresState(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter, false)
+	m, _ := New(src, parseState, parseEvent, adapter)
 
 	m.Apply("test-1", eventRun, nil)
 	ptr, err := adapter.Get("test-1")
@@ -197,7 +179,7 @@ func TestNewWithParseStateError(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	_, err := New(src, parseState, parseEvent, adapter, false)
+	_, err := New(src, parseState, parseEvent, adapter)
 	if err == nil {
 		t.Fatal("expected error for invalid state")
 	}
@@ -210,7 +192,7 @@ func TestNewWithParseEventError(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	_, err := New(src, parseState, parseEvent, adapter, false)
+	_, err := New(src, parseState, parseEvent, adapter)
 	if err == nil {
 		t.Fatal("expected error for invalid event")
 	}
@@ -223,7 +205,7 @@ func TestNewWithParseToStateError(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	_, err := New(src, parseState, parseEvent, adapter, false)
+	_, err := New(src, parseState, parseEvent, adapter)
 	if err == nil {
 		t.Fatal("expected error for invalid to state")
 	}
@@ -236,7 +218,7 @@ func TestValidatePasses(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter, false)
+	m, _ := New(src, parseState, parseEvent, adapter)
 
 	if err := m.Validate(); err != nil {
 		t.Fatal(err)
@@ -250,7 +232,7 @@ func TestHookNotCalledForUnknownTransition(t *testing.T) {
 		},
 	}
 	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter, false)
+	m, _ := New(src, parseState, parseEvent, adapter)
 
 	called := false
 	m.Hook(stateRunning, eventFinish, func(ctx Context[testState, testEvent]) error {
@@ -278,7 +260,7 @@ func (a errSetAdapter) Set(id string, s testState) error  { return errors.New("s
 
 func TestApplyGetError(t *testing.T) {
 	src := &MemorySource{Defs: []TransitionDef{{From: "idle", Event: "run", To: "running"}}}
-	m, _ := New(src, parseState, parseEvent, errGetAdapter{}, false)
+	m, _ := New(src, parseState, parseEvent, errGetAdapter{})
 	_, err := m.Apply("x", eventRun, nil)
 	if err == nil {
 		t.Fatal("expected error from Get failure")
@@ -287,7 +269,7 @@ func TestApplyGetError(t *testing.T) {
 
 func TestApplySetError(t *testing.T) {
 	src := &MemorySource{Defs: []TransitionDef{{From: "idle", Event: "run", To: "running"}}}
-	m, _ := New(src, parseState, parseEvent, errSetAdapter{}, false)
+	m, _ := New(src, parseState, parseEvent, errSetAdapter{})
 	_, err := m.Apply("x", eventRun, nil)
 	if err == nil {
 		t.Fatal("expected error from Set failure")
@@ -296,7 +278,7 @@ func TestApplySetError(t *testing.T) {
 
 func TestWithInitialUsedForUnknownId(t *testing.T) {
 	src := &MemorySource{Defs: []TransitionDef{{From: "idle", Event: "run", To: "running"}}}
-	m, _ := New(src, parseState, parseEvent, adapters.NewMemory[testState](), false)
+	m, _ := New(src, parseState, parseEvent, adapters.NewMemory[testState]())
 	m.WithInitial(stateIdle)
 	next, err := m.Apply("brand-new", eventRun, nil)
 	if err != nil {
@@ -350,7 +332,7 @@ func (s errSource) Load() ([]TransitionDef, error) {
 }
 
 func TestNewWithSourceError(t *testing.T) {
-	_, err := New[testState, testEvent](errSource{}, parseState, parseEvent, adapters.NewMemory[testState](), false)
+	_, err := New[testState, testEvent](errSource{}, parseState, parseEvent, adapters.NewMemory[testState]())
 	if err == nil {
 		t.Fatal("expected error from source failure")
 	}

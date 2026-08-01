@@ -7,7 +7,6 @@ type Machine[S comparable, E comparable] struct {
 	hooks       map[string]Handler[S, E]
 	initial     S
 	adapter     Adapter[S]
-	strict      bool
 }
 
 func New[S, E comparable](
@@ -15,7 +14,6 @@ func New[S, E comparable](
 	parseState func(string) (S, error),
 	parseEvent func(string) (E, error),
 	adapter Adapter[S],
-	strict bool,
 ) (*Machine[S, E], error) {
 	defs, err := source.Load()
 	if err != nil {
@@ -25,7 +23,6 @@ func New[S, E comparable](
 		transitions: make(map[S]map[E]S),
 		hooks:       make(map[string]Handler[S, E]),
 		adapter:     adapter,
-		strict:      strict,
 	}
 	for _, d := range defs {
 		from, err := parseState(d.From)
@@ -61,7 +58,7 @@ func (m *Machine[S, E]) Hook(from S, event E, h Handler[S, E]) {
 
 // Apply order:
 //  1. adapter.Get → nil,nil uses m.initial; nil,err returns error
-//  2. look up transition → panic (strict) or error
+//  2. look up transition → error
 //  3. adapter.Set → store BEFORE hook
 //  4. run hook if registered
 //  5. return next, hookErr
@@ -78,9 +75,6 @@ func (m *Machine[S, E]) Apply(id string, event E, payload any) (S, error) {
 	next, ok := m.transitions[current][event]
 	if !ok {
 		err := fmt.Errorf("invalid transition: from %v event %v", current, event)
-		if m.strict {
-			panic(err.Error())
-		}
 		return current, err
 	}
 	if err := m.adapter.Set(id, next); err != nil {

@@ -85,7 +85,7 @@ func New() *Store {
 // Exported for testing.
 func newFromSource(src statemachine.TransitionSource) *Store {
 	adapter := adapters.NewMemory[TestState]()
-	m, err := statemachine.New(src, parseTestState, parseTestEvent, adapter, false)
+	m, err := statemachine.New(src, parseTestState, parseTestEvent, adapter)
 	if err != nil {
 		panic(err)
 	}

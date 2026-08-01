@@ -375,7 +375,7 @@ func TestOnlyCallsFnDirectly(t *testing.T) {
 	t.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	t.Setenv("TAPE_CHECK_END", "0")
 	ran := false
-call := Only;
+	call := Only
 	call(t, "tape: Only calls fn", func(t *T) {
 		ran = true
 		t.End()
