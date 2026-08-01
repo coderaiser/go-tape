@@ -1,3 +1,8 @@
+2026.08.01, v1.0.8
+
+feature:
+- 52ce384 statemachine: get rid of strict
+
 2026.08.01, v1.0.7
 
 fix:
