@@ -6,11 +6,11 @@ linters:
     - unused
     - gocritic
     - misspell
+  disable:
+    - errcheck
   exclusions:
-    rules:
-      - path: _test\.go
-        linters:
-          - errcheck
+    paths:
+      - node_modules
 formatters:
   enable:
     - gofmt
