@@ -629,3 +629,35 @@ func TestFindAllTestNamesInvalidGo(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestWalkFilesSkipsNonGoFiles(t *testing.T) {
+	AstTest(t, "ast: CountTests skips non-.go files", func(t *AstT) {
+		dir := t.TB().TempDir()
+		err := os.WriteFile(dir+"/readme.txt", []byte("hello"), 0644)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		n, err := tapeast.CountTests(dir)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(n, 0)
+		t.End()
+	})
+}
+
+func TestWalkTestFilesSkipsNonTestGoFiles(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles skips non-_test.go .go files", func(t *AstT) {
+		dir := t.TB().TempDir()
+		err := os.WriteFile(dir+"/main.go", []byte("package main\nfunc main(){}\n"), 0644)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		n, err := tapeast.CountTestsInTestFiles(dir)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(n, 0)
+		t.End()
+	})
+}
