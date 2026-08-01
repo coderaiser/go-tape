@@ -179,7 +179,7 @@ func (s *Store) Summary() (passed, failed, skipped []string) {
 	return
 }
 
-func (s *Store) MarkSkipped(names []string) {
+func (s *Store) MarkSkipped(names []string) error {
 	for _, name := range names {
 		ptr, _ := s.adapter.Get(name)
 
@@ -188,8 +188,9 @@ func (s *Store) MarkSkipped(names []string) {
 		}
 
 		if err := s.adapter.Set(name, StateSkipped); err != nil {
-			panic(fmt.Sprintf("state.MarkSkipped: Set failed: %v", err))
+			return fmt.Errorf("state.MarkSkipped: Set failed: %w", err)
 		}
 		s.outputs[name] = ""
 	}
+	return nil
 }

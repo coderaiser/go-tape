@@ -239,7 +239,9 @@ func TestSummaryAdapterError(t *testing.T) {
 
 func TestMarkSkippedAddsUnseen(t *testing.T) {
 	s, _ := New()
-	s.MarkSkipped([]string{"scope: foo", "scope: bar"})
+	if err := s.MarkSkipped([]string{"scope: foo", "scope: bar"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	_, _, skipped := s.Summary()
 	if len(skipped) != 2 {
 		t.Fatalf("want 2 skipped, got %d", len(skipped))
@@ -250,7 +252,9 @@ func TestMarkSkippedDoesNotOverwritePassed(t *testing.T) {
 	s, _ := New()
 	s.Apply(model.Event{Action: "run", Test: "scope: foo"})
 	s.Apply(model.Event{Action: "pass", Test: "scope: foo"})
-	s.MarkSkipped([]string{"scope: foo"})
+	if err := s.MarkSkipped([]string{"scope: foo"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	passed, _, skipped := s.Summary()
 	if len(passed) != 1 {
 		t.Fatalf("want 1 passed, got %d", len(passed))
@@ -281,17 +285,15 @@ func (a setErrAdapter) Set(id string, state TestState) error {
 	return errors.New("adapter set error")
 }
 
-func TestMarkSkippedPanicsOnSetError(t *testing.T) {
+func TestMarkSkippedSetError(t *testing.T) {
 	s, _ := New()
+	// remove existing entry so Set is attempted
 	mem, ok := s.adapter.(*adapters.Memory[TestState])
 	if !ok {
 		t.Fatal("expected memory adapter")
 	}
 	s.adapter = setErrAdapter{mem}
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic from Set error in MarkSkipped")
-		}
-	}()
-	s.MarkSkipped([]string{"scope: foo"})
+	if err := s.MarkSkipped([]string{"scope: foo"}); err == nil {
+		t.Fatal("expected error from Set failure in MarkSkipped")
+	}
 }

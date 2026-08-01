@@ -188,7 +188,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if len(onlyCalls) > 0 {
 		allNames, err := tapeast.FindAllTestNames(dir)
 		if err == nil {
-			store.MarkSkipped(allNames)
+			if err := store.MarkSkipped(allNames); err != nil {
+				_, _ = fmt.Fprintf(stderr, "tape: mark skipped: %v\n", err)
+				return 1
+			}
 			passed, failed, _ = store.Summary()
 			skipped = total - len(passed) - len(failed)
 			if skipped < 0 {
