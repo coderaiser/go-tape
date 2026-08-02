@@ -30,21 +30,20 @@ func (t *OnlyT) Pattern(calls []only.OnlyCall, expected string) {
 	t.Equal(got, expected)
 }
 
-func runOnlyTest(tb *testing.T, name string, fn func(*OnlyT)) {
-	tape.Test(tb, name, func(base *tape.T) {
-		fn(&OnlyT{T: base})
-	})
-}
+// OnlyTest uses Extend to create the extended test convenience function.
+var OnlyTest = tape.Extend(func(base *tape.T) *OnlyT {
+	return &OnlyT{T: base}
+})
 
 func TestFindNoCalls(t *testing.T) {
-	runOnlyTest(t, "only: no Only calls returns empty", func(t *OnlyT) {
+	OnlyTest(t, "only: no Only calls returns empty", func(t *OnlyT) {
 		t.FindOnly("no-only", nil)
 		t.End()
 	})
 }
 
 func TestFindOneCall(t *testing.T) {
-	runOnlyTest(t, "only: one Only call returns one result", func(t *OnlyT) {
+	OnlyTest(t, "only: one Only call returns one result", func(t *OnlyT) {
 		t.FindOnly("one-only", []only.OnlyCall{
 			{Parent: "TestParser", Name: "parser: run action"},
 		})
@@ -53,7 +52,7 @@ func TestFindOneCall(t *testing.T) {
 }
 
 func TestFindMultipleCalls(t *testing.T) {
-	runOnlyTest(t, "only: multiple Only calls in same func", func(t *OnlyT) {
+	OnlyTest(t, "only: multiple Only calls in same func", func(t *OnlyT) {
 		t.FindOnly("multi-only", []only.OnlyCall{
 			{Parent: "TestParser", Name: "parser: run action"},
 			{Parent: "TestParser", Name: "parser: fail action"},
@@ -63,7 +62,7 @@ func TestFindMultipleCalls(t *testing.T) {
 }
 
 func TestFindCrossFunc(t *testing.T) {
-	runOnlyTest(t, "only: Only calls in different TestXxx functions", func(t *OnlyT) {
+	OnlyTest(t, "only: Only calls in different TestXxx functions", func(t *OnlyT) {
 		t.FindOnly("cross-func", []only.OnlyCall{
 			{Parent: "TestParser", Name: "parser: run action"},
 			{Parent: "TestRunner", Name: "runner: starts"},
@@ -73,14 +72,14 @@ func TestFindCrossFunc(t *testing.T) {
 }
 
 func TestBuildPatternEmpty(t *testing.T) {
-	runOnlyTest(t, "only: empty calls returns empty pattern", func(t *OnlyT) {
+	OnlyTest(t, "only: empty calls returns empty pattern", func(t *OnlyT) {
 		t.Pattern(nil, "")
 		t.End()
 	})
 }
 
 func TestBuildPatternSingle(t *testing.T) {
-	runOnlyTest(t, "only: single call builds pattern", func(t *OnlyT) {
+	OnlyTest(t, "only: single call builds pattern", func(t *OnlyT) {
 		t.Pattern([]only.OnlyCall{
 			{Parent: "TestParser", Name: "parser: run action"},
 		}, "TestParser/parser:_run_action")
@@ -89,7 +88,7 @@ func TestBuildPatternSingle(t *testing.T) {
 }
 
 func TestBuildPatternMultiple(t *testing.T) {
-	runOnlyTest(t, "only: multiple calls joined with pipe", func(t *OnlyT) {
+	OnlyTest(t, "only: multiple calls joined with pipe", func(t *OnlyT) {
 		t.Pattern([]only.OnlyCall{
 			{Parent: "TestParser", Name: "parser: run action"},
 			{Parent: "TestRunner", Name: "runner: starts"},
@@ -99,7 +98,7 @@ func TestBuildPatternMultiple(t *testing.T) {
 }
 
 func TestFindOnlyCallsInDir(t *testing.T) {
-	runOnlyTest(t, "only: FindOnlyCalls reads directory", func(t *OnlyT) {
+	OnlyTest(t, "only: FindOnlyCalls reads directory", func(t *OnlyT) {
 		calls, err := only.FindOnlyCalls("fixture/one-only")
 		if err != nil {
 			t.TB().Fatal(err)
@@ -110,7 +109,7 @@ func TestFindOnlyCallsInDir(t *testing.T) {
 }
 
 func TestFindOnlyCallsMissingDir(t *testing.T) {
-	runOnlyTest(t, "only: FindOnlyCalls errors on missing dir", func(t *OnlyT) {
+	OnlyTest(t, "only: FindOnlyCalls errors on missing dir", func(t *OnlyT) {
 		_, err := only.FindOnlyCalls("nonexistent")
 		t.Ok(err)
 		t.End()
@@ -118,7 +117,7 @@ func TestFindOnlyCallsMissingDir(t *testing.T) {
 }
 
 func TestFindOnlyCallsInSourceInvalidGo(t *testing.T) {
-	runOnlyTest(t, "only: FindOnlyCallsInSource errors on invalid Go", func(t *OnlyT) {
+	OnlyTest(t, "only: FindOnlyCallsInSource errors on invalid Go", func(t *OnlyT) {
 		_, err := only.FindOnlyCallsInSource("this is not go code {{{{\"")
 		t.Ok(err)
 		t.End()
@@ -128,7 +127,7 @@ func TestFindOnlyCallsInSourceInvalidGo(t *testing.T) {
 func TestIsOnlyCallBareIdent(t *testing.T) {
 	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
-	runOnlyTest(t, "only: bare Only() call is detected", func(t *OnlyT) {
+	OnlyTest(t, "only: bare Only() call is detected", func(t *OnlyT) {
 		src := `package p
 
 func TestFoo(t *testing.T) {
@@ -146,7 +145,7 @@ func TestFoo(t *testing.T) {
 }
 
 func TestBuildPatternSortsByParentThenName(t *testing.T) {
-	runOnlyTest(t, "only: BuildRunPattern sorts deterministically", func(t *OnlyT) {
+	OnlyTest(t, "only: BuildRunPattern sorts deterministically", func(t *OnlyT) {
 		got := only.BuildRunPattern([]only.OnlyCall{
 			{Parent: "TestB", Name: "z: last"},
 			{Parent: "TestA", Name: "a: first"},
@@ -157,7 +156,7 @@ func TestBuildPatternSortsByParentThenName(t *testing.T) {
 }
 
 func TestIsOnlyCallOtherExpr(t *testing.T) {
-	runOnlyTest(t, "only: non-Only call is ignored", func(t *OnlyT) {
+	OnlyTest(t, "only: non-Only call is ignored", func(t *OnlyT) {
 		src := `package p
 
 func TestFoo(t *testing.T) {
@@ -175,7 +174,7 @@ func TestFoo(t *testing.T) {
 func TestFindOnlyCallsReadFileError(t *testing.T) {
 	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
-	runOnlyTest(t, "only: FindOnlyCalls returns error when file cannot be read", func(t *OnlyT) {
+	OnlyTest(t, "only: FindOnlyCalls returns error when file cannot be read", func(t *OnlyT) {
 		dir := t.TB().TempDir()
 		err := os.Symlink("/nonexistent", dir+"/broken.go")
 		if err != nil {
@@ -188,7 +187,7 @@ func TestFindOnlyCallsReadFileError(t *testing.T) {
 }
 
 func TestBuildRunPatternSameParentSortsByName(t *testing.T) {
-	runOnlyTest(t, "only: BuildRunPattern sorts by Name when Parent is equal", func(t *OnlyT) {
+	OnlyTest(t, "only: BuildRunPattern sorts by Name when Parent is equal", func(t *OnlyT) {
 		calls := []only.OnlyCall{
 			{Parent: "TestFoo", Name: "scope: z"},
 			{Parent: "TestFoo", Name: "scope: a"},
@@ -202,7 +201,7 @@ func TestBuildRunPatternSameParentSortsByName(t *testing.T) {
 func TestFindOnlyCallsDirInvalidGoSource(t *testing.T) {
 	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
-	runOnlyTest(t, "only: FindOnlyCalls errors on invalid Go source in file", func(t *OnlyT) {
+	OnlyTest(t, "only: FindOnlyCalls errors on invalid Go source in file", func(t *OnlyT) {
 		dir := t.TB().TempDir()
 		os.WriteFile(dir+"/bad.go", []byte("package foo\n\nnot go {{{{\n"), 0644)
 		_, err := only.FindOnlyCalls(dir)
@@ -214,7 +213,7 @@ func TestFindOnlyCallsDirInvalidGoSource(t *testing.T) {
 func TestFindOnlyCallsWithNonGoFile(t *testing.T) {
 	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
-	runOnlyTest(t, "only: FindOnlyCalls skips non-Go files", func(t *OnlyT) {
+	OnlyTest(t, "only: FindOnlyCalls skips non-Go files", func(t *OnlyT) {
 		dir := t.TB().TempDir()
 		os.WriteFile(dir+"/readme.txt", []byte("hello world"), 0644)
 		calls, err := only.FindOnlyCalls(dir)
@@ -227,7 +226,7 @@ func TestFindOnlyCallsWithNonGoFile(t *testing.T) {
 }
 
 func TestIsOnlyCallOtherExprType(t *testing.T) {
-	runOnlyTest(t, "only: non-call expression type returns false", func(t *OnlyT) {
+	OnlyTest(t, "only: non-call expression type returns false", func(t *OnlyT) {
 		src := `package p
 
 func TestFoo(t *testing.T) {
