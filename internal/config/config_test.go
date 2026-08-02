@@ -1,111 +1,113 @@
-package config
+package config_test
 
 import (
-	"os"
 	"testing"
 	"time"
+
+	tape "github.com/coderaiser/go-tape"
+	"github.com/coderaiser/go-tape/internal/config"
 )
 
 func TestCheckScopesDefault(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_CHECK_SCOPES") })
-	os.Unsetenv("TAPE_CHECK_SCOPES")
-	if !CheckScopes() {
-		t.Error("default should be true")
-	}
+	tape.Test(t, "config: CheckScopes defaults to true", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_SCOPES", "")
+		t.Ok(config.CheckScopes())
+		t.End()
+	})
 }
 
 func TestCheckScopesDisabled(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_CHECK_SCOPES") })
-	os.Setenv("TAPE_CHECK_SCOPES", "0")
-	if CheckScopes() {
-		t.Error("should be false when env is 0")
-	}
+	tape.Test(t, "config: CheckScopes disabled with 0", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_SCOPES", "0")
+		t.NotOk(config.CheckScopes())
+		t.End()
+	})
 }
 
 func TestCheckAssertionsCountDefault(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT") })
-	os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
-	if !CheckAssertionsCount() {
-		t.Error("default should be true")
-	}
+	tape.Test(t, "config: CheckAssertionsCount defaults to true", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "")
+		t.Ok(config.CheckAssertionsCount())
+		t.End()
+	})
 }
 
 func TestCheckAssertionsCountDisabled(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT") })
-	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "false")
-	if CheckAssertionsCount() {
-		t.Error("should be false when env is false")
-	}
+	tape.Test(t, "config: CheckAssertionsCount disabled with false", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "false")
+		t.NotOk(config.CheckAssertionsCount())
+		t.End()
+	})
 }
 
 func TestCheckEndDefault(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_CHECK_END") })
-	os.Unsetenv("TAPE_CHECK_END")
-	if !CheckEnd() {
-		t.Error("default should be true")
-	}
+	tape.Test(t, "config: CheckEnd defaults to true", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_END", "")
+		t.Ok(config.CheckEnd())
+		t.End()
+	})
 }
 
 func TestCheckEndDisabled(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_CHECK_END") })
-	os.Setenv("TAPE_CHECK_END", "0")
-	if CheckEnd() {
-		t.Error("should be false when env is 0")
-	}
+	tape.Test(t, "config: CheckEnd disabled with 0", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_END", "0")
+		t.NotOk(config.CheckEnd())
+		t.End()
+	})
 }
 
 func TestTimeoutDefault(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_TIMEOUT") })
-	os.Unsetenv("TAPE_TIMEOUT")
-	if d := Timeout(); d != 3*time.Second {
-		t.Errorf("default should be 3s, got %v", d)
-	}
+	tape.Test(t, "config: Timeout defaults to 3s", func(t *tape.T) {
+		t.Setenv("TAPE_TIMEOUT", "")
+		t.Equal(config.Timeout(), 3*time.Second)
+		t.End()
+	})
 }
 
 func TestTimeoutCustom(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_TIMEOUT") })
-	os.Setenv("TAPE_TIMEOUT", "5s")
-	if d := Timeout(); d != 5*time.Second {
-		t.Errorf("should be 5s, got %v", d)
-	}
+	tape.Test(t, "config: Timeout honors TAPE_TIMEOUT", func(t *tape.T) {
+		t.Setenv("TAPE_TIMEOUT", "5s")
+		t.Equal(config.Timeout(), 5*time.Second)
+		t.End()
+	})
 }
 
 func TestTimeoutInvalid(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_TIMEOUT") })
-	os.Setenv("TAPE_TIMEOUT", "invalid")
-	if d := Timeout(); d != 3*time.Second {
-		t.Errorf("invalid should fallback to 3s, got %v", d)
-	}
+	tape.Test(t, "config: Timeout falls back on invalid value", func(t *tape.T) {
+		t.Setenv("TAPE_TIMEOUT", "invalid")
+		t.Equal(config.Timeout(), 3*time.Second)
+		t.End()
+	})
 }
 
 func TestStrictTransitionsDefault(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_STRICT_TRANSITIONS") })
-	os.Unsetenv("TAPE_STRICT_TRANSITIONS")
-	if !StrictTransitions() {
-		t.Error("default should be true")
-	}
+	tape.Test(t, "config: StrictTransitions defaults to true", func(t *tape.T) {
+		t.Setenv("TAPE_STRICT_TRANSITIONS", "")
+		t.Ok(config.StrictTransitions())
+		t.End()
+	})
 }
 
 func TestStrictTransitionsDisabled(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_STRICT_TRANSITIONS") })
-	os.Setenv("TAPE_STRICT_TRANSITIONS", "0")
-	if StrictTransitions() {
-		t.Error("should be false when env is 0")
-	}
+	tape.Test(t, "config: StrictTransitions disabled with 0", func(t *tape.T) {
+		t.Setenv("TAPE_STRICT_TRANSITIONS", "0")
+		t.NotOk(config.StrictTransitions())
+		t.End()
+	})
 }
 
 func TestEnvBoolTrue(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_CHECK_SCOPES") })
-	os.Setenv("TAPE_CHECK_SCOPES", "true")
-	if !CheckScopes() {
-		t.Error("expected true for 'true'")
-	}
+	tape.Test(t, "config: envBool parses true", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_SCOPES", "true")
+		t.Ok(config.CheckScopes())
+		t.End()
+	})
 }
 
 func TestEnvBoolInvalid(t *testing.T) {
-	t.Cleanup(func() { os.Unsetenv("TAPE_CHECK_SCOPES") })
-	os.Setenv("TAPE_CHECK_SCOPES", "invalid")
-	if !CheckScopes() {
-		t.Error("expected default true for invalid value")
-	}
+	tape.Test(t, "config: envBool falls back on invalid value", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_SCOPES", "invalid")
+		t.Ok(config.CheckScopes())
+		t.End()
+	})
 }

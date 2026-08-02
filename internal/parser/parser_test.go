@@ -1,105 +1,102 @@
-package parser
+package parser_test
 
 import (
 	"testing"
+
+	tape "github.com/coderaiser/go-tape"
+	"github.com/coderaiser/go-tape/internal/model"
+	"github.com/coderaiser/go-tape/internal/parser"
 )
 
 func TestParsePassEvent(t *testing.T) {
-	line := `{"Action":"pass","Package":"mypkg","Test":"TestFoo","Elapsed":0.1}`
-	e, err := Parse(line)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if e.Action != "pass" {
-		t.Errorf("want pass, got %s", e.Action)
-	}
-	if e.Package != "mypkg" {
-		t.Errorf("want mypkg, got %s", e.Package)
-	}
-	if e.Test != "TestFoo" {
-		t.Errorf("want TestFoo, got %s", e.Test)
-	}
-	if e.Elapsed != 0.1 {
-		t.Errorf("want 0.1, got %f", e.Elapsed)
-	}
+	tape.Test(t, "parser: parse pass event", func(t *tape.T) {
+		e, error := parser.Parse(`{"Action":"pass","Package":"mypkg","Test":"TestFoo","Elapsed":0.1}`)
+		if error != nil {
+			t.TB().Fatalf("Parse: %v", error)
+		}
+		t.DeepEqual(e, model.Event{Action: "pass", Package: "mypkg", Test: "TestFoo", Elapsed: 0.1})
+		t.End()
+	})
 }
 
 func TestParseFailEvent(t *testing.T) {
-	line := `{"Action":"fail","Package":"mypkg","Test":"TestBar"}`
-	e, err := Parse(line)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if e.Action != "fail" {
-		t.Errorf("want fail, got %s", e.Action)
-	}
+	tape.Test(t, "parser: parse fail event", func(t *tape.T) {
+		e, error := parser.Parse(`{"Action":"fail","Package":"mypkg","Test":"TestBar"}`)
+		if error != nil {
+			t.TB().Fatalf("Parse: %v", error)
+		}
+		t.DeepEqual(e, model.Event{Action: "fail", Package: "mypkg", Test: "TestBar"})
+		t.End()
+	})
 }
 
 func TestParseSkipEvent(t *testing.T) {
-	line := `{"Action":"skip","Package":"mypkg","Test":"TestBaz"}`
-	e, err := Parse(line)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if e.Action != "skip" {
-		t.Errorf("want skip, got %s", e.Action)
-	}
+	tape.Test(t, "parser: parse skip event", func(t *tape.T) {
+		e, error := parser.Parse(`{"Action":"skip","Package":"mypkg","Test":"TestBaz"}`)
+		if error != nil {
+			t.TB().Fatalf("Parse: %v", error)
+		}
+		t.DeepEqual(e, model.Event{Action: "skip", Package: "mypkg", Test: "TestBaz"})
+		t.End()
+	})
 }
 
 func TestParseOutputEvent(t *testing.T) {
-	line := `{"Action":"output","Package":"mypkg","Test":"TestFoo","Output":"ok\\n"}`
-	e, err := Parse(line)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if e.Action != "output" {
-		t.Errorf("want output, got %s", e.Action)
-	}
+	tape.Test(t, "parser: parse output event", func(t *tape.T) {
+		e, error := parser.Parse(`{"Action":"output","Package":"mypkg","Test":"TestFoo","Output":"ok\\n"}`)
+		if error != nil {
+			t.TB().Fatalf("Parse: %v", error)
+		}
+		t.DeepEqual(e, model.Event{Action: "output", Package: "mypkg", Test: "TestFoo", Output: "ok\\n"})
+		t.End()
+	})
 }
 
 func TestParseRunEvent(t *testing.T) {
-	line := `{"Action":"run","Package":"mypkg","Test":"TestFoo"}`
-	e, err := Parse(line)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if e.Action != "run" {
-		t.Errorf("want run, got %s", e.Action)
-	}
+	tape.Test(t, "parser: parse run event", func(t *tape.T) {
+		e, error := parser.Parse(`{"Action":"run","Package":"mypkg","Test":"TestFoo"}`)
+		if error != nil {
+			t.TB().Fatalf("Parse: %v", error)
+		}
+		t.DeepEqual(e, model.Event{Action: "run", Package: "mypkg", Test: "TestFoo"})
+		t.End()
+	})
 }
 
 func TestParsePauseEvent(t *testing.T) {
-	line := `{"Action":"pause","Package":"mypkg"}`
-	e, err := Parse(line)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if e.Action != "pause" {
-		t.Errorf("want pause, got %s", e.Action)
-	}
+	tape.Test(t, "parser: parse pause event", func(t *tape.T) {
+		e, error := parser.Parse(`{"Action":"pause","Package":"mypkg"}`)
+		if error != nil {
+			t.TB().Fatalf("Parse: %v", error)
+		}
+		t.DeepEqual(e, model.Event{Action: "pause", Package: "mypkg"})
+		t.End()
+	})
 }
 
 func TestParseContEvent(t *testing.T) {
-	line := `{"Action":"cont","Package":"mypkg"}`
-	e, err := Parse(line)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if e.Action != "cont" {
-		t.Errorf("want cont, got %s", e.Action)
-	}
+	tape.Test(t, "parser: parse cont event", func(t *tape.T) {
+		e, error := parser.Parse(`{"Action":"cont","Package":"mypkg"}`)
+		if error != nil {
+			t.TB().Fatalf("Parse: %v", error)
+		}
+		t.DeepEqual(e, model.Event{Action: "cont", Package: "mypkg"})
+		t.End()
+	})
 }
 
 func TestParseInvalidJSON(t *testing.T) {
-	_, err := Parse("not json")
-	if err == nil {
-		t.Fatal("expected error for invalid JSON")
-	}
+	tape.Test(t, "parser: parse invalid json errors", func(t *tape.T) {
+		_, error := parser.Parse("not json")
+		t.Equal(error.Error(), "parse event: invalid character 'o' in literal null (expecting 'u')")
+		t.End()
+	})
 }
 
 func TestParseEmptyLine(t *testing.T) {
-	_, err := Parse("")
-	if err == nil {
-		t.Fatal("expected error for empty line")
-	}
+	tape.Test(t, "parser: parse empty line errors", func(t *tape.T) {
+		_, error := parser.Parse("")
+		t.Equal(error.Error(), "parse event: unexpected end of JSON input")
+		t.End()
+	})
 }
