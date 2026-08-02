@@ -11,6 +11,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	tapeast "github.com/coderaiser/go-tape/internal/ast"
+	"github.com/coderaiser/go-tape/internal/config"
 	"github.com/coderaiser/go-tape/internal/formatter"
 	"github.com/coderaiser/go-tape/internal/runner"
 	"github.com/coderaiser/go-tape/internal/state"
@@ -203,6 +204,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	f.End(len(passed), len(failed), skipped)
 
 	if len(failed) > 0 {
+		return 1
+	}
+	if config.CheckSkipped() && skipped > 0 {
 		return 1
 	}
 	return 0

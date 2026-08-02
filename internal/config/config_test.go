@@ -96,6 +96,22 @@ func TestStrictTransitionsDisabled(t *testing.T) {
 	})
 }
 
+func TestCheckSkippedDefault(t *testing.T) {
+	tape.Test(t, "config: CheckSkipped defaults to false", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_SKIPPED", "")
+		t.NotOk(config.CheckSkipped())
+		t.End()
+	})
+}
+
+func TestCheckSkippedEnabled(t *testing.T) {
+	tape.Test(t, "config: CheckSkipped enabled with 1", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_SKIPPED", "1")
+		t.Ok(config.CheckSkipped())
+		t.End()
+	})
+}
+
 func TestEnvBoolTrue(t *testing.T) {
 	tape.Test(t, "config: envBool parses true", func(t *tape.T) {
 		t.Setenv("TAPE_CHECK_SCOPES", "true")

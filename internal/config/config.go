@@ -49,6 +49,10 @@ func CheckEnd() bool {
 	return envBool("TAPE_CHECK_END", true)
 }
 
+func CheckSkipped() bool {
+	return envBool("TAPE_CHECK_SKIPPED", false)
+}
+
 func Timeout() time.Duration {
 	return envDur("TAPE_TIMEOUT", 3*time.Second)
 }
