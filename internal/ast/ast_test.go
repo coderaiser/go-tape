@@ -41,11 +41,10 @@ func (t *AstT) Pattern(calls []tapeast.OnlyCall, expected string) {
 	t.Equal(tapeast.BuildRunPattern(calls), expected)
 }
 
-func AstTest(tb *testing.T, name string, fn func(*AstT)) {
-	tape.Test(tb, name, func(base *tape.T) {
-		fn(&AstT{T: base})
-	})
-}
+// AstTest uses Extend to create the extended test convenience function.
+var AstTest = tape.Extend(func(base *tape.T) *AstT {
+	return &AstT{T: base}
+})
 
 func writeFile(t *testing.T, path, src string) {
 	t.Helper()
