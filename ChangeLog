@@ -1,3 +1,22 @@
+2026.08.02, v1.0.12
+
+feature:
+- 8e6726f Test.Only: rm duplicates
+- a0adec0 Test.Skip
+- 3a78714 config: add TAPE_CHECK_SKIPPED guard
+- 4fa19ca formatter: split compound assertions
+- 86eac7e only: rewrite OnlyTest with Extend
+- 1180001 ast: rewrite AstTest with Extend
+- f748872 config parser scope: convert tests to tape style
+- 00c0b57 statemachine: convert tests to tape style
+- 02d2f4f state: export test seams, convert to tape style
+- 4465244 formatter-time: inject writer to remove os.Stderr
+- 994fb18 tape: move guards from helpers, drop truthy
+- 5a97042 formatter: discard write error explicitly
+- c863214 diff: remove panic, cover all kinds
+- cb78766 state: return error from MarkSkipped
+- 8b7a5a3 state: return errors from New and newFromSource
+
 2026.08.01, v1.0.11
 
 fix:
