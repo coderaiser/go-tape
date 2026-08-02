@@ -394,5 +394,3 @@ func TestToRegexpWithRegexpType(t *testing.T) {
 		t.Fatal("expected same regexp")
 	}
 }
-
-

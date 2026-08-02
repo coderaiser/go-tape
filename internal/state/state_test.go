@@ -123,14 +123,18 @@ func (s errSource) Load() ([]statemachine.TransitionDef, error) {
 }
 
 // errAdapter always fails Get.
-type errAdapter struct{ *adapters.Memory[state.TestState] }
+type errAdapter struct {
+	*adapters.Memory[state.TestState]
+}
 
 func (a errAdapter) Get(id string) (*state.TestState, error) {
 	return nil, errors.New("adapter error")
 }
 
 // setErrAdapter fails Set.
-type setErrAdapter struct{ *adapters.Memory[state.TestState] }
+type setErrAdapter struct {
+	*adapters.Memory[state.TestState]
+}
 
 func (a setErrAdapter) Set(id string, st state.TestState) error {
 	return errors.New("adapter set error")

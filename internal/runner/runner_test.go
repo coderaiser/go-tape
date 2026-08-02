@@ -114,7 +114,7 @@ func TestOSExecutorStartError(t *testing.T) {
 func TestOSExecutorConformsToInterface(t *testing.T) {
 	tape.Test(t, "runner: OS executor implements Executor", func(t *tape.T) {
 		var e Executor = NewOSExecutor()
-		t.Ok(e != nil)
+		t.Ok(e)
 		t.End()
 	})
 }

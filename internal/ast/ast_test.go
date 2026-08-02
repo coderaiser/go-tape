@@ -294,7 +294,7 @@ func TestFindSkipCallsMethodSyntaxResult(t *testing.T) {
 			}
 		`
 
-		names, err := tapeast.FindAllTestNames(t.TB().TempDir())
+		names, _ := tapeast.FindAllTestNames(t.TB().TempDir())
 		_ = names
 		calls, err := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
 		if err != nil {
@@ -807,6 +807,7 @@ func TestIsTestMethodCallUnknownExprFalse(t *testing.T) {
 		t.End()
 	})
 }
+
 // TestCountTestsQualifiedOnlyForm ensures CountTests counts tape.Test.Only
 // (the qualified SelectorExpr form) alongside plain Test(...) calls.
 func TestCountTestsQualifiedOnlyForm(t *testing.T) {
