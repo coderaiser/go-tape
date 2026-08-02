@@ -2,5 +2,7 @@
 files = [
     "**/cmd/tape/main.go",
     "**/internal/dedent",
+    "**/internal/formatter_progress_bar/term_unix.go",
+    "**/internal/formatter_progress_bar/term_windows.go",
     "**/node_modules"
 ]
