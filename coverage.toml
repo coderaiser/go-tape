@@ -4,5 +4,6 @@ files = [
     "**/internal/dedent",
     "**/internal/formatter_progress_bar/term_unix.go",
     "**/internal/formatter_progress_bar/term_windows.go",
-    "**/node_modules"
+    "**/node_modules",
+    "**/tape.go"
 ]
