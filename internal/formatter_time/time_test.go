@@ -1,6 +1,7 @@
 package formatter_time_test
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -19,10 +20,28 @@ func TestTimeFormatterStart(t *testing.T) {
 
 func TestTimeFormatterTestEndReturnsEmpty(t *testing.T) {
 	tape.Test(t, "formatter-time: TestEnd returns empty string", func(t *tape.T) {
-		f := formatter_time.New(10, &strings.Builder{})
+		var buf strings.Builder
+		f := formatter_time.New(10, &buf)
 		f.Start(10)
 		result := f.TestEnd(1, 10, 0, "scope: foo")
 		t.Equal(result, "")
+		t.End()
+	})
+}
+
+func TestTimeFormatterTestEndWritesToWriter(t *testing.T) {
+	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
+	tape.Test(t, "formatter-time: TestEnd writes progress line to writer", func(t *tape.T) {
+		var buf strings.Builder
+		f := formatter_time.New(10, &buf)
+		f.Start(10)
+		f.TestEnd(1, 10, 0, "scope: foo")
+		out := buf.String()
+		t.Match(out, `^\r`)
+		t.Match(out, `10%`)
+		t.Match(out, `1/10`)
+		t.Match(out, `scope: foo`)
 		t.End()
 	})
 }
@@ -37,11 +56,38 @@ func TestTimeFormatterTestEndWithFail(t *testing.T) {
 	})
 }
 
+func TestTimeFormatterTestEndFailWritesToWriter(t *testing.T) {
+	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
+	tape.Test(t, "formatter-time: TestEnd with failures writes red count to writer", func(t *tape.T) {
+		var buf strings.Builder
+		f := formatter_time.New(10, &buf)
+		f.Start(10)
+		f.TestEnd(1, 10, 1, "scope: bar")
+		out := buf.String()
+		t.Match(out, `\033\[31m1\033\[0m`)
+		t.Match(out, `scope: bar`)
+		t.End()
+	})
+}
+
 func TestTimeFormatterClockEnv(t *testing.T) {
 	tape.Test(t, "formatter-time: New uses TAPE_TIME_CLOCK env var", func(t *tape.T) {
 		t.TB().Setenv("TAPE_TIME_CLOCK", "\U0001f550")
 		f := formatter_time.New(10, &strings.Builder{})
 		t.Ok(f != nil)
+		t.End()
+	})
+}
+
+func TestTimeFormatterClockEnvAppearsInOutput(t *testing.T) {
+	tape.Test(t, "formatter-time: custom clock emoji appears in writer output", func(t *tape.T) {
+		t.TB().Setenv("TAPE_TIME_CLOCK", "X")
+		var buf strings.Builder
+		f := formatter_time.New(10, &buf)
+		f.Start(10)
+		f.TestEnd(1, 10, 0, "scope: x")
+		t.Match(buf.String(), `X \d\d:\d\d`)
 		t.End()
 	})
 }
