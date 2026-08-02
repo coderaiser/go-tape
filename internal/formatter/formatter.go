@@ -51,7 +51,7 @@ func New(format string, w io.Writer, total int) *State {
 	case "fail":
 		f = formatter_fail.New()
 	case "time":
-		f = formatter_time.New(total)
+		f = formatter_time.New(total, os.Stderr)
 	case "json-lines":
 		f = formatter_json_lines.New(total)
 	default:

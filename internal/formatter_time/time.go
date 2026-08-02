@@ -2,6 +2,7 @@ package formatter_time
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -12,9 +13,10 @@ type TimeFormatter struct {
 	*formatter_progress_bar.ProgressBarFormatter
 	startTime time.Time
 	clock     string
+	w         io.Writer
 }
 
-func New(total int) *TimeFormatter {
+func New(total int, w io.Writer) *TimeFormatter {
 	clock := os.Getenv("TAPE_TIME_CLOCK")
 	if clock == "" {
 		clock = "\u23f3"
@@ -22,6 +24,7 @@ func New(total int) *TimeFormatter {
 	return &TimeFormatter{
 		ProgressBarFormatter: formatter_progress_bar.New(total),
 		clock:                clock,
+		w:                    w,
 	}
 }
 
@@ -48,6 +51,6 @@ func (f *TimeFormatter) TestEnd(count, total, failed int, name string) string {
 	truncName := formatter_progress_bar.Truncate(name, 30)
 	line := fmt.Sprintf("%s %d%% | %s | %d/%d | %s | %s",
 		bar, pct, failStr, count, total, timeStr, truncName)
-	fmt.Fprintf(os.Stderr, "\r%s", line)
+	fmt.Fprintf(f.w, "\r%s", line)
 	return ""
 }
