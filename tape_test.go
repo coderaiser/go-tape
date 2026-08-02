@@ -157,17 +157,17 @@ func TestHelperFalsy(t *testing.T) {
 	})
 }
 
-// -- Only / Skip --
+// -- Test.Only / Test.Skip --
 
 func TestOnly(t *testing.T) {
-	Test(t, "tape: Only runs the test", func(t *T) {
+	Test.Only(t, "tape: Test.Only runs the test", func(t *T) {
 		t.Ok(true)
 		t.End()
 	})
 }
 
 func TestSkip(t *testing.T) {
-	Skip(t, "tape: this test is skipped", func(t *T) {
+	Test.Skip(t, "tape: Test.Skip skips the test", func(t *T) {
 		t.Ok(false)
 		t.End()
 	})
@@ -175,7 +175,7 @@ func TestSkip(t *testing.T) {
 
 func TestSkipDoesNotSkipParent(t *testing.T) {
 	passed := false
-	Skip(t, "tape: skip this one", func(t *T) {
+	Test.Skip(t, "tape: Test.Skip does not skip parent", func(t *T) {
 		t.Ok(false)
 		t.End()
 	})
@@ -187,21 +187,21 @@ func TestSkipDoesNotSkipParent(t *testing.T) {
 
 func TestSkipDoesNotRunFn(t *testing.T) {
 	ran := false
-	Skip(t, "tape: fn must not run", func(t *T) {
+	Test.Skip(t, "tape: Test.Skip fn must not run", func(t *T) {
 		ran = true
 		t.End()
 	})
 	if ran {
-		t.Fatal("Skip must not execute fn")
+		t.Fatal("Test.Skip must not execute fn")
 	}
 }
 
 func TestSkipParentIsNotMarkedSkipped(t *testing.T) {
-	Skip(t, "tape: parent stays clean", func(t *T) {
+	Test.Skip(t, "tape: Test.Skip parent stays clean", func(t *T) {
 		t.End()
 	})
 	if t.Skipped() {
-		t.Fatal("parent test must not be marked skipped by Skip()")
+		t.Fatal("parent test must not be marked skipped by Test.Skip()")
 	}
 }
 
@@ -338,13 +338,13 @@ func TestToRegexpInvalidType(t *testing.T) {
 
 func TestOnlyRuns(t *testing.T) {
 	ran := false
-	Test(t, "tape: Only delegates to Test", func(t *T) {
+	Test.Only(t, "tape: Test.Only delegates to Test", func(t *T) {
 		ran = true
 		t.Ok(ran)
 		t.End()
 	})
 	if !ran {
-		t.Fatal("Only did not run the function")
+		t.Fatal("Test.Only did not run the function")
 	}
 }
 
@@ -370,18 +370,17 @@ func TestTPassNoArgs(t *testing.T) {
 	})
 }
 
-func TestOnlyCallsFnDirectly(t *testing.T) {
+func TestTestOnlyCallsFnDirectly(t *testing.T) {
 	t.Setenv("TAPE_CHECK_SCOPES", "0")
 	t.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	t.Setenv("TAPE_CHECK_END", "0")
 	ran := false
-	call := Only
-	call(t, "tape: Only calls fn", func(t *T) {
+	Test.Only(t, "tape: Test.Only calls fn", func(t *T) {
 		ran = true
 		t.End()
 	})
 	if !ran {
-		t.Fatal("Only did not call fn")
+		t.Fatal("Test.Only did not call fn")
 	}
 }
 
@@ -396,30 +395,4 @@ func TestToRegexpWithRegexpType(t *testing.T) {
 	}
 }
 
-// -- Test.Skip / Test.Only method syntax --
 
-func TestTestSkipMethod(t *testing.T) {
-	Test.Skip(t, "tape: Test.Skip skips the test", func(t *T) {
-		t.Ok(false)
-		t.End()
-	})
-}
-
-func TestTestSkipMethodDoesNotSkipParent(t *testing.T) {
-	passed := false
-	Test.Skip(t, "tape: Test.Skip this one", func(t *T) {
-		t.Ok(false)
-		t.End()
-	})
-	passed = true
-	if !passed {
-		t.Fatal("parent should not have been skipped")
-	}
-}
-
-func TestTestOnlyMethod(t *testing.T) {
-	Test.Only(t, "tape: Test.Only runs the test", func(t *T) {
-		t.Ok(true)
-		t.End()
-	})
-}

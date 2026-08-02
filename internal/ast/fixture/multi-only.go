@@ -4,11 +4,10 @@ package fixture
 
 import (
 	"testing"
-	tape "github.com/coderaiser/go-tape"
+	Test "github.com/coderaiser/go-tape"
 )
 
 func TestMultiParser(t *testing.T) {
-	tape.Only(t, "parser: run action", func(t *tape.T) { t.Ok(true); t.End() })
-	tape.Only(t, "parser: fail action", func(t *tape.T) { t.Ok(true); t.End() })
+	Test.Only(t, "parser: run action", func(t *Test.T) { t.Ok(true); t.End() })
+	Test.Only(t, "parser: fail action", func(t *Test.T) { t.Ok(true); t.End() })
 }
-

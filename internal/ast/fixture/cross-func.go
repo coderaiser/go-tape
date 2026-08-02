@@ -4,13 +4,13 @@ package fixture
 
 import (
 	"testing"
-	tape "github.com/coderaiser/go-tape"
+	Test "github.com/coderaiser/go-tape"
 )
 
 func TestCrossParser(t *testing.T) {
-	tape.Only(t, "parser: run action", func(t *tape.T) { t.Ok(true); t.End() })
+	Test.Only(t, "parser: run action", func(t *Test.T) { t.Ok(true); t.End() })
 }
 
 func TestCrossRunner(t *testing.T) {
-	tape.Only(t, "runner: starts", func(t *tape.T) { t.Ok(true); t.End() })
+	Test.Only(t, "runner: starts", func(t *Test.T) { t.Ok(true); t.End() })
 }

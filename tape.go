@@ -48,19 +48,17 @@ func hit(t *testing.T) {
 
 // TestFn is a callable type for running subtests.
 // Being a named type allows .Skip() and .Only() methods to be attached,
-// enabling both Test(t, name, fn) and Test.Skip(t, name, fn) syntax.
+// enabling Test.Skip(t, name, fn) and Test.Only(t, name, fn) syntax.
 type TestFn func(t *testing.T, name string, fn func(t *T))
 
 // Skip marks a subtest as skipped without running its body.
-// Enables Test.Skip(t, name, fn) syntax.
-func (f TestFn) Skip(t *testing.T, name string, fn func(t *T)) {
-	Skip(t, name, fn)
-}
+// Use as Test.Skip(t, name, fn).
+func (f TestFn) Skip(_ *testing.T, _ string, _ func(t *T)) {}
 
-// Only runs a single test, skipping all others.
-// Enables Test.Only(t, name, fn) syntax.
+// Only runs a single subtest, skipping all others.
+// Use as Test.Only(t, name, fn).
 func (f TestFn) Only(t *testing.T, name string, fn func(t *T)) {
-	Only(t, name, fn)
+	f(t, name, fn)
 }
 
 // Test runs a subtest with guards: scope check, assertion count, timeout, End check.
@@ -99,11 +97,3 @@ var Test TestFn = func(t *testing.T, name string, fn func(t *T)) {
 		}
 	})
 }
-
-// Only runs a single test.
-func Only(t *testing.T, name string, fn func(t *T)) {
-	Test(t, name, fn)
-}
-
-// Skip marks a test as skipped.
-func Skip(_ *testing.T, _ string, _ func(t *T)) {}

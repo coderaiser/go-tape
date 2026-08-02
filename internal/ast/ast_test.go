@@ -124,12 +124,12 @@ func TestCountTests(t *testing.T) {
 		writeFile(t.TB(), dir+"/foo_test.go", `
 			package foo
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestFoo(t *testing.T) {
-				tape.Test(t, "foo: bar", func(t *tape.T) { t.Ok(true); t.End() })
-				tape.Only(t, "foo: baz", func(t *tape.T) { t.Ok(true); t.End() })
+				Test(t, "foo: bar", func(t *Test.T) { t.Ok(true); t.End() })
+				Test.Only(t, "foo: baz", func(t *Test.T) { t.Ok(true); t.End() })
 			}
 		`)
 
@@ -150,12 +150,12 @@ func TestFindDuplicatesFound(t *testing.T) {
 		writeFile(t.TB(), dir+"/foo_test.go", `
 			package foo
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestFoo(t *testing.T) {
-				tape.Test(t, "foo: bar", func(t *tape.T) { t.Ok(true); t.End() })
-				tape.Test(t, "foo: bar", func(t *tape.T) { t.Ok(true); t.End() })
+				Test(t, "foo: bar", func(t *Test.T) { t.Ok(true); t.End() })
+				Test(t, "foo: bar", func(t *Test.T) { t.Ok(true); t.End() })
 			}
 		`)
 
@@ -176,11 +176,11 @@ func TestFindOnlyCallsDir(t *testing.T) {
 		writeFile(t.TB(), dir+"/foo_test.go", `
 			package foo
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestFoo(t *testing.T) {
-				tape.Only(t, "foo: bar", func(t *tape.T) { t.Ok(true); t.End() })
+				Test.Only(t, "foo: bar", func(t *Test.T) { t.Ok(true); t.End() })
 			}
 		`)
 
@@ -226,15 +226,18 @@ func TestFindDuplicatesMissingDir(t *testing.T) {
 	})
 }
 
-func TestFindOnlyCallsUnqualifiedNoError(t *testing.T) {
-	AstTest(t, "ast: finds Only call without package qualifier no error", func(t *AstT) {
+func TestFindOnlyCallsMethodSyntaxNoError(t *testing.T) {
+	AstTest(t, "ast: finds Test.Only call no error", func(t *AstT) {
 		src := `
 			package foo
 
-			import "testing"
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
 
 			func TestFoo(t *testing.T) {
-				Only(t, "foo: bar", func(t *T) {})
+				Test.Only(t, "foo: bar", func(t *Test.T) {})
 			}
 		`
 
@@ -244,15 +247,18 @@ func TestFindOnlyCallsUnqualifiedNoError(t *testing.T) {
 	})
 }
 
-func TestFindOnlyCallsUnqualifiedResult(t *testing.T) {
-	AstTest(t, "ast: finds Only call without package qualifier result", func(t *AstT) {
+func TestFindOnlyCallsMethodSyntaxResult(t *testing.T) {
+	AstTest(t, "ast: finds Test.Only call result", func(t *AstT) {
 		src := `
 			package foo
 
-			import "testing"
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
 
 			func TestFoo(t *testing.T) {
-				Only(t, "foo: bar", func(t *T) {})
+				Test.Only(t, "foo: bar", func(t *Test.T) {})
 			}
 		`
 
@@ -269,6 +275,35 @@ func TestFindOnlyCallsUnqualifiedResult(t *testing.T) {
 			},
 		})
 
+		t.End()
+	})
+}
+
+func TestFindSkipCallsMethodSyntaxResult(t *testing.T) {
+	AstTest(t, "ast: finds Test.Skip call result", func(t *AstT) {
+		src := `
+			package foo
+
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+
+			func TestFoo(t *testing.T) {
+				Test.Skip(t, "foo: bar", func(t *Test.T) {})
+			}
+		`
+
+		names, err := tapeast.FindAllTestNames(t.TB().TempDir())
+		_ = names
+		calls, err := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
+		if err != nil {
+			t.End()
+			return
+		}
+
+		// Test.Skip is NOT an Only call — it should not appear in FindOnlyCalls
+		t.Equal(len(calls), 0)
 		t.End()
 	})
 }
@@ -381,22 +416,22 @@ func TestCountTestsRecursive(t *testing.T) {
 		fixture("root_test.go", `
 			package foo
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestRoot(t *testing.T) {
-				tape.Test(t, "root: one", func(t *tape.T) { t.End() })
+				Test(t, "root: one", func(t *Test.T) { t.End() })
 			}
 		`)
 
 		fixture("sub/sub_test.go", `
 			package sub
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestSub(t *testing.T) {
-				tape.Test(t, "sub: one", func(t *tape.T) { t.End() })
+				Test(t, "sub: one", func(t *Test.T) { t.End() })
 			}
 		`)
 
@@ -417,11 +452,11 @@ func TestFindOnlyCallsRecursive(t *testing.T) {
 		fixture("sub/foo_test.go", `
 			package foo
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestFoo(t *testing.T) {
-				tape.Only(t, "foo: bar", func(t *tape.T) { t.End() })
+				Test.Only(t, "foo: bar", func(t *Test.T) { t.End() })
 			}
 		`)
 
@@ -449,22 +484,22 @@ func TestFindDuplicatesRecursive(t *testing.T) {
 		fixture("root_test.go", `
 			package foo
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestRoot(t *testing.T) {
-				tape.Test(t, "duplicate: name", func(t *tape.T) { t.End() })
+				Test(t, "duplicate: name", func(t *Test.T) { t.End() })
 			}
 		`)
 
 		fixture("sub/sub_test.go", `
 			package sub
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestSub(t *testing.T) {
-				tape.Test(t, "duplicate: name", func(t *tape.T) { t.End() })
+				Test(t, "duplicate: name", func(t *Test.T) { t.End() })
 			}
 		`)
 
@@ -503,11 +538,11 @@ func TestCountTestsInTestFilesCountsTestFiles(t *testing.T) {
 		writeFile(t.TB(), dir+"/foo_test.go", `
 			package foo
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestFoo(t *testing.T) {
-				tape.Test(t, "foo: one", func(t *tape.T) { t.End() })
+				Test(t, "foo: one", func(t *Test.T) { t.End() })
 			}
 		`)
 		n, err := tapeast.CountTestsInTestFiles(dir)
@@ -525,12 +560,12 @@ func TestFindAllTestNamesReturnsNames(t *testing.T) {
 		writeFile(t.TB(), dir+"/foo_test.go", `
 			package foo
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestFoo(t *testing.T) {
-				tape.Test(t, "foo: one", func(t *tape.T) { t.End() })
-				tape.Test(t, "foo: two", func(t *tape.T) { t.End() })
+				Test(t, "foo: one", func(t *Test.T) { t.End() })
+				Test(t, "foo: two", func(t *Test.T) { t.End() })
 			}
 		`)
 		names, err := tapeast.FindAllTestNames(dir)
@@ -563,11 +598,11 @@ func TestWalkFilesIgnoresBuildIgnore(t *testing.T) {
 
 			package foo
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestFoo(t *testing.T) {
-				tape.Test(t, "foo: bar", func(t *tape.T) { t.End() })
+				Test(t, "foo: bar", func(t *Test.T) { t.End() })
 			}
 		`)
 		n, err := tapeast.CountTests(dir)
@@ -587,11 +622,11 @@ func TestWalkTestFilesIgnoresBuildIgnore(t *testing.T) {
 
 			package foo
 
-			import tape "github.com/coderaiser/go-tape"
+			import Test "github.com/coderaiser/go-tape"
 			import "testing"
 
 			func TestFoo(t *testing.T) {
-				tape.Test(t, "foo: bar", func(t *tape.T) { t.End() })
+				Test(t, "foo: bar", func(t *Test.T) { t.End() })
 			}
 		`)
 		n, err := tapeast.CountTestsInTestFiles(dir)
@@ -665,6 +700,136 @@ func TestCountTestsInTestFilesMissingDir(t *testing.T) {
 	AstTest(t, "ast: CountTestsInTestFiles errors on missing dir", func(t *AstT) {
 		_, err := tapeast.CountTestsInTestFiles("nonexistent")
 		t.Ok(err)
+		t.End()
+	})
+}
+
+// -- isTestCall / isTestMethodCall branch coverage --
+
+// TestIsTestCallFuncLiteralNoError covers line 160: isTestCall returns false
+// when Fun is a function literal (not Ident or SelectorExpr) — no parse error.
+func TestIsTestCallFuncLiteralNoError(t *testing.T) {
+	AstTest(t, "ast: isTestCall func literal — no error", func(t *AstT) {
+		src := `
+			package foo
+
+			func TestFoo(t *testing.T) {
+				(func() {})()
+			}
+		`
+		_, err := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
+		t.NotOk(err)
+		t.End()
+	})
+}
+
+// TestIsTestCallFuncLiteralEmpty covers line 160: isTestCall returns false
+// when Fun is a function literal — produces no Only calls.
+func TestIsTestCallFuncLiteralEmpty(t *testing.T) {
+	AstTest(t, "ast: isTestCall func literal — no Only calls", func(t *AstT) {
+		src := `
+			package foo
+
+			func TestFoo(t *testing.T) {
+				(func() {})()
+			}
+		`
+		calls, _ := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
+		t.Equal(len(calls), 0)
+		t.End()
+	})
+}
+
+// TestIsTestMethodCallQualifiedFormNoError covers lines 176-179: isTestMethodCall
+// matches tape.Test.Only(...) — no parse error.
+func TestIsTestMethodCallQualifiedFormNoError(t *testing.T) {
+	AstTest(t, "ast: tape.Test.Only qualified form — no error", func(t *AstT) {
+		src := `
+			package foo
+
+			import (
+				"testing"
+				tape "github.com/coderaiser/go-tape"
+			)
+
+			func TestFoo(t *testing.T) {
+				tape.Test.Only(t, "foo: bar", func(t *tape.T) {})
+			}
+		`
+		_, err := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
+		t.NotOk(err)
+		t.End()
+	})
+}
+
+// TestIsTestMethodCallQualifiedFormResult covers lines 176-179: isTestMethodCall
+// matches tape.Test.Only(...) — returns the expected OnlyCall.
+func TestIsTestMethodCallQualifiedFormResult(t *testing.T) {
+	AstTest(t, "ast: tape.Test.Only qualified form — correct result", func(t *AstT) {
+		src := `
+			package foo
+
+			import (
+				"testing"
+				tape "github.com/coderaiser/go-tape"
+			)
+
+			func TestFoo(t *testing.T) {
+				tape.Test.Only(t, "foo: bar", func(t *tape.T) {})
+			}
+		`
+		calls, _ := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
+		t.DeepEqual(calls, []tapeast.OnlyCall{
+			{Parent: "TestFoo", Name: "foo: bar"},
+		})
+		t.End()
+	})
+}
+
+// TestIsTestMethodCallUnknownExprFalse covers the final return false in
+// isTestMethodCall: sel.X is neither *ast.Ident nor *ast.SelectorExpr.
+func TestIsTestMethodCallUnknownExprFalse(t *testing.T) {
+	AstTest(t, "ast: isTestMethodCall false when receiver is not Ident or SelectorExpr", func(t *AstT) {
+		// An index expression like arr[0].Only(...) has a Fun whose X is *ast.IndexExpr,
+		// which is neither Ident nor SelectorExpr — hits the final return false.
+		src := `
+			package foo
+
+			import "testing"
+
+			func TestFoo(t *testing.T) {
+				fns := []struct{ Only func(*testing.T, string, func()) }{}
+				fns[0].Only(t, "foo: bar", func() {})
+			}
+		`
+		calls, _ := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
+		t.Equal(len(calls), 0)
+		t.End()
+	})
+}
+// TestCountTestsQualifiedOnlyForm ensures CountTests counts tape.Test.Only
+// (the qualified SelectorExpr form) alongside plain Test(...) calls.
+func TestCountTestsQualifiedOnlyForm(t *testing.T) {
+	AstTest(t, "ast: CountTests counts tape.Test.Only qualified form", func(t *AstT) {
+		dir := t.TB().TempDir()
+		writeFile(t.TB(), dir+"/foo_test.go", `
+			package foo
+
+			import (
+				"testing"
+				tape "github.com/coderaiser/go-tape"
+			)
+
+			func TestFoo(t *testing.T) {
+				tape.Test(t, "foo: one", func(t *tape.T) { t.End() })
+				tape.Test.Only(t, "foo: two", func(t *tape.T) { t.End() })
+			}
+		`)
+		n, err := tapeast.CountTests(dir)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(n, 2)
 		t.End()
 	})
 }
