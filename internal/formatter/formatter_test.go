@@ -62,9 +62,11 @@ func TestCachedRunBarCompletion(t *testing.T) {
 
 		s.End(3, 0, 0)
 
-		t.Ok(len(cf.testEndCalls) > 0 &&
-			cf.testEndCalls[len(cf.testEndCalls)-1].count == total &&
-			cf.testEndCalls[len(cf.testEndCalls)-1].total == total)
+		t.TB().Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+		t.Ok(len(cf.testEndCalls) > 0)
+		last := cf.testEndCalls[len(cf.testEndCalls)-1]
+		t.Equal(last.count, total)
+		t.Equal(last.total, total)
 		t.End()
 	})
 }
@@ -107,7 +109,9 @@ func TestFromEventRoutesCorrectly(t *testing.T) {
 		}
 
 		// pass + fail + skip = 3
-		t.Ok(s.count == 3 && s.failed == 1)
+		t.TB().Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+		t.Equal(s.count, 3)
+		t.Equal(s.failed, 1)
 		t.End()
 	})
 }
@@ -117,7 +121,9 @@ func TestFromEventIgnoresEmptyTest(t *testing.T) {
 	tape.Test(t, "formatter: empty test events are ignored", func(t *tape.T) {
 		s, cf := newCaptureState(5)
 		s.FromEvent(model.Event{Action: "pass", Test: ""})
-		t.Ok(s.count == 0 && len(cf.testEndCalls) == 0)
+		t.TB().Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+		t.Equal(s.count, 0)
+		t.Equal(len(cf.testEndCalls), 0)
 		t.End()
 	})
 }
