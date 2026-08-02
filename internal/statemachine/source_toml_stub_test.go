@@ -1,60 +1,62 @@
 //go:build no_external
 
-package statemachine
+package statemachine_test
 
 import (
 	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/coderaiser/go-tape/internal/statemachine"
 )
 
 func TestFileSourceTOMLLoadsHandRolled(t *testing.T) {
-	src := FileSource{Path: "testdata/runner.toml"}
-	defs, err := src.Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(defs) == 0 {
-		t.Fatal("expected transitions from hand-rolled TOML parser")
-	}
+	MachineTest(t, "statemachine: FileSource loads TOML via hand-rolled parser", func(t *MachineT) {
+		src := statemachine.FileSource{Path: "testdata/runner.toml"}
+		defs, error := src.Load()
+		if error != nil {
+			t.TB().Fatalf("Load: %v", error)
+		}
+		t.Ok(len(defs) > 0)
+		t.End()
+	})
 }
 
 func TestHandRolledTOMLSectionsAndComments(t *testing.T) {
-	src := FileSource{Path: "testdata/runner_full.toml"}
-	defs, err := src.Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(defs) != 3 {
-		t.Fatalf("expected 3 transitions, got %d", len(defs))
-	}
+	MachineTest(t, "statemachine: hand-rolled TOML handles sections and comments", func(t *MachineT) {
+		src := statemachine.FileSource{Path: "testdata/runner_full.toml"}
+		defs, error := src.Load()
+		if error != nil {
+			t.TB().Fatalf("Load: %v", error)
+		}
+		t.Equal(len(defs), 3)
+		t.End()
+	})
 }
 
 func TestHandRolledTOMLMalformedLine(t *testing.T) {
-	dir := t.TempDir()
-	writeFile(t, dir, "malformed.toml", `[transitions.idle]
-run = "running"
-borked
-`)
-	src := FileSource{Path: dir + "/malformed.toml"}
-	defs, err := src.Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(defs) != 1 {
-		t.Fatalf("expected 1 transition, got %d", len(defs))
-	}
+	MachineTest(t, "statemachine: hand-rolled TOML skips malformed lines", func(t *MachineT) {
+		dir := t.TB().TempDir()
+		writeFixture(t.TB(), dir, "malformed.toml", "[transitions.idle]\nrun = \"running\"\nborked\n")
+		src := statemachine.FileSource{Path: dir + "/malformed.toml"}
+		defs, error := src.Load()
+		if error != nil {
+			t.TB().Fatalf("Load: %v", error)
+		}
+		t.Equal(len(defs), 1)
+		t.End()
+	})
 }
 
-func writeFile(t *testing.T, dir, name, content string) {
+func writeFixture(t *testing.T, dir, name, content string) {
 	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
-		t.Fatal(err)
+	if error := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); error != nil {
+		t.Fatal(error)
 	}
 }
 
-// errReader errors on the second Read call
+// errReader errors on the second Read call.
 type errReader struct{ calls int }
 
 func (r *errReader) Read(p []byte) (int, error) {
@@ -68,8 +70,9 @@ func (r *errReader) Read(p []byte) (int, error) {
 }
 
 func TestParseTOMLReaderScannerError(t *testing.T) {
-	_, err := parseTOMLReader(&errReader{}, "test")
-	if err == nil {
-		t.Fatal("expected error from scanner failure")
-	}
+	MachineTest(t, "statemachine: parseTOMLReader reports scanner error", func(t *MachineT) {
+		_, error := statemachine.ParseTOMLReader(&errReader{}, "test")
+		t.Ok(error)
+		t.End()
+	})
 }

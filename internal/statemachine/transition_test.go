@@ -1,39 +1,39 @@
-package statemachine
+package statemachine_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/coderaiser/go-tape/internal/statemachine"
+)
 
 func TestValidateEmptyFrom(t *testing.T) {
-	err := Validate([]TransitionDef{
-		{From: "", Event: "run", To: "running"},
+	MachineTest(t, "statemachine: Validate errors on empty From", func(t *MachineT) {
+		error := statemachine.Validate([]statemachine.TransitionDef{{From: "", Event: "run", To: "running"}})
+		t.Equal(error.Error(), "transition has empty From")
+		t.End()
 	})
-	if err == nil {
-		t.Fatal("expected error for empty From")
-	}
 }
 
 func TestValidateEmptyEvent(t *testing.T) {
-	err := Validate([]TransitionDef{
-		{From: "idle", Event: "", To: "running"},
+	MachineTest(t, "statemachine: Validate errors on empty Event", func(t *MachineT) {
+		error := statemachine.Validate([]statemachine.TransitionDef{{From: "idle", Event: "", To: "running"}})
+		t.Equal(error.Error(), "transition has empty Event")
+		t.End()
 	})
-	if err == nil {
-		t.Fatal("expected error for empty Event")
-	}
 }
 
 func TestValidateEmptyTo(t *testing.T) {
-	err := Validate([]TransitionDef{
-		{From: "idle", Event: "run", To: ""},
+	MachineTest(t, "statemachine: Validate errors on empty To", func(t *MachineT) {
+		error := statemachine.Validate([]statemachine.TransitionDef{{From: "idle", Event: "run", To: ""}})
+		t.Equal(error.Error(), "transition has empty To")
+		t.End()
 	})
-	if err == nil {
-		t.Fatal("expected error for empty To")
-	}
 }
 
 func TestValidatePass(t *testing.T) {
-	err := Validate([]TransitionDef{
-		{From: "idle", Event: "run", To: "running"},
+	MachineTest(t, "statemachine: Validate passes for complete definitions", func(t *MachineT) {
+		error := statemachine.Validate([]statemachine.TransitionDef{{From: "idle", Event: "run", To: "running"}})
+		t.NotOk(error)
+		t.End()
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 }

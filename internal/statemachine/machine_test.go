@@ -1,9 +1,11 @@
-package statemachine
+package statemachine_test
 
 import (
 	"errors"
 	"testing"
 
+	tape "github.com/coderaiser/go-tape"
+	"github.com/coderaiser/go-tape/internal/statemachine"
 	"github.com/coderaiser/go-tape/internal/statemachine/adapters"
 )
 
@@ -49,204 +51,224 @@ func parseEvent(e string) (testEvent, error) {
 	}
 }
 
+type MachineT struct{ *tape.T }
+
+func (t *MachineT) NewMachine(src statemachine.TransitionSource, adapter statemachine.Adapter[testState]) *statemachine.Machine[testState, testEvent] {
+	t.TB().Helper()
+	m, error := statemachine.New(src, parseState, parseEvent, adapter)
+	if error != nil {
+		t.TB().Fatalf("New: %v", error)
+	}
+	return m
+}
+
+func (t *MachineT) NewMachineError(src statemachine.TransitionSource, adapter statemachine.Adapter[testState]) error {
+	t.TB().Helper()
+	_, error := statemachine.New(src, parseState, parseEvent, adapter)
+	return error
+}
+
+func (t *MachineT) Apply(m *statemachine.Machine[testState, testEvent], id string, e testEvent) (testState, error) {
+	t.TB().Helper()
+	return m.Apply(id, e, nil)
+}
+
+func (t *MachineT) ApplyResultIs(m *statemachine.Machine[testState, testEvent], id string, e testEvent, expected testState) {
+	t.TB().Helper()
+	next, error := m.Apply(id, e, nil)
+	if error != nil {
+		t.TB().Fatalf("Apply: %v", error)
+	}
+	t.Equal(next, expected)
+}
+
+func (t *MachineT) StoredIs(adapter statemachine.Adapter[testState], id string, expected testState) {
+	t.TB().Helper()
+	ptr, error := adapter.Get(id)
+	if error != nil {
+		t.TB().Fatalf("Get: %v", error)
+	}
+	if ptr == nil {
+		t.TB().Fatal("expected stored state, got nil")
+	}
+	t.Equal(*ptr, expected)
+}
+
+func (t *MachineT) HookCalledIs(m *statemachine.Machine[testState, testEvent], from testState, e testEvent, wantCalled bool) {
+	t.TB().Helper()
+	called := false
+	m.Hook(from, e, func(statemachine.Context[testState, testEvent]) error {
+		called = true
+		return nil
+	})
+	_, error := m.Apply("test-1", e, nil)
+	if error != nil {
+		t.TB().Fatalf("Apply: %v", error)
+	}
+	t.Equal(called, wantCalled)
+}
+
+var MachineTest = tape.Extend(func(base *tape.T) *MachineT {
+	return &MachineT{T: base}
+})
+
 func TestNewValidMachine(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: New builds a machine", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "running"},
 			{From: "running", Event: "finish", To: "done"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	m, err := New(src, parseState, parseEvent, adapter)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if m == nil {
-		t.Fatal("expected machine")
-	}
+		}}
+		adapter := adapters.NewMemory[testState]()
+		t.Ok(t.NewMachine(src, adapter) != nil)
+		t.End()
+	})
 }
 
 func TestApplyValidTransition(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: Apply follows a valid transition", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "running"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter)
-
-	next, err := m.Apply("test-1", eventRun, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if next != stateRunning {
-		t.Errorf("want %v, got %v", stateRunning, next)
-	}
+		}}
+		adapter := adapters.NewMemory[testState]()
+		m := t.NewMachine(src, adapter)
+		t.ApplyResultIs(m, "test-1", eventRun, stateRunning)
+		t.End()
+	})
 }
 
 func TestApplyInvalidTransitionNonStrict(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: Apply errors on invalid transition", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "running"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter)
-
-	_, err := m.Apply("test-1", eventFinish, nil)
-	if err == nil {
-		t.Fatal("expected error for invalid transition")
-	}
+		}}
+		adapter := adapters.NewMemory[testState]()
+		m := t.NewMachine(src, adapter)
+		_, error := t.Apply(m, "test-1", eventFinish)
+		t.Equal(error.Error(), "invalid transition: from 0 event 1")
+		t.End()
+	})
 }
 
 func TestHookCalledOnTransition(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: hook runs on valid transition", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "running"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter)
-
-	called := false
-	m.Hook(stateIdle, eventRun, func(ctx Context[testState, testEvent]) error {
-		called = true
-		return nil
+		}}
+		adapter := adapters.NewMemory[testState]()
+		m := t.NewMachine(src, adapter)
+		t.HookCalledIs(m, stateIdle, eventRun, true)
+		t.End()
 	})
-
-	m.Apply("test-1", eventRun, nil)
-	if !called {
-		t.Error("expected hook to be called")
-	}
 }
 
 func TestHookErrorReturned(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: Apply returns hook error", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "running"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter)
-
-	m.Hook(stateIdle, eventRun, func(ctx Context[testState, testEvent]) error {
-		return errors.New("hook failed")
+		}}
+		adapter := adapters.NewMemory[testState]()
+		m := t.NewMachine(src, adapter)
+		m.Hook(stateIdle, eventRun, func(statemachine.Context[testState, testEvent]) error {
+			return errors.New("hook failed")
+		})
+		_, error := t.Apply(m, "test-1", eventRun)
+		t.Equal(error.Error(), "hook failed")
+		t.End()
 	})
-
-	_, err := m.Apply("test-1", eventRun, nil)
-	if err == nil || err.Error() != "hook failed" {
-		t.Fatalf("expected hook error, got %v", err)
-	}
 }
 
 func TestApplyStoresState(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: Apply persists next state", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "running"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter)
-
-	m.Apply("test-1", eventRun, nil)
-	ptr, err := adapter.Get("test-1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if ptr == nil {
-		t.Fatal("expected stored state, got nil")
-	}
-	if *ptr != stateRunning {
-		t.Errorf("want %v, got %v", stateRunning, *ptr)
-	}
+		}}
+		adapter := adapters.NewMemory[testState]()
+		m := t.NewMachine(src, adapter)
+		if _, error := m.Apply("test-1", eventRun, nil); error != nil {
+			t.TB().Fatalf("Apply: %v", error)
+		}
+		t.StoredIs(adapter, "test-1", stateRunning)
+		t.End()
+	})
 }
 
 func TestUnknownIdGetsNil(t *testing.T) {
-	adapter := adapters.NewMemory[testState]()
-	ptr, err := adapter.Get("unknown")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if ptr != nil {
-		t.Errorf("expected nil, got %v", ptr)
-	}
+	MachineTest(t, "statemachine: unknown id Get returns nil", func(t *MachineT) {
+		adapter := adapters.NewMemory[testState]()
+		ptr, error := adapter.Get("unknown")
+		if error != nil {
+			t.TB().Fatalf("Get: %v", error)
+		}
+		t.Ok(ptr == nil)
+		t.End()
+	})
 }
 
 func TestNewWithParseStateError(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: New errors on invalid From", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "invalid", Event: "run", To: "running"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	_, err := New(src, parseState, parseEvent, adapter)
-	if err == nil {
-		t.Fatal("expected error for invalid state")
-	}
+		}}
+		error := t.NewMachineError(src, adapters.NewMemory[testState]())
+		t.Equal(error.Error(), "invalid state \"invalid\": unknown state")
+		t.End()
+	})
 }
 
 func TestNewWithParseEventError(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: New errors on invalid Event", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "invalid", To: "running"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	_, err := New(src, parseState, parseEvent, adapter)
-	if err == nil {
-		t.Fatal("expected error for invalid event")
-	}
+		}}
+		error := t.NewMachineError(src, adapters.NewMemory[testState]())
+		t.Equal(error.Error(), "invalid event \"invalid\": unknown event")
+		t.End()
+	})
 }
 
 func TestNewWithParseToStateError(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: New errors on invalid To", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "invalid"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	_, err := New(src, parseState, parseEvent, adapter)
-	if err == nil {
-		t.Fatal("expected error for invalid to state")
-	}
+		}}
+		error := t.NewMachineError(src, adapters.NewMemory[testState]())
+		t.Equal(error.Error(), "invalid state \"invalid\": unknown state")
+		t.End()
+	})
 }
 
 func TestValidatePasses(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: Validate passes for well-formed machine", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "running"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter)
-
-	if err := m.Validate(); err != nil {
-		t.Fatal(err)
-	}
+		}}
+		m := t.NewMachine(src, adapters.NewMemory[testState]())
+		t.NotOk(m.Validate())
+		t.End()
+	})
 }
 
 func TestHookNotCalledForUnknownTransition(t *testing.T) {
-	src := &MemorySource{
-		Defs: []TransitionDef{
+	MachineTest(t, "statemachine: hook not called on invalid transition", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{
 			{From: "idle", Event: "run", To: "running"},
-		},
-	}
-	adapter := adapters.NewMemory[testState]()
-	m, _ := New(src, parseState, parseEvent, adapter)
-
-	called := false
-	m.Hook(stateRunning, eventFinish, func(ctx Context[testState, testEvent]) error {
-		called = true
-		return nil
+		}}
+		m := t.NewMachine(src, adapters.NewMemory[testState]())
+		called := false
+		m.Hook(stateRunning, eventFinish, func(statemachine.Context[testState, testEvent]) error {
+			called = true
+			return nil
+		})
+		_, error := t.Apply(m, "test-1", eventFinish)
+		if error == nil {
+			t.TB().Fatal("expected Apply error")
+		}
+		t.Equal(called, false)
+		t.End()
 	})
-
-	m.Apply("test-1", eventFinish, nil)
-	if called {
-		t.Error("hook should not be called for invalid transition")
-	}
 }
 
-// -- error adapter tests --
+// error adapters
 
 type errGetAdapter struct{}
 
@@ -259,113 +281,117 @@ func (a errSetAdapter) Get(id string) (*testState, error) { s := stateIdle; retu
 func (a errSetAdapter) Set(id string, s testState) error  { return errors.New("set failed") }
 
 func TestApplyGetError(t *testing.T) {
-	src := &MemorySource{Defs: []TransitionDef{{From: "idle", Event: "run", To: "running"}}}
-	m, _ := New(src, parseState, parseEvent, errGetAdapter{})
-	_, err := m.Apply("x", eventRun, nil)
-	if err == nil {
-		t.Fatal("expected error from Get failure")
-	}
+	MachineTest(t, "statemachine: Apply propagates Get error", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{{From: "idle", Event: "run", To: "running"}}}
+		m := t.NewMachine(src, errGetAdapter{})
+		_, error := t.Apply(m, "x", eventRun)
+		t.Equal(error.Error(), "adapter.Get: get failed")
+		t.End()
+	})
 }
 
 func TestApplySetError(t *testing.T) {
-	src := &MemorySource{Defs: []TransitionDef{{From: "idle", Event: "run", To: "running"}}}
-	m, _ := New(src, parseState, parseEvent, errSetAdapter{})
-	_, err := m.Apply("x", eventRun, nil)
-	if err == nil {
-		t.Fatal("expected error from Set failure")
-	}
+	MachineTest(t, "statemachine: Apply propagates Set error", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{{From: "idle", Event: "run", To: "running"}}}
+		m := t.NewMachine(src, errSetAdapter{})
+		_, error := t.Apply(m, "x", eventRun)
+		t.Equal(error.Error(), "adapter.Set: set failed")
+		t.End()
+	})
 }
 
 func TestWithInitialUsedForUnknownId(t *testing.T) {
-	src := &MemorySource{Defs: []TransitionDef{{From: "idle", Event: "run", To: "running"}}}
-	m, _ := New(src, parseState, parseEvent, adapters.NewMemory[testState]())
-	m.WithInitial(stateIdle)
-	next, err := m.Apply("brand-new", eventRun, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if next != stateRunning {
-		t.Errorf("want running, got %v", next)
-	}
+	MachineTest(t, "statemachine: WithInitial applies to unknown id", func(t *MachineT) {
+		src := &statemachine.MemorySource{Defs: []statemachine.TransitionDef{{From: "idle", Event: "run", To: "running"}}}
+		m := t.NewMachine(src, adapters.NewMemory[testState]())
+		m.WithInitial(stateIdle)
+		t.ApplyResultIs(m, "brand-new", eventRun, stateRunning)
+		t.End()
+	})
 }
 
 func TestValidateEmptyTransitions(t *testing.T) {
-	m := &Machine[testState, testEvent]{
-		transitions: map[testState]map[testEvent]testState{
-			stateIdle: {},
-		},
-	}
-	if err := m.Validate(); err == nil {
-		t.Fatal("expected error for state with no transitions out")
-	}
+	MachineTest(t, "statemachine: Validate errors on empty transitions", func(t *MachineT) {
+		m := statemachine.EmptyTransitionsMachine[testState]()
+		t.Equal(m.Validate().Error(), "state 0 has no transitions out")
+		t.End()
+	})
 }
 
 // -- FileSource tests --
 
 func TestFileSourceLoadsTransitions(t *testing.T) {
-	src := FileSource{Path: "testdata/runner.toml"}
-	defs, err := src.Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(defs) == 0 {
-		t.Fatal("expected transitions")
-	}
+	MachineTest(t, "statemachine: FileSource loads TOML transitions", func(t *MachineT) {
+		src := statemachine.FileSource{Path: "testdata/runner.toml"}
+		defs, error := src.Load()
+		if error != nil {
+			t.TB().Fatalf("Load: %v", error)
+		}
+		t.Ok(len(defs) > 0)
+		t.End()
+	})
 }
 
 func TestFileSourceJSON(t *testing.T) {
-	src := FileSource{Path: "testdata/runner.json"}
-	defs, err := src.Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(defs) == 0 {
-		t.Fatal("expected transitions")
-	}
+	MachineTest(t, "statemachine: FileSource loads JSON transitions", func(t *MachineT) {
+		src := statemachine.FileSource{Path: "testdata/runner.json"}
+		defs, error := src.Load()
+		if error != nil {
+			t.TB().Fatalf("Load: %v", error)
+		}
+		t.Ok(len(defs) > 0)
+		t.End()
+	})
 }
 
 // errSource returns an error on Load.
 type errSource struct{}
 
-func (s errSource) Load() ([]TransitionDef, error) {
+func (s errSource) Load() ([]statemachine.TransitionDef, error) {
 	return nil, errors.New("source failed")
 }
 
 func TestNewWithSourceError(t *testing.T) {
-	_, err := New[testState, testEvent](errSource{}, parseState, parseEvent, adapters.NewMemory[testState]())
-	if err == nil {
-		t.Fatal("expected error from source failure")
-	}
+	MachineTest(t, "statemachine: New propagates source error", func(t *MachineT) {
+		adapter := adapters.NewMemory[testState]()
+		error := t.NewMachineError(errSource{}, adapter)
+		t.Equal(error.Error(), "source failed")
+		t.End()
+	})
 }
 
 func TestFileSourceUnsupportedExtension(t *testing.T) {
-	src := FileSource{Path: "testdata/runner.yaml"}
-	_, err := src.Load()
-	if err == nil {
-		t.Fatal("expected error for unsupported extension")
-	}
+	MachineTest(t, "statemachine: FileSource errors on unsupported extension", func(t *MachineT) {
+		src := statemachine.FileSource{Path: "testdata/runner.yaml"}
+		_, error := src.Load()
+		t.Equal(error.Error(), "FileSource: unsupported extension \".yaml\"")
+		t.End()
+	})
 }
 
 func TestFileSourceInvalidJSON(t *testing.T) {
-	src := FileSource{Path: "testdata/invalid.json"}
-	_, err := src.Load()
-	if err == nil {
-		t.Fatal("expected error for invalid JSON")
-	}
+	MachineTest(t, "statemachine: FileSource errors on invalid JSON", func(t *MachineT) {
+		src := statemachine.FileSource{Path: "testdata/invalid.json"}
+		_, error := src.Load()
+		t.Ok(error)
+		t.End()
+	})
 }
 
 func TestFileSourceMissingJSON(t *testing.T) {
-	src := FileSource{Path: "testdata/nonexistent.json"}
-	_, err := src.Load()
-	if err == nil {
-		t.Fatal("expected error for missing file")
-	}
+	MachineTest(t, "statemachine: FileSource errors on missing JSON file", func(t *MachineT) {
+		src := statemachine.FileSource{Path: "testdata/nonexistent.json"}
+		_, error := src.Load()
+		t.Ok(error)
+		t.End()
+	})
 }
 
 func TestFileSourceMissingTOML(t *testing.T) {
-	src := FileSource{Path: "nonexistent.toml"}
-	_, err := src.Load()
-	if err == nil {
-		t.Fatal("expected error for missing file")
-	}
+	MachineTest(t, "statemachine: FileSource errors on missing TOML file", func(t *MachineT) {
+		src := statemachine.FileSource{Path: "nonexistent.toml"}
+		_, error := src.Load()
+		t.Ok(error)
+		t.End()
+	})
 }

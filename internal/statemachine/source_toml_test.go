@@ -1,16 +1,21 @@
 //go:build !no_external
 
-package statemachine
+package statemachine_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/coderaiser/go-tape/internal/statemachine"
+)
 
 func TestFileSourceTOMLLoadsBurntSushi(t *testing.T) {
-	src := FileSource{Path: "testdata/runner.toml"}
-	defs, err := src.Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(defs) == 0 {
-		t.Fatal("expected transitions from TOML file")
-	}
+	MachineTest(t, "statemachine: FileSource loads TOML via BurntSushi", func(t *MachineT) {
+		src := statemachine.FileSource{Path: "testdata/runner.toml"}
+		defs, error := src.Load()
+		if error != nil {
+			t.TB().Fatalf("Load: %v", error)
+		}
+		t.Ok(len(defs) > 0)
+		t.End()
+	})
 }
