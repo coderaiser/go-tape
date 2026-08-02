@@ -1,299 +1,379 @@
-package state
+package state_test
 
 import (
 	"errors"
+	"sort"
 	"testing"
 
+	tape "github.com/coderaiser/go-tape"
 	"github.com/coderaiser/go-tape/internal/model"
+	"github.com/coderaiser/go-tape/internal/state"
 	"github.com/coderaiser/go-tape/internal/statemachine"
 	"github.com/coderaiser/go-tape/internal/statemachine/adapters"
 )
 
-func TestRunEventCreatesRunningState(t *testing.T) {
-	s, _ := New()
-	_, err := s.Apply(model.Event{Action: "run", Test: "TestFoo"})
-	if err != nil {
-		t.Fatal(err)
+type StateT struct{ *tape.T }
+
+func (t *StateT) NewStore() *state.Store {
+	t.TB().Helper()
+	s, error := state.New()
+	if error != nil {
+		t.TB().Fatalf("New: %v", error)
 	}
-	st, _ := s.Get("TestFoo")
-	if st != StateRunning {
-		t.Errorf("want %v, got %v", StateRunning, st)
+	return s
+}
+
+// Apply applies events, failing on infrastructure errors.
+func (t *StateT) Apply(s *state.Store, events ...model.Event) {
+	t.TB().Helper()
+	for _, e := range events {
+		if _, error := s.Apply(e); error != nil {
+			t.TB().Fatalf("Apply: %v", error)
+		}
 	}
 }
 
-func TestPassEventMarksTestPassed(t *testing.T) {
-	s, _ := New()
-	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
-	s.Apply(model.Event{Action: "pass", Test: "TestFoo"})
-	st, _ := s.Get("TestFoo")
-	if st != StatePassed {
-		t.Errorf("want %v, got %v", StatePassed, st)
-	}
+// ApplyState applies events and returns the resulting state, or the error.
+func (t *StateT) ApplyState(s *state.Store, e model.Event) (state.TestState, error) {
+	t.TB().Helper()
+	return s.Apply(e)
 }
 
-func TestFailEventMarksTestFailed(t *testing.T) {
-	s, _ := New()
-	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
-	s.Apply(model.Event{Action: "fail", Test: "TestFoo"})
-	st, _ := s.Get("TestFoo")
-	if st != StateFailed {
-		t.Errorf("want %v, got %v", StateFailed, st)
-	}
+func (t *StateT) GetError(s *state.Store, name string) error {
+	t.TB().Helper()
+	_, error := s.Get(name)
+	return error
 }
 
-func TestSkipEventMarksTestSkipped(t *testing.T) {
-	s, _ := New()
-	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
-	s.Apply(model.Event{Action: "skip", Test: "TestFoo"})
-	st, _ := s.Get("TestFoo")
-	if st != StateSkipped {
-		t.Errorf("want %v, got %v", StateSkipped, st)
-	}
+func (t *StateT) MarkSkippedErr(s *state.Store, names []string) error {
+	t.TB().Helper()
+	return s.MarkSkipped(names)
 }
 
-func TestOutputAppendedToLogs(t *testing.T) {
-	s, _ := New()
-	s.Apply(model.Event{Action: "output", Test: "TestFoo", Output: "line1\n"})
-	s.Apply(model.Event{Action: "output", Test: "TestFoo", Output: "line2\n"})
-	got := s.GetOutput("TestFoo")
-	if got != "line1\nline2\n" {
-		t.Errorf("want line1\\nline2\\n, got %s", got)
-	}
+func (t *StateT) ParseState(s string) error {
+	t.TB().Helper()
+	_, error := state.ParseTestState(s)
+	return error
 }
 
-func TestPackageEventNoTestID(t *testing.T) {
-	s, _ := New()
-	_, err := s.Apply(model.Event{Action: "pass", Package: "mypkg"})
-	if err != nil {
-		t.Fatal(err)
-	}
+func (t *StateT) ParseEvent(e string) error {
+	t.TB().Helper()
+	_, error := state.ParseTestEvent(e)
+	return error
 }
 
-func TestInvalidActionError(t *testing.T) {
-	s, _ := New()
-	_, err := s.Apply(model.Event{Test: "TestFoo", Action: "invalid"})
-	if err == nil {
-		t.Fatal("expected error for invalid action")
-	}
+func (t *StateT) NewFromSource(src statemachine.TransitionSource) (*state.Store, error) {
+	t.TB().Helper()
+	return state.NewFromSource(src)
 }
 
-func TestRunTwice(t *testing.T) {
-	s, _ := New()
-	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
-	s.Apply(model.Event{Action: "run", Test: "TestFoo"})
-	st, _ := s.Get("TestFoo")
-	if st != StateRunning {
-		t.Errorf("want %v, got %v", StateRunning, st)
+func (t *StateT) StateIs(s *state.Store, name string, expected state.TestState) {
+	t.TB().Helper()
+	st, error := s.Get(name)
+	if error != nil {
+		t.TB().Fatalf("Get: %v", error)
 	}
+	t.Equal(st, expected)
 }
 
-func TestGetNonExistent(t *testing.T) {
-	s, _ := New()
-	_, err := s.Get("nonexistent")
-	if err == nil {
-		t.Error("expected error for nonexistent test")
-	}
+func (t *StateT) OutputIs(s *state.Store, name string, expected string) {
+	t.TB().Helper()
+	t.Equal(s.GetOutput(name), expected)
 }
 
-func TestApplyInvalidTransitionReturnsCurrentState(t *testing.T) {
-	s, _ := New()
-	// pass without run — invalid transition
-	state, err := s.Apply(model.Event{Action: "pass", Test: "TestA"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if state != StateIdle {
-		t.Errorf("want StateIdle, got %v", state)
-	}
+// SummaryIs asserts the full summary via a single deep comparison.
+func (t *StateT) SummaryIs(s *state.Store, passed, failed, skipped []string) {
+	t.TB().Helper()
+	p, f, sk := s.Summary()
+	got := summary{p, f, sk}
+	got.sort()
+	want := summary{passed, failed, skipped}
+	want.sort()
+	t.DeepEqual(got, want)
 }
 
-func TestSummaryKeepsSubtestName(t *testing.T) {
-	s, _ := New()
-
-	s.Apply(model.Event{
-		Action: "run",
-		Test:   "TestOnlyRuns/tape:_Only_delegates_to_Test",
-	})
-
-	s.Apply(model.Event{
-		Action: "pass",
-		Test:   "TestOnlyRuns/tape:_Only_delegates_to_Test",
-	})
-
-	passed, _, _ := s.Summary()
-
-	if len(passed) != 1 {
-		t.Fatalf("want 1 passed, got %d", len(passed))
+func (t *StateT) MarkSkippedIs(s *state.Store, names, passed, failed, skipped []string) {
+	t.TB().Helper()
+	error := s.MarkSkipped(names)
+	if error != nil {
+		t.TB().Fatalf("MarkSkipped: %v", error)
 	}
-
-	if passed[0] != "TestOnlyRuns/tape:_Only_delegates_to_Test" {
-		t.Fatalf("unexpected name: %s", passed[0])
-	}
+	t.SummaryIs(s, passed, failed, skipped)
 }
 
-func TestSummaryPassedFailedSkipped(t *testing.T) {
-	s, _ := New()
-	s.Apply(model.Event{Action: "run", Test: "TestA"})
-	s.Apply(model.Event{Action: "pass", Test: "TestA"})
-	s.Apply(model.Event{Action: "output", Test: "TestA", Output: "ok"})
-	s.Apply(model.Event{Action: "run", Test: "TestB"})
-	s.Apply(model.Event{Action: "fail", Test: "TestB"})
-	s.Apply(model.Event{Action: "output", Test: "TestB", Output: "fail"})
-	s.Apply(model.Event{Action: "run", Test: "TestC"})
-	s.Apply(model.Event{Action: "skip", Test: "TestC"})
-	s.Apply(model.Event{Action: "output", Test: "TestC", Output: "skip"})
-	passed, failed, skipped := s.Summary()
-	if len(passed) != 1 {
-		t.Errorf("want 1 passed, got %d", len(passed))
-	}
-	if len(failed) != 1 {
-		t.Errorf("want 1 failed, got %d", len(failed))
-	}
-	if len(skipped) != 1 {
-		t.Errorf("want 1 skipped, got %d", len(skipped))
-	}
+type summary struct {
+	passed, failed, skipped []string
 }
 
-func TestParseTestStateUnknown(t *testing.T) {
-	_, err := parseTestState("unknown")
-	if err == nil {
-		t.Fatal("expected error for unknown state")
-	}
+func (s *summary) sort() {
+	sort.Strings(s.passed)
+	sort.Strings(s.failed)
+	sort.Strings(s.skipped)
 }
 
-func TestParseTestEventUnknown(t *testing.T) {
-	_, err := parseTestEvent("unknown")
-	if err == nil {
-		t.Fatal("expected error for unknown event")
-	}
-}
+var StateTest = tape.Extend(func(base *tape.T) *StateT {
+	return &StateT{T: base}
+})
 
-func TestSummaryWithOutputOnly(t *testing.T) {
-	s, _ := New()
-	// output-only test — never applied with a state transition
-	s.Apply(model.Event{Action: "output", Test: "orphan", Output: "some output"})
-	passed, failed, skipped := s.Summary()
-	if len(passed)+len(failed)+len(skipped) != 0 {
-		t.Errorf("expected 0 total, got pass=%d fail=%d skip=%d", len(passed), len(failed), len(skipped))
-	}
-}
-
-func TestNew(t *testing.T) {
-	s, err := New()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if s == nil {
-		t.Fatal("expected non-nil store")
-	}
-}
-
-// errSource always fails Load
+// errSource always fails Load.
 type errSource struct{}
 
 func (s errSource) Load() ([]statemachine.TransitionDef, error) {
 	return nil, errors.New("source failed")
 }
 
-func TestNewFromSourceError(t *testing.T) {
-	_, err := newFromSource(errSource{})
-	if err == nil {
-		t.Fatal("expected error from bad source")
-	}
-}
+// errAdapter always fails Get.
+type errAdapter struct{ *adapters.Memory[state.TestState] }
 
-// errAdapter always fails Get
-type errAdapter struct{ *adapters.Memory[TestState] }
-
-func (a errAdapter) Get(id string) (*TestState, error) {
+func (a errAdapter) Get(id string) (*state.TestState, error) {
 	return nil, errors.New("adapter error")
 }
 
-func TestGetAdapterError(t *testing.T) {
-	s, _ := New()
-	mem, ok := s.adapter.(*adapters.Memory[TestState])
-	if !ok {
-		t.Fatal("expected memory adapter")
-	}
-	s.adapter = errAdapter{mem}
-	_, err := s.Get("TestFoo")
-	if err == nil {
-		t.Fatal("expected error from adapter")
-	}
-}
+// setErrAdapter fails Set.
+type setErrAdapter struct{ *adapters.Memory[state.TestState] }
 
-func TestSummaryAdapterError(t *testing.T) {
-	s, _ := New()
-	s.Apply(model.Event{Action: "output", Test: "TestFoo", Output: "ok"})
-	mem, ok := s.adapter.(*adapters.Memory[TestState])
-	if !ok {
-		t.Fatal("expected memory adapter")
-	}
-	s.adapter = errAdapter{mem}
-	// Summary silently skips on adapter error — should not panic
-	passed, failed, skipped := s.Summary()
-	_ = passed
-	_ = failed
-	_ = skipped
-}
-
-func TestMarkSkippedAddsUnseen(t *testing.T) {
-	s, _ := New()
-	if err := s.MarkSkipped([]string{"scope: foo", "scope: bar"}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	_, _, skipped := s.Summary()
-	if len(skipped) != 2 {
-		t.Fatalf("want 2 skipped, got %d", len(skipped))
-	}
-}
-
-func TestMarkSkippedDoesNotOverwritePassed(t *testing.T) {
-	s, _ := New()
-	s.Apply(model.Event{Action: "run", Test: "scope: foo"})
-	s.Apply(model.Event{Action: "pass", Test: "scope: foo"})
-	if err := s.MarkSkipped([]string{"scope: foo"}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	passed, _, skipped := s.Summary()
-	if len(passed) != 1 {
-		t.Fatalf("want 1 passed, got %d", len(passed))
-	}
-	if len(skipped) != 0 {
-		t.Fatalf("want 0 skipped, got %d", len(skipped))
-	}
-}
-
-func TestSummaryIgnoresRunningState(t *testing.T) {
-	s, _ := New()
-	// "run" leaves the test in StateRunning — this happens when go test -json -v
-	// drops the terminal event for subtests with long names (a known Go toolchain issue).
-	// Summary must silently ignore such tests rather than panicking.
-	if _, err := s.Apply(model.Event{Action: "run", Test: "TestFoo"}); err != nil {
-		t.Fatalf("Apply run: %v", err)
-	}
-	passed, failed, skipped := s.Summary()
-	if len(passed) != 0 || len(failed) != 0 || len(skipped) != 0 {
-		t.Fatalf("expected empty summary for running test, got passed=%v failed=%v skipped=%v", passed, failed, skipped)
-	}
-}
-
-// setErrAdapter fails Set like errAdapter fails Get.
-type setErrAdapter struct{ *adapters.Memory[TestState] }
-
-func (a setErrAdapter) Set(id string, state TestState) error {
+func (a setErrAdapter) Set(id string, st state.TestState) error {
 	return errors.New("adapter set error")
 }
 
+func TestRunEventCreatesRunningState(t *testing.T) {
+	StateTest(t, "state: run event creates running state", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s, model.Event{Action: "run", Test: "TestFoo"})
+		t.StateIs(s, "TestFoo", state.StateRunning)
+		t.End()
+	})
+}
+
+func TestPassEventMarksTestPassed(t *testing.T) {
+	StateTest(t, "state: pass event marks passed", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "run", Test: "TestFoo"},
+			model.Event{Action: "pass", Test: "TestFoo"},
+		)
+		t.StateIs(s, "TestFoo", state.StatePassed)
+		t.End()
+	})
+}
+
+func TestFailEventMarksTestFailed(t *testing.T) {
+	StateTest(t, "state: fail event marks failed", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "run", Test: "TestFoo"},
+			model.Event{Action: "fail", Test: "TestFoo"},
+		)
+		t.StateIs(s, "TestFoo", state.StateFailed)
+		t.End()
+	})
+}
+
+func TestSkipEventMarksTestSkipped(t *testing.T) {
+	StateTest(t, "state: skip event marks skipped", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "run", Test: "TestFoo"},
+			model.Event{Action: "skip", Test: "TestFoo"},
+		)
+		t.StateIs(s, "TestFoo", state.StateSkipped)
+		t.End()
+	})
+}
+
+func TestOutputAppendedToLogs(t *testing.T) {
+	StateTest(t, "state: output lines appended", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "output", Test: "TestFoo", Output: "line1\n"},
+			model.Event{Action: "output", Test: "TestFoo", Output: "line2\n"},
+		)
+		t.OutputIs(s, "TestFoo", "line1\nline2\n")
+		t.End()
+	})
+}
+
+func TestPackageEventNoTestID(t *testing.T) {
+	StateTest(t, "state: event without test id is a no-op", func(t *StateT) {
+		s := t.NewStore()
+		_, error := t.ApplyState(s, model.Event{Action: "pass", Package: "mypkg"})
+		t.NotOk(error)
+		t.End()
+	})
+}
+
+func TestInvalidActionError(t *testing.T) {
+	StateTest(t, "state: unknown action returns error", func(t *StateT) {
+		s := t.NewStore()
+		_, error := t.ApplyState(s, model.Event{Test: "TestFoo", Action: "invalid"})
+		t.Equal(error.Error(), "unknown action: invalid")
+		t.End()
+	})
+}
+
+func TestRunTwice(t *testing.T) {
+	StateTest(t, "state: running twice keeps running state", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "run", Test: "TestFoo"},
+			model.Event{Action: "run", Test: "TestFoo"},
+		)
+		t.StateIs(s, "TestFoo", state.StateRunning)
+		t.End()
+	})
+}
+
+func TestGetNonExistent(t *testing.T) {
+	StateTest(t, "state: Get returns error for unknown test", func(t *StateT) {
+		s := t.NewStore()
+		error := t.GetError(s, "nonexistent")
+		t.Equal(error.Error(), "state not found: nonexistent")
+		t.End()
+	})
+}
+
+func TestApplyInvalidTransitionReturnsCurrentState(t *testing.T) {
+	StateTest(t, "state: invalid transition returns current state", func(t *StateT) {
+		s := t.NewStore()
+		st, error := t.ApplyState(s, model.Event{Action: "pass", Test: "TestA"})
+		t.NotOk(error)
+		if st != state.StateIdle {
+			t.TB().Fatalf("want StateIdle, got %v", st)
+		}
+		t.End()
+	})
+}
+
+func TestSummaryKeepsSubtestName(t *testing.T) {
+	StateTest(t, "state: summary keeps subtest name", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "run", Test: "TestOnlyRuns/tape:_Only_delegates_to_Test"},
+			model.Event{Action: "pass", Test: "TestOnlyRuns/tape:_Only_delegates_to_Test"},
+		)
+		t.SummaryIs(s, []string{"TestOnlyRuns/tape:_Only_delegates_to_Test"}, nil, nil)
+		t.End()
+	})
+}
+
+func TestSummaryPassedFailedSkipped(t *testing.T) {
+	StateTest(t, "state: summary groups passed failed and skipped", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "run", Test: "TestA"},
+			model.Event{Action: "pass", Test: "TestA"},
+			model.Event{Action: "output", Test: "TestA", Output: "ok"},
+			model.Event{Action: "run", Test: "TestB"},
+			model.Event{Action: "fail", Test: "TestB"},
+			model.Event{Action: "output", Test: "TestB", Output: "fail"},
+			model.Event{Action: "run", Test: "TestC"},
+			model.Event{Action: "skip", Test: "TestC"},
+			model.Event{Action: "output", Test: "TestC", Output: "skip"},
+		)
+		t.SummaryIs(s, []string{"TestA"}, []string{"TestB"}, []string{"TestC"})
+		t.End()
+	})
+}
+
+func TestParseTestStateUnknown(t *testing.T) {
+	StateTest(t, "state: parse unknown state errors", func(t *StateT) {
+		error := t.ParseState("unknown")
+		t.Equal(error.Error(), "unknown state: unknown")
+		t.End()
+	})
+}
+
+func TestParseTestEventUnknown(t *testing.T) {
+	StateTest(t, "state: parse unknown event errors", func(t *StateT) {
+		error := t.ParseEvent("unknown")
+		t.Equal(error.Error(), "unknown event: unknown")
+		t.End()
+	})
+}
+
+func TestSummaryWithOutputOnly(t *testing.T) {
+	StateTest(t, "state: output-only tests ignored in summary", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s, model.Event{Action: "output", Test: "orphan", Output: "some output"})
+		t.SummaryIs(s, nil, nil, nil)
+		t.End()
+	})
+}
+
+func TestNew(t *testing.T) {
+	StateTest(t, "state: New returns non-nil store", func(t *StateT) {
+		s := t.NewStore()
+		t.Ok(s != nil)
+		t.End()
+	})
+}
+
+func TestNewFromSourceError(t *testing.T) {
+	StateTest(t, "state: NewFromSource propagates source error", func(t *StateT) {
+		_, error := t.NewFromSource(errSource{})
+		t.Equal(error.Error(), "source failed")
+		t.End()
+	})
+}
+
+func TestGetAdapterError(t *testing.T) {
+	StateTest(t, "state: Get propagates adapter error", func(t *StateT) {
+		s := t.NewStore()
+		mem := adapters.NewMemory[state.TestState]()
+		s.SetAdapter(errAdapter{mem})
+		error := t.GetError(s, "TestFoo")
+		t.Equal(error.Error(), "adapter error")
+		t.End()
+	})
+}
+
+func TestSummaryAdapterError(t *testing.T) {
+	StateTest(t, "state: summary skips adapter errors without panic", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s, model.Event{Action: "output", Test: "TestFoo", Output: "ok"})
+		mem := adapters.NewMemory[state.TestState]()
+		s.SetAdapter(errAdapter{mem})
+		t.SummaryIs(s, nil, nil, nil)
+		t.End()
+	})
+}
+
+func TestMarkSkippedAddsUnseen(t *testing.T) {
+	StateTest(t, "state: MarkSkipped adds unseen tests", func(t *StateT) {
+		s := t.NewStore()
+		t.MarkSkippedIs(s, []string{"scope: foo", "scope: bar"}, nil, nil, []string{"scope: foo", "scope: bar"})
+		t.End()
+	})
+}
+
+func TestMarkSkippedDoesNotOverwritePassed(t *testing.T) {
+	StateTest(t, "state: MarkSkipped keeps passed tests", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "run", Test: "scope: foo"},
+			model.Event{Action: "pass", Test: "scope: foo"},
+		)
+		t.MarkSkippedIs(s, []string{"scope: foo"}, []string{"scope: foo"}, nil, nil)
+		t.End()
+	})
+}
+
+func TestSummaryIgnoresRunningState(t *testing.T) {
+	StateTest(t, "state: summary ignores running tests", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s, model.Event{Action: "run", Test: "TestFoo"})
+		t.SummaryIs(s, nil, nil, nil)
+		t.End()
+	})
+}
+
 func TestMarkSkippedSetError(t *testing.T) {
-	s, _ := New()
-	// remove existing entry so Set is attempted
-	mem, ok := s.adapter.(*adapters.Memory[TestState])
-	if !ok {
-		t.Fatal("expected memory adapter")
-	}
-	s.adapter = setErrAdapter{mem}
-	if err := s.MarkSkipped([]string{"scope: foo"}); err == nil {
-		t.Fatal("expected error from Set failure in MarkSkipped")
-	}
+	StateTest(t, "state: MarkSkipped propagates Set error", func(t *StateT) {
+		s := t.NewStore()
+		mem := adapters.NewMemory[state.TestState]()
+		s.SetAdapter(setErrAdapter{mem})
+		error := t.MarkSkippedErr(s, []string{"scope: foo"})
+		t.Equal(error.Error(), "state.MarkSkipped: Set failed: adapter set error")
+		t.End()
+	})
 }
