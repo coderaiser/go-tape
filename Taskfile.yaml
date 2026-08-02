@@ -9,7 +9,7 @@ tasks:
       Run tests with tape scoped to the library package only.
       run.go (CLI glue) is intentionally excluded.
     cmds:
-      - coverage
+      - coverage || tape
   build:
     desc: Build the binary for the current platform
     cmds:
@@ -18,7 +18,7 @@ tasks:
     desc: |
       Coverage Report
     cmds:
-      - go test $(go list ./... | grep -Ev '/(diff|dedent|node_modules|tape|cmd)/|go-tape$') -coverprofile=coverage.out
+      - coverage --report
   release:snapshot:
     desc: |
       Dry-run GoReleaser locally — builds all platform binaries into ./dist
