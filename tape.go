@@ -46,8 +46,25 @@ func hit(t *testing.T) {
 	t.Fatalf("too many assertions: got %d, expected 1\nat %s:%d", c, file, line)
 }
 
+// TestFn is a callable type for running subtests.
+// Being a named type allows .Skip() and .Only() methods to be attached,
+// enabling both Test(t, name, fn) and Test.Skip(t, name, fn) syntax.
+type TestFn func(t *testing.T, name string, fn func(t *T))
+
+// Skip marks a subtest as skipped without running its body.
+// Enables Test.Skip(t, name, fn) syntax.
+func (f TestFn) Skip(t *testing.T, name string, fn func(t *T)) {
+	Skip(t, name, fn)
+}
+
+// Only runs a single test, skipping all others.
+// Enables Test.Only(t, name, fn) syntax.
+func (f TestFn) Only(t *testing.T, name string, fn func(t *T)) {
+	Only(t, name, fn)
+}
+
 // Test runs a subtest with guards: scope check, assertion count, timeout, End check.
-func Test(t *testing.T, name string, fn func(t *T)) {
+var Test TestFn = func(t *testing.T, name string, fn func(t *T)) {
 	t.Helper()
 
 	// guard 1: scope check

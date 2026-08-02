@@ -395,3 +395,31 @@ func TestToRegexpWithRegexpType(t *testing.T) {
 		t.Fatal("expected same regexp")
 	}
 }
+
+// -- Test.Skip / Test.Only method syntax --
+
+func TestTestSkipMethod(t *testing.T) {
+	Test.Skip(t, "tape: Test.Skip skips the test", func(t *T) {
+		t.Ok(false)
+		t.End()
+	})
+}
+
+func TestTestSkipMethodDoesNotSkipParent(t *testing.T) {
+	passed := false
+	Test.Skip(t, "tape: Test.Skip this one", func(t *T) {
+		t.Ok(false)
+		t.End()
+	})
+	passed = true
+	if !passed {
+		t.Fatal("parent should not have been skipped")
+	}
+}
+
+func TestTestOnlyMethod(t *testing.T) {
+	Test.Only(t, "tape: Test.Only runs the test", func(t *T) {
+		t.Ok(true)
+		t.End()
+	})
+}
