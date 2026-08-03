@@ -73,6 +73,17 @@ func TestMatch(t *testing.T) {
         t.Match("hello 123", `hello \d+`)
         t.End()
     })
+    func TestMatch(t *testing.T) {
+    Test(t, "tape: Match: RegExp", func(t *Test.T) {
+        t.Match("hello 123", regexp.MustCompile(`hello \d+`))
+        t.End()
+    })
+    Test(t, "tape: Match: string", func(t *Test.T) {
+        t.Match("hello 123", `hello`)
+        t.End()
+    })
+}
+
 }
 
 func TestComment(t *testing.T) {
