@@ -115,3 +115,23 @@ func TestHelpOutputContainsTapeCheckDuplicates(t *testing.T) {
 	})
 }
 
+func TestCheckSkippedExitCode(t *testing.T) {
+	Test(t, "main: TAPE_CHECK_SKIPPED=1 returns exit code 5 when skipped > 0", func(t *T) {
+		t.TB().Setenv("TAPE_CHECK_SKIPPED", "1")
+		var out, errOut strings.Builder
+		code := run([]string{"./testdata/skipped/..."}, &out, &errOut)
+		t.Equal(code, 5)
+		t.End()
+	})
+}
+
+func TestCheckSkippedOffExitCode(t *testing.T) {
+	Test(t, "main: TAPE_CHECK_SKIPPED=0 returns 0 when only skipped tests exist", func(t *T) {
+		t.TB().Setenv("TAPE_CHECK_SKIPPED", "0")
+		var out, errOut strings.Builder
+		code := run([]string{"./testdata/skipped/..."}, &out, &errOut)
+		t.Equal(code, 0)
+		t.End()
+	})
+}
+

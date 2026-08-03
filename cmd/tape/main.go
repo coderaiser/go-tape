@@ -213,7 +213,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	if config.CheckSkipped() && skipped > 0 {
-		return 1
+		return 5
 	}
 	return 0
 }
