@@ -53,6 +53,10 @@ func CheckSkipped() bool {
 	return envBool("TAPE_CHECK_SKIPPED", false)
 }
 
+func CheckDuplicates() bool {
+	return envBool("TAPE_CHECK_DUPLICATES", true)
+}
+
 func Timeout() time.Duration {
 	return envDur("TAPE_TIMEOUT", 3*time.Second)
 }

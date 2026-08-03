@@ -115,7 +115,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	dir := "."
 
 	// check duplicates before running
-	if !*noCheckDuplicates {
+	if !*noCheckDuplicates && config.CheckDuplicates() {
 		dups, err := tapeast.FindDuplicates(dir)
 		if err != nil {
 			_, _ = fmt.Fprintf(stderr, "tape: scan duplicates: %v\n", err)

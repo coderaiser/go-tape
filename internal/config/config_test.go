@@ -112,6 +112,30 @@ func TestCheckSkippedEnabled(t *testing.T) {
 	})
 }
 
+func TestCheckDuplicatesDefault(t *testing.T) {
+	tape.Test(t, "config: CheckDuplicates defaults to true", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_DUPLICATES", "")
+		t.Ok(config.CheckDuplicates())
+		t.End()
+	})
+}
+
+func TestCheckDuplicatesDisabled(t *testing.T) {
+	tape.Test(t, "config: CheckDuplicates disabled with 0", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_DUPLICATES", "0")
+		t.NotOk(config.CheckDuplicates())
+		t.End()
+	})
+}
+
+func TestCheckDuplicatesEnabled(t *testing.T) {
+	tape.Test(t, "config: CheckDuplicates enabled with 1", func(t *tape.T) {
+		t.Setenv("TAPE_CHECK_DUPLICATES", "1")
+		t.Ok(config.CheckDuplicates())
+		t.End()
+	})
+}
+
 func TestEnvBoolTrue(t *testing.T) {
 	tape.Test(t, "config: envBool parses true", func(t *tape.T) {
 		t.Setenv("TAPE_CHECK_SCOPES", "true")
