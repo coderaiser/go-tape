@@ -381,3 +381,81 @@ func TestMarkSkippedSetError(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestBuildFailedCountIsOne(t *testing.T) {
+	StateTest(t, "state: build-failed package increments BuildFailedCount to 1", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "start", Package: "mypkg"},
+			model.Event{Action: "output", Package: "mypkg", Output: "FAIL\tmypkg [build failed]\n"},
+			model.Event{Action: "fail", Package: "mypkg"},
+		)
+		t.Equal(s.BuildFailedCount(), 1)
+		t.End()
+	})
+}
+
+func TestBuildFailedPackageNotInPassed(t *testing.T) {
+	StateTest(t, "state: build-failed package produces no passed tests", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "output", Package: "mypkg", Output: "FAIL\tmypkg [build failed]\n"},
+			model.Event{Action: "fail", Package: "mypkg"},
+		)
+		passed, _, _ := s.Summary()
+		t.Equal(len(passed), 0)
+		t.End()
+	})
+}
+
+func TestBuildFailedPackageNotInFailed(t *testing.T) {
+	StateTest(t, "state: build-failed package produces no failed tests", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "output", Package: "mypkg", Output: "FAIL\tmypkg [build failed]\n"},
+			model.Event{Action: "fail", Package: "mypkg"},
+		)
+		_, failed, _ := s.Summary()
+		t.Equal(len(failed), 0)
+		t.End()
+	})
+}
+
+func TestBuildFailedCountZeroByDefault(t *testing.T) {
+	StateTest(t, "state: BuildFailedCount is zero with no build failures", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "run", Test: "TestFoo/scope: x"},
+			model.Event{Action: "pass", Test: "TestFoo/scope: x"},
+		)
+		t.Equal(s.BuildFailedCount(), 0)
+		t.End()
+	})
+}
+
+func TestBuildFailedCountMultiplePackages(t *testing.T) {
+	StateTest(t, "state: BuildFailedCount accumulates across packages", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "output", Package: "pkgA", Output: "FAIL\tpkgA [build failed]\n"},
+			model.Event{Action: "fail", Package: "pkgA"},
+			model.Event{Action: "output", Package: "pkgB", Output: "FAIL\tpkgB [build failed]\n"},
+			model.Event{Action: "fail", Package: "pkgB"},
+		)
+		t.Equal(s.BuildFailedCount(), 2)
+		t.End()
+	})
+}
+
+func TestNormalPackageFailNotCountedAsBuildFailed(t *testing.T) {
+	StateTest(t, "state: normal package fail does not increment BuildFailedCount", func(t *StateT) {
+		s := t.NewStore()
+		t.Apply(s,
+			model.Event{Action: "run", Test: "TestFoo/scope: x"},
+			model.Event{Action: "fail", Test: "TestFoo/scope: x"},
+			model.Event{Action: "fail", Package: "mypkg"},
+		)
+		t.Equal(s.BuildFailedCount(), 0)
+		t.End()
+	})
+}

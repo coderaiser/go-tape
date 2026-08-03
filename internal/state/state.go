@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/coderaiser/go-tape/internal/model"
 	"github.com/coderaiser/go-tape/internal/statemachine"
@@ -63,9 +64,11 @@ func parseTestEvent(e string) (TestEvent, error) {
 
 // Store manages test state using the statemachine.
 type Store struct {
-	machine *statemachine.Machine[TestState, TestEvent]
-	adapter statemachine.Adapter[TestState]
-	outputs map[string]string
+	machine       *statemachine.Machine[TestState, TestEvent]
+	adapter       statemachine.Adapter[TestState]
+	outputs       map[string]string
+	pendingOutput map[string]string
+	buildFailed   int
 }
 
 // New creates a new Store.
@@ -89,15 +92,25 @@ func newFromSource(src statemachine.TransitionSource) (*Store, error) {
 		return nil, err
 	}
 	return &Store{
-		machine: m,
-		adapter: adapter,
-		outputs: make(map[string]string),
+		machine:       m,
+		adapter:       adapter,
+		outputs:       make(map[string]string),
+		pendingOutput: make(map[string]string),
 	}, nil
 }
 
 // Apply processes a model.Event and updates state.
 func (s *Store) Apply(e model.Event) (TestState, error) {
 	if e.Test == "" {
+		// Track package-level output so we can detect build failures.
+		if e.Action == "output" {
+			s.pendingOutput[e.Package] += e.Output
+		} else if e.Action == "fail" {
+			if strings.Contains(s.pendingOutput[e.Package], "[build failed]") {
+				s.buildFailed++
+			}
+			delete(s.pendingOutput, e.Package)
+		}
 		return 0, nil
 	}
 
@@ -193,4 +206,9 @@ func (s *Store) MarkSkipped(names []string) error {
 		s.outputs[name] = ""
 	}
 	return nil
+}
+
+// BuildFailedCount returns the number of packages that failed to build.
+func (s *Store) BuildFailedCount() int {
+	return s.buildFailed
 }

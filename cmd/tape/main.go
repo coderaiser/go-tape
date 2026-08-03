@@ -178,11 +178,17 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	passed, failed, _ := store.Summary()
+	buildFailedCount := store.BuildFailedCount()
 
-	// skipped = declared tests that never ran (Skip calls + Only filtering)
-	skipped := total - len(passed) - len(failed)
-	if skipped < 0 {
-		skipped = 0
+	// skipped = declared tests that never ran (Skip calls + Only filtering).
+	// If any package failed to build, we can't attribute tests accurately —
+	// suppress skipped entirely so they don't show as skipped.
+	skipped := 0
+	if buildFailedCount == 0 {
+		skipped = total - len(passed) - len(failed)
+		if skipped < 0 {
+			skipped = 0
+		}
 	}
 
 	// When Only calls are present, recompute with full name list
@@ -203,7 +209,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	f.End(len(passed), len(failed), skipped)
 
-	if len(failed) > 0 {
+	if len(failed) > 0 || buildFailedCount > 0 {
 		return 1
 	}
 	if config.CheckSkipped() && skipped > 0 {
