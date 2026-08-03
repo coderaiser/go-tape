@@ -7,7 +7,7 @@
 [CoverageURL]: https://coveralls.io/github/coderaiser/go-tape?branch=master
 [CoverageIMGURL]: https://coveralls.io/repos/coderaiser/go-tape/badge.svg?branch=master&service=github
 
-📼 [**Supertape**](https://github.com/coderaiser/supertape) for Go — same assertions, same philosophy.
+📼 [**Supertape**](https://github.com/coderaiser/supertape) for Go — same assertions, same philosophy: one assertion per test, check for duplicates etc.
 
 ## Install
 
@@ -30,55 +30,55 @@ Import the package aliased as `Test` to get the `Test(...)`, `Test.Only(...)`, a
 ```go
 import (
     "testing"
-    Test "github.com/coderaiser/go-tape"
+    . "github.com/coderaiser/go-tape"
 )
 
 func TestEqual(t *testing.T) {
-    Test(t, "tape: Equal works", func(t *Test.T) {
+    Test(t, "tape: Equal works", func(t *T) {
         t.Equal(42, 42)
         t.End()
     })
 }
 
 func TestNotEqual(t *testing.T) {
-    Test(t, "tape: NotEqual works", func(t *Test.T) {
+    Test(t, "tape: NotEqual works", func(t *T) {
         t.NotEqual(1, 2)
         t.End()
     })
 }
 
 func TestOk(t *testing.T) {
-    Test(t, "tape: Ok works", func(t *Test.T) {
+    Test(t, "tape: Ok works", func(t *T) {
         t.Ok(true)
         t.End()
     })
 }
 
 func TestNotOk(t *testing.T) {
-    Test(t, "tape: NotOk works", func(t *Test.T) {
+    Test(t, "tape: NotOk works", func(t *T) {
         t.NotOk(false)
         t.End()
     })
 }
 
 func TestDeepEqual(t *testing.T) {
-    Test(t, "tape: DeepEqual works", func(t *Test.T) {
+    Test(t, "tape: DeepEqual works", func(t *T) {
         t.DeepEqual([]int{1, 2}, []int{1, 2})
         t.End()
     })
 }
 
 func TestMatch(t *testing.T) {
-    Test(t, "tape: Match works", func(t *Test.T) {
+    Test(t, "tape: Match works", func(t *T) {
         t.Match("hello 123", `hello \d+`)
         t.End()
     })
     func TestMatch(t *testing.T) {
-    Test(t, "tape: Match: RegExp", func(t *Test.T) {
+    Test(t, "tape: Match: RegExp", func(t *T) {
         t.Match("hello 123", regexp.MustCompile(`hello \d+`))
         t.End()
     })
-    Test(t, "tape: Match: string", func(t *Test.T) {
+    Test(t, "tape: Match: string", func(t *T) {
         t.Match("hello 123", `hello`)
         t.End()
     })
@@ -87,7 +87,7 @@ func TestMatch(t *testing.T) {
 }
 
 func TestComment(t *testing.T) {
-    Test(t, "tape: Comment does not count as assertion", func(t *Test.T) {
+    Test(t, "tape: Comment does not count as assertion", func(t *T) {
         t.Comment("just a note")
         t.Ok(true)
         t.End()
@@ -101,11 +101,11 @@ Run a single test, skipping all others — identical to supertape's `test.only`:
 
 ```go
 func TestParser(t *testing.T) {
-    Test.Only(t, "parser: run action", func(t *Test.T) {
+    Test.Only(t, "parser: run action", func(t *T) {
         t.Ok(true)
         t.End()
     })
-    Test(t, "parser: other test", func(t *Test.T) {
+    Test(t, "parser: other test", func(t *T) {
         // skipped — only the above runs
         t.Ok(true)
         t.End()
@@ -121,11 +121,11 @@ Skip a single test without removing it:
 
 ```go
 func TestParser(t *testing.T) {
-    Test.Skip(t, "parser: known broken", func(t *Test.T) {
+    Test.Skip(t, "parser: known broken", func(t *T) {
         t.Ok(false) // never runs
         t.End()
     })
-    Test(t, "parser: works fine", func(t *Test.T) {
+    Test(t, "parser: works fine", func(t *T) {
         t.Ok(true)
         t.End()
     })
@@ -137,7 +137,7 @@ func TestParser(t *testing.T) {
 Create a custom assertion type that wraps `*Test.T`:
 
 ```go
-type MyT struct{ *Test.T }
+type MyT struct{ *T }
 
 func (t *MyT) FileExists(path string) {
     t.TB().Helper()
