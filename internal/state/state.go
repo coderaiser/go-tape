@@ -103,9 +103,10 @@ func newFromSource(src statemachine.TransitionSource) (*Store, error) {
 func (s *Store) Apply(e model.Event) (TestState, error) {
 	if e.Test == "" {
 		// Track package-level output so we can detect build failures.
-		if e.Action == "output" {
+		switch e.Action {
+		case "output":
 			s.pendingOutput[e.Package] += e.Output
-		} else if e.Action == "fail" {
+		case "fail":
 			if strings.Contains(s.pendingOutput[e.Package], "[build failed]") {
 				s.buildFailed++
 			}
