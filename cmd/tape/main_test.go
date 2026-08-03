@@ -1,9 +1,9 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 	"testing"
-	"regexp"
 
 	. "github.com/coderaiser/go-tape"
 )
@@ -48,7 +48,7 @@ func TestRunHOutput(t *testing.T) {
 	Test(t, "main: -h output contains Usage", func(t *T) {
 		var out, errOut strings.Builder
 		run([]string{"-h"}, &out, &errOut)
-		
+
 		t.Match(out.String(), `Usage`)
 		t.End()
 	})

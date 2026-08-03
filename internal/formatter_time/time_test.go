@@ -1,9 +1,9 @@
 package formatter_time_test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
-	"regexp"
 
 	. "github.com/coderaiser/go-tape"
 	"github.com/coderaiser/go-tape/internal/formatter_time"
