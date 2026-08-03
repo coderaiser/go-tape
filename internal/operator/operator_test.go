@@ -239,6 +239,14 @@ func TestNotMatchInvalidPattern(t *testing.T) {
 	})
 }
 
+func TestNotMatchInvalidType(t *testing.T) {
+	tape.Test(t, "operator: NotMatch returns not ok for invalid type", func(t *tape.T) {
+		result := operator.NotMatch("x", 42)
+		t.NotOk(result.Ok)
+		t.End()
+	})
+}
+
 func TestPass(t *testing.T) {
 	tape.Test(t, "operator: Pass returns ok with message", func(t *tape.T) {
 		result := operator.Pass("msg")
