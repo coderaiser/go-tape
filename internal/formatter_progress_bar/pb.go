@@ -146,10 +146,20 @@ func (f *ProgressBarFormatter) End(count, passed, failed, skipped int) string {
 	if failed > 0 {
 		fmt.Fprintf(&sb, "# %s fail %d\n", failEmoji, failed)
 	} else {
-		fmt.Fprintf(&sb, "# %s ok\n", okMark)
+		sb.WriteString(okLine())
 	}
 	sb.WriteString("\n")
 	return sb.String()
+}
+
+// okLine returns the success marker line. JetBrains' JediTerm misaligns the
+// emoji, so an extra space is added when running under that terminal.
+func okLine() string {
+	spaces := ""
+	if os.Getenv("TERMINAL_EMULATOR") == "JetBrains-JediTerm" {
+		spaces = " "
+	}
+	return fmt.Sprintf("# %s%s ok\n", OkMark, spaces)
 }
 
 var ansiEscape = regexp.MustCompile("\x1b\\[[0-9;]*m")

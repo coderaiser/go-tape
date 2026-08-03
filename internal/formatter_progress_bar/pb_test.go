@@ -392,3 +392,21 @@ func TestTestEndWithFailOverfill(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestOkLineDefault(t *testing.T) {
+	tape.Test(t, "progress-bar: ok line has no extra space by default", func(t *tape.T) {
+		t.TB().Setenv("TERMINAL_EMULATOR", "")
+		result := okLine()
+		t.Equal(result, "# \u2705 ok\n")
+		t.End()
+	})
+}
+
+func TestOkLineJetBrains(t *testing.T) {
+	tape.Test(t, "progress-bar: ok line has extra space in JetBrains", func(t *tape.T) {
+		t.TB().Setenv("TERMINAL_EMULATOR", "JetBrains-JediTerm")
+		result := okLine()
+		t.Equal(result, "# \u2705  ok\n")
+		t.End()
+	})
+}
