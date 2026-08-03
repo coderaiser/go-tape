@@ -69,3 +69,49 @@ func TestVersionConst(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestHelpOutputContainsTapeTimeout(t *testing.T) {
+	Test(t, "main: -h output contains TAPE_TIMEOUT", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-h"}, &out, &errOut)
+		t.Match(out.String(), "TAPE_TIMEOUT")
+		t.End()
+	})
+}
+
+func TestHelpOutputContainsTapeCheckScopes(t *testing.T) {
+	Test(t, "main: -h output contains TAPE_CHECK_SCOPES", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-h"}, &out, &errOut)
+		t.Match(out.String(), "TAPE_CHECK_SCOPES")
+		t.End()
+	})
+}
+
+func TestHelpOutputContainsTapeCheckAssertionsCount(t *testing.T) {
+	Test(t, "main: -h output contains TAPE_CHECK_ASSERTIONS_COUNT", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-h"}, &out, &errOut)
+		t.Match(out.String(), "TAPE_CHECK_ASSERTIONS_COUNT")
+		t.End()
+	})
+}
+
+func TestHelpOutputContainsTapeCheckSkipped(t *testing.T) {
+	Test(t, "main: -h output contains TAPE_CHECK_SKIPPED", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-h"}, &out, &errOut)
+		t.Match(out.String(), "TAPE_CHECK_SKIPPED")
+		t.End()
+	})
+}
+
+func TestHelpOutputContainsTapeCheckDuplicates(t *testing.T) {
+	Test(t, "main: -h output contains TAPE_CHECK_DUPLICATES", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-h"}, &out, &errOut)
+		t.Match(out.String(), "TAPE_CHECK_DUPLICATES")
+		t.End()
+	})
+}
+
