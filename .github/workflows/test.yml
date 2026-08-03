@@ -17,9 +17,11 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install
         run: |
-          bun install putout redrun palabra -g
+          bun install putout redrun madrun palabra -g
           bun i --no-save
           palabra i task coverage tape golangci-lint
+      - name: Madrun init
+        run: madrun --init
       - name: Lint
         run: |
           redrun fix:lint
