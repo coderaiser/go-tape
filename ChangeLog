@@ -1,3 +1,8 @@
+2026.08.03, v1.1.0
+
+feature:
+- 0e57e01 go-tape: Match: regexps
+
 2026.08.03, v1.0.13
 
 fix:
