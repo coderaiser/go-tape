@@ -157,10 +157,10 @@ func TestHelperFalsy(t *testing.T) {
 	})
 }
 
-// -- Test.Only / Test.Skip --
+// -- Test / Test.Skip --
 
 func TestOnly(t *testing.T) {
-	Test.Only(t, "tape: Test.Only runs the test", func(t *T) {
+	Test(t, "tape: Test runs the test", func(t *T) {
 		t.Ok(true)
 		t.End()
 	})
@@ -338,13 +338,13 @@ func TestToRegexpInvalidType(t *testing.T) {
 
 func TestOnlyRuns(t *testing.T) {
 	ran := false
-	Test.Only(t, "tape: Test.Only delegates to Test", func(t *T) {
+	Test(t, "tape: Test delegates to Test", func(t *T) {
 		ran = true
 		t.Ok(ran)
 		t.End()
 	})
 	if !ran {
-		t.Fatal("Test.Only did not run the function")
+		t.Fatal("Test did not run the function")
 	}
 }
 
@@ -375,12 +375,12 @@ func TestTestOnlyCallsFnDirectly(t *testing.T) {
 	t.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
 	t.Setenv("TAPE_CHECK_END", "0")
 	ran := false
-	Test.Only(t, "tape: Test.Only calls fn", func(t *T) {
+	Test(t, "tape: Test calls fn", func(t *T) {
 		ran = true
 		t.End()
 	})
 	if !ran {
-		t.Fatal("Test.Only did not call fn")
+		t.Fatal("Test did not call fn")
 	}
 }
 
