@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"regexp"
 
 	. "github.com/coderaiser/go-tape"
 )
@@ -38,7 +39,7 @@ func TestRunVersionOutput(t *testing.T) {
 	Test(t, "main: -v output contains version string", func(t *T) {
 		var out, errOut strings.Builder
 		run([]string{"-v"}, &out, &errOut)
-		t.Match(out.String(), `\d+\.\d+\.\d+`)
+		t.Match(out.String(), regexp.MustCompile(`\d+\.\d+\.\d+`))
 		t.End()
 	})
 }
@@ -47,6 +48,7 @@ func TestRunHOutput(t *testing.T) {
 	Test(t, "main: -h output contains Usage", func(t *T) {
 		var out, errOut strings.Builder
 		run([]string{"-h"}, &out, &errOut)
+		
 		t.Match(out.String(), `Usage`)
 		t.End()
 	})

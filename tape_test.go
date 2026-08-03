@@ -93,7 +93,7 @@ func TestTNotDeepEqual(t *testing.T) {
 
 func TestTMatch(t *testing.T) {
 	Test(t, "tape: Match works with string pattern", func(t *T) {
-		t.Match("hello 123", `hello \d+`)
+		t.Match("hello 123", regexp.MustCompile(`hello \d+`))
 		t.End()
 	})
 }

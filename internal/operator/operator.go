@@ -141,9 +141,9 @@ func toRegexp(pattern any) (*regexp.Regexp, error) {
 	case *regexp.Regexp:
 		return p, nil
 	case string:
-		return regexp.Compile(p)
+		return regexp.Compile(regexp.QuoteMeta(p))
 	default:
-		return nil, fmt.Errorf("pattern must be string or *regexp.Regexp, got %T", pattern)
+		return nil, fmt.Errorf("unsupported pattern type %T", pattern)
 	}
 }
 

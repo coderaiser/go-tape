@@ -174,6 +174,12 @@ func TestMatchPass(t *testing.T) {
 		t.Ok(result.Ok)
 		t.End()
 	})
+
+	tape.Test(t, "operator: Match: []", func(t *tape.T) {
+		result := operator.Match("usage: coverage [options]", "usage: coverage [options]")
+		t.Ok(result.Ok)
+		t.End()
+	})
 }
 
 func TestMatchFail(t *testing.T) {
@@ -226,9 +232,9 @@ func TestNotMatchFail(t *testing.T) {
 }
 
 func TestNotMatchInvalidPattern(t *testing.T) {
-	tape.Test(t, "operator: NotMatch returns not ok for invalid regex", func(t *tape.T) {
+	tape.Test(t, "operator: NotMatch returns ok for invalid regex", func(t *tape.T) {
 		result := operator.NotMatch("hello", "[invalid")
-		t.NotOk(result.Ok)
+		t.Ok(result.Ok)
 		t.End()
 	})
 }
