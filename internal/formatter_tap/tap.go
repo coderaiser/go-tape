@@ -65,7 +65,7 @@ func (f *TAPFormatter) End(count, passed, failed, skipped int) string {
 	}
 	sb.WriteString("\n")
 	if failed == 0 {
-		sb.WriteString("# ok\n\n")
+		sb.WriteString("# ok\n")
 	}
 	sb.WriteString("\n")
 	return sb.String()
