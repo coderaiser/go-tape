@@ -1,3 +1,10 @@
+2026.08.04, v1.2.2
+
+fix:
+- 93c56cd formatter: progress_bar
+- 81eb1dc fail: trailing newline
+- c0fd6f7 formatter: CI: tap -> fail
+
 2026.08.04, v1.2.1
 
 fix:
