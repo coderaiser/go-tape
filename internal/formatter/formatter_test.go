@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	tape "github.com/coderaiser/go-tape"
+	. "github.com/coderaiser/go-tape"
 	"github.com/coderaiser/go-tape/internal/model"
 )
 
@@ -51,7 +51,7 @@ func newCaptureState(total int) (*State, *captureFormatter) {
 func TestCachedRunBarCompletion(t *testing.T) {
 	const total = 10
 
-	tape.Test(t, "formatter: cached run pushes bar to 100%", func(t *tape.T) {
+	Test(t, "formatter: cached run pushes bar to 100%", func(t *T) {
 		s, cf := newCaptureState(total)
 
 		// Simulate only 3 out of 10 tests streaming (the rest were cached).
@@ -76,7 +76,7 @@ func TestCachedRunBarCompletion(t *testing.T) {
 func TestFullRunNoExtraTestEnd(t *testing.T) {
 	const total = 3
 
-	tape.Test(t, "formatter: full run adds no extra TestEnd", func(t *tape.T) {
+	Test(t, "formatter: full run adds no extra TestEnd", func(t *T) {
 		s, cf := newCaptureState(total)
 
 		for i := 0; i < total; i++ {
@@ -96,7 +96,7 @@ func TestFullRunNoExtraTestEnd(t *testing.T) {
 // TestFromEventRoutesCorrectly is a smoke test that FromEvent increments count
 // for pass/fail/skip and ignores run and output.
 func TestFromEventRoutesCorrectly(t *testing.T) {
-	tape.Test(t, "formatter: FromEvent routes count correctly", func(t *tape.T) {
+	Test(t, "formatter: FromEvent routes count correctly", func(t *T) {
 		var buf strings.Builder
 
 		// Use a real progress-bar formatter with show forced off so we get no stderr noise.
@@ -118,7 +118,7 @@ func TestFromEventRoutesCorrectly(t *testing.T) {
 
 // TestFromEventIgnoresEmptyTest confirms that events with no Test name are skipped.
 func TestFromEventIgnoresEmptyTest(t *testing.T) {
-	tape.Test(t, "formatter: empty test events are ignored", func(t *tape.T) {
+	Test(t, "formatter: empty test events are ignored", func(t *T) {
 		s, cf := newCaptureState(5)
 		s.FromEvent(model.Event{Action: "pass", Test: ""})
 		t.TB().Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
@@ -130,7 +130,7 @@ func TestFromEventIgnoresEmptyTest(t *testing.T) {
 
 // TestNewCIForcesTap verifies that New selects tap when CI env is set.
 func TestNewCIForcesTap(t *testing.T) {
-	tape.Test(t, "formatter: CI env forces tap format", func(t *tape.T) {
+	Test(t, "formatter: CI env forces tap format", func(t *T) {
 		var buf strings.Builder
 		t.TB().Setenv("CI", "true")
 		s := New("whatever", &buf, 1)
@@ -142,7 +142,7 @@ func TestNewCIForcesTap(t *testing.T) {
 
 // TestNewEmptyFormatDefaultsToProgressBar verifies default format selection.
 func TestNewEmptyFormatDefaultsToProgressBar(t *testing.T) {
-	tape.Test(t, "formatter: empty format defaults to progress-bar", func(t *tape.T) {
+	Test(t, "formatter: empty format defaults to progress-bar", func(t *T) {
 		var buf strings.Builder
 		t.TB().Setenv("CI", "0")
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "1")
@@ -152,9 +152,71 @@ func TestNewEmptyFormatDefaultsToProgressBar(t *testing.T) {
 	})
 }
 
+func TestNewTapFormat(t *testing.T) {
+	Test(t, "formatter: tap format constructs", func(t *T) {
+		t.TB().Setenv("CI", "false")
+
+		var buf strings.Builder
+		t.Ok(New("tap", &buf, 3) != nil)
+
+		t.End()
+	})
+
+	Test(t, "formatter: short format constructs", func(t *T) {
+		t.TB().Setenv("CI", "false")
+
+		var buf strings.Builder
+		t.Ok(New("short", &buf, 3) != nil)
+
+		t.End()
+	})
+	Test(t, "formatter: fail format constructs", func(t *T) {
+		t.TB().Setenv("CI", "false")
+
+		var buf strings.Builder
+		t.Ok(New("fail", &buf, 3) != nil)
+		t.End()
+	})
+
+	Test(t, "formatter: time format constructs", func(t *T) {
+		t.TB().Setenv("CI", "false")
+
+		var buf strings.Builder
+		t.Ok(New("time", &buf, 3) != nil)
+
+		t.End()
+	})
+
+	Test(t, "formatter: json-lines format constructs", func(t *T) {
+		t.TB().Setenv("CI", "false")
+
+		var buf strings.Builder
+		t.Ok(New("json-lines", &buf, 3) != nil)
+
+		t.End()
+	})
+
+	Test(t, "formatter: progress-bar format constructs", func(t *T) {
+		t.TB().Setenv("CI", "false")
+
+		var buf strings.Builder
+		t.Ok(New("progress-bar", &buf, 3) != nil)
+
+		t.End()
+	})
+	Test(t, "formatter: unknown format uses default", func(t *T) {
+		t.TB().Setenv("CI", "false")
+
+		var buf strings.Builder
+		t.Ok(New("unknown-format", &buf, 3) != nil)
+
+		t.End()
+	})
+}
+
 // TestNewAllFormats verifies each named format constructs without panic.
 func TestNewAllFormats(t *testing.T) {
-	tape.Test(t, "formatter: all named formats construct", func(t *tape.T) {
+	Test(t, "formatter: all named formats construct", func(t *T) {
 		var buf strings.Builder
 		reached := true
 		for _, f := range []string{"tap", "short", "fail", "time", "json-lines"} {
@@ -170,7 +232,7 @@ func TestNewAllFormats(t *testing.T) {
 
 // TestWriteNonEmptyString exercises the discard-write path in write().
 func TestWriteNonEmptyString(t *testing.T) {
-	tape.Test(t, "formatter: write emits non-empty output", func(t *tape.T) {
+	Test(t, "formatter: write emits non-empty output", func(t *T) {
 		var buf strings.Builder
 		s := New("tap", &buf, 3)
 		s.FromEvent(model.Event{Action: "pass", Test: "scope: x"})

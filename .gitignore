@@ -2,6 +2,7 @@
 *.log
 *.lock
 *.out
+*.lcov
 
 .idea
 .DS_Store
