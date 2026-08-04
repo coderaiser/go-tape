@@ -264,55 +264,55 @@ func TestFail(t *testing.T) {
 }
 
 func TestOkTypedNilSlice(t *testing.T) {
-    Test(t, "operator: Ok returns not ok for typed-nil slice", func(t *T) {
-        var s []int
-        result := operator.Ok(s)
-        t.NotOk(result.Ok)
-        t.End()
-    })
+	Test(t, "operator: Ok returns not ok for typed-nil slice", func(t *T) {
+		var s []int
+		result := operator.Ok(s)
+		t.NotOk(result.Ok)
+		t.End()
+	})
 }
 
 func TestNotOkTypedNilSlice(t *testing.T) {
-    Test(t, "operator: NotOk returns ok for typed-nil slice", func(t *T) {
-        var s []int
-        result := operator.NotOk(s)
-        t.Ok(result.Ok)
-        t.End()
-    })
+	Test(t, "operator: NotOk returns ok for typed-nil slice", func(t *T) {
+		var s []int
+		result := operator.NotOk(s)
+		t.Ok(result.Ok)
+		t.End()
+	})
 }
 
 func TestOkTypedNilMap(t *testing.T) {
-    Test(t, "operator: Ok returns not ok for typed-nil map", func(t *T) {
-        var m map[string]int
-        result := operator.Ok(m)
-        t.NotOk(result.Ok)
-        t.End()
-    })
+	Test(t, "operator: Ok returns not ok for typed-nil map", func(t *T) {
+		var m map[string]int
+		result := operator.Ok(m)
+		t.NotOk(result.Ok)
+		t.End()
+	})
 }
 
 func TestOkTypedNilPointer(t *testing.T) {
-    Test(t, "operator: Ok returns not ok for typed-nil pointer", func(t *T) {
-        var p *int
-        result := operator.Ok(p)
-        t.NotOk(result.Ok)
-        t.End()
-    })
+	Test(t, "operator: Ok returns not ok for typed-nil pointer", func(t *T) {
+		var p *int
+		result := operator.Ok(p)
+		t.NotOk(result.Ok)
+		t.End()
+	})
 }
 
 func TestOkTypedNilFunc(t *testing.T) {
-    Test(t, "operator: Ok returns not ok for typed-nil func", func(t *T) {
-        var f func()
-        result := operator.Ok(f)
-        t.NotOk(result.Ok)
-        t.End()
-    })
+	Test(t, "operator: Ok returns not ok for typed-nil func", func(t *T) {
+		var f func()
+		result := operator.Ok(f)
+		t.NotOk(result.Ok)
+		t.End()
+	})
 }
 
 func TestOkNonNilSlice(t *testing.T) {
-    Test(t, "operator: Ok returns ok for non-nil empty slice", func(t *T) {
-        s := []int{}
-        result := operator.Ok(s)
-        t.Ok(result.Ok)
-        t.End()
-    })
+	Test(t, "operator: Ok returns ok for non-nil empty slice", func(t *T) {
+		s := []int{}
+		result := operator.Ok(s)
+		t.Ok(result.Ok)
+		t.End()
+	})
 }

@@ -120,22 +120,25 @@ func Fail(message string) Result {
 
 // truthy checks if v is truthy.
 func truthy(v any) bool {
-    if v == nil {
-        return false
-    }
-    switch val := v.(type) {
-    case bool:   return val
-    case int:    return val != 0
-    case string: return val != ""
-    default:
-        rv := reflect.ValueOf(val)
-        switch rv.Kind() {
-        case reflect.Slice, reflect.Map, reflect.Chan,
-             reflect.Func, reflect.Ptr, reflect.Interface:
-            return !rv.IsNil()
-        }
-        return true
-    }
+	if v == nil {
+		return false
+	}
+	switch val := v.(type) {
+	case bool:
+		return val
+	case int:
+		return val != 0
+	case string:
+		return val != ""
+	default:
+		rv := reflect.ValueOf(val)
+		switch rv.Kind() {
+		case reflect.Slice, reflect.Map, reflect.Chan,
+			reflect.Func, reflect.Pointer, reflect.Interface:
+			return !rv.IsNil()
+		}
+		return true
+	}
 }
 
 // toRegexp converts a string or *regexp.Regexp to *regexp.Regexp.
