@@ -19,7 +19,7 @@ jobs:
         run: |
           bun install putout redrun madrun palabra -g
           bun i --no-save
-          palabra i task coverage tape golangci-lint
+          palabra i task tape golangci-lint
       - name: Madrun init
         run: madrun --init
       - name: Lint
@@ -44,6 +44,6 @@ jobs:
         continue-on-error: true
         uses: coverallsapp/github-action@v2
         with:
-          file: coverage.out
+          file: coverage.lcov
           format: golang
           github-token: ${{ secrets.GITHUB_TOKEN }}
