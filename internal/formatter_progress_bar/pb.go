@@ -9,7 +9,7 @@ import (
 
 const (
 	barWidth      = 40
-	barComplete   = '\u25aa' // ▪ BLACK SMALL SQUARE — eaw=N, always 1 column
+	 barComplete   = '\u2588'
 	barEmpty      = '\u2591' // ░ LIGHT SHADE — eaw=N, always 1 column
 	OkEmoji       = "\U0001f44c"
 	FailEmoji     = "\u274c"

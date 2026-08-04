@@ -171,7 +171,7 @@ func TestBarGlyphsAreNarrowWidth(t *testing.T) {
 		// U+2588 FULL BLOCK and U+00B7 MIDDLE DOT are eaw=A (ambiguous) —
 		// they render as 1 or 2 columns depending on the terminal, breaking
 		// bar alignment. Both characters must be eaw=N (narrow, always 1 col).
-		t.Equal(string(barComplete), "\u25aa") // ▪ BLACK SMALL SQUARE — eaw=N
+		t.Equal(string(barComplete), "█") // ▪ BLACK SMALL SQUARE — eaw=N
 		t.End()
 	})
 }
