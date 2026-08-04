@@ -9,7 +9,6 @@
     },
     "plugins": ["goreleaser"],
     "ignore": [
-        "invalid.json",
-        "vendor"
+        "invalid.json"
     ]
 }

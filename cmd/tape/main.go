@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/coderaiser/go-coverage"
 	tapeast "github.com/coderaiser/go-tape/internal/ast"
 	"github.com/coderaiser/go-tape/internal/config"
 	"github.com/coderaiser/go-tape/internal/formatter"
@@ -61,6 +63,8 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
+	covOpts, args := preprocess(args)
+
 	flags := flag.NewFlagSet("tape", flag.ContinueOnError)
 	format := flags.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines")
 	flags.StringVar(format, "format", "", "output format (alias for -f)")
@@ -149,6 +153,19 @@ func run(args []string, stdout, stderr io.Writer) int {
 		goArgs = append(goArgs, "-run", pattern)
 	}
 
+	var coverTmp *os.File
+	if covOpts.enabled {
+		var terr error
+		coverTmp, terr = os.CreateTemp("", "tape-coverage-*.out")
+		if terr != nil {
+			_, _ = fmt.Fprintf(stderr, "tape: create coverprofile: %v\n", terr)
+			return 1
+		}
+		defer os.Remove(coverTmp.Name())
+		defer coverTmp.Close()
+		goArgs = append(goArgs, "-coverprofile="+coverTmp.Name(), "-covermode=atomic")
+	}
+
 	f := formatter.New(*format, stdout, total)
 	store, err := state.New()
 	if err != nil {
@@ -208,6 +225,24 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	f.End(len(passed), len(failed), skipped)
+
+	if covOpts.enabled {
+		reportPath := ""
+		if covOpts.report {
+			reportPath = covOpts.path
+		}
+		if _, err := coverTmp.Seek(0, 0); err != nil {
+			_, _ = fmt.Fprintf(stderr, "tape: seek coverprofile: %v\n", err)
+			return 1
+		}
+		if err := coverage.ProcessProfile(coverTmp, covOpts.format, reportPath, stdout); err != nil {
+			if !errors.Is(err, coverage.ErrUncovered) {
+				_, _ = fmt.Fprintf(stderr, "tape: coverage: %v\n", err)
+				return 1
+			}
+			return 1
+		}
+	}
 
 	if len(failed) > 0 || buildFailedCount > 0 {
 		return 1

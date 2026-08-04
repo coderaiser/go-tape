@@ -1,2 +1,2 @@
 [files]
-extend-exclude= ["ChangeLog", "*_test.go", "vendor"]
+extend-exclude= ["ChangeLog", "*_test.go"]

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -131,6 +132,86 @@ func TestCheckSkippedOffExitCode(t *testing.T) {
 		var out, errOut strings.Builder
 		code := run([]string{"./testdata/skipped/..."}, &out, &errOut)
 		t.Equal(code, 0)
+		t.End()
+	})
+}
+
+
+func TestCoverageFlagExitZero(t *testing.T) {
+	Test(t, "main: -c exits 0 when all covered", func(t *T) {
+		var out, errOut strings.Builder
+		code := run([]string{"-c", "./testdata/covered/..."}, &out, &errOut)
+		t.Equal(code, 0)
+		t.End()
+	})
+}
+
+func TestCoverageFlagUncoveredExitOne(t *testing.T) {
+	Test(t, "main: -c exits 1 when uncovered blocks exist", func(t *T) {
+		var out, errOut strings.Builder
+		code := run([]string{"-c", "./testdata/uncovered/..."}, &out, &errOut)
+		t.Equal(code, 1)
+		t.End()
+	})
+}
+
+func TestCoverageUncoveredOutput(t *testing.T) {
+	Test(t, "main: -c output lists uncovered file", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-c", "./testdata/uncovered/..."}, &out, &errOut)
+		t.Match(out.String(), "uncovered.go")
+		t.End()
+	})
+}
+
+func TestCoverageJSONLines(t *testing.T) {
+	Test(t, "main: -c=json-lines emits json for uncovered block", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-c=json-lines", "./testdata/uncovered/..."}, &out, &errOut)
+		t.Match(out.String(), `"file"`)
+		t.End()
+	})
+}
+
+func TestCoverageReportWritesFile(t *testing.T) {
+	Test(t, "main: -c -r writes coverage.lcov", func(t *T) {
+		dir := t.TB().TempDir()
+		path := dir + "/coverage.lcov"
+		var out, errOut strings.Builder
+		run([]string{"-c", "-r=" + path, "./testdata/covered/..."}, &out, &errOut)
+		_, err := os.Stat(path)
+		t.Ok(err == nil)
+		t.End()
+	})
+}
+
+func TestCoverageReportFileNotEmpty(t *testing.T) {
+	Test(t, "main: -c -r produces non-empty lcov file", func(t *T) {
+		dir := t.TB().TempDir()
+		path := dir + "/coverage.lcov"
+		var out, errOut strings.Builder
+		run([]string{"-c", "-r=" + path, "./testdata/covered/..."}, &out, &errOut)
+		info, _ := os.Stat(path)
+		t.Ok(info != nil && info.Size() > 0)
+		t.End()
+	})
+}
+
+
+func TestCoverageHelpContainsCFlag(t *testing.T) {
+	Test(t, "main: -h output contains -c flag", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-h"}, &out, &errOut)
+		t.Match(out.String(), `-c`)
+		t.End()
+	})
+}
+
+func TestCoverageHelpContainsRFlag(t *testing.T) {
+	Test(t, "main: -h output contains -r flag", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-h"}, &out, &errOut)
+		t.Match(out.String(), `-r`)
 		t.End()
 	})
 }

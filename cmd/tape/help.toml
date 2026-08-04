@@ -26,6 +26,16 @@ desc = "do not check that assertion count is no more than 1"
 flag = "--no-check-duplicates"
 desc = "do not check messages for duplicates"
 
+[[options]]
+flag = "-c, --coverage [format]"
+desc = "show coverage after tests"
+note = "default format: lines  values: lines|code-frame|json-lines"
+
+[[options]]
+flag = "-r, --report [file]"
+desc = "write lcov report to file (default: coverage.lcov)"
+note = "requires -c"
+
 [[env]]
 name = "TAPE_PROGRESS_BAR"
 desc = "force progress bar on (1) or off (0)"
