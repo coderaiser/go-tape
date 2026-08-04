@@ -196,6 +196,42 @@ func TestCoverageReportFileNotEmpty(t *testing.T) {
 	})
 }
 
+func TestCoverageFullyCoveredShowsSummary(t *testing.T) {
+	Test(t, "main: -c prints coverage summary when fully covered", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-c", "./testdata/covered/..."}, &out, &errOut)
+		t.Match(out.String(), "good job")
+		t.End()
+	})
+}
+
+func TestCoverageFullyCoveredExitZeroWithSummary(t *testing.T) {
+	Test(t, "main: -c exits 0 when fully covered with summary", func(t *T) {
+		var out, errOut strings.Builder
+		code := run([]string{"-c", "./testdata/covered/..."}, &out, &errOut)
+		t.Equal(code, 0)
+		t.End()
+	})
+}
+
+func TestCoverageUncoveredNoSummary(t *testing.T) {
+	Test(t, "main: -c does not print good job summary when uncovered", func(t *T) {
+		var out, errOut strings.Builder
+		code := run([]string{"-c", "./testdata/uncovered/..."}, &out, &errOut)
+		t.Equal(code, 1)
+		t.End()
+	})
+}
+
+func TestCoverageUncoveredNoGoodJob(t *testing.T) {
+	Test(t, "main: -c output omits good job when uncovered", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"-c", "./testdata/uncovered/..."}, &out, &errOut)
+		t.NotMatch(out.String(), "good job")
+		t.End()
+	})
+}
+
 func TestCoverageHelpContainsCFlag(t *testing.T) {
 	Test(t, "main: -h output contains -c flag", func(t *T) {
 		var out, errOut strings.Builder

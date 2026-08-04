@@ -10,7 +10,7 @@ import (
 const (
 	barWidth      = 40
 	barComplete   = '\u2588'
-	barEmpty      = '\u2591'
+	barEmpty      = '\u00b7'
 	OkEmoji       = "\U0001f44c"
 	FailEmoji     = "\u274c"
 	SkipEmoji     = "\u26a0\ufe0f"

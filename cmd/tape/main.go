@@ -242,6 +242,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 			}
 			return 1
 		}
+		if _, err := fmt.Fprintln(stdout, "💪 coverage 100%, good job!"); err != nil {
+			return 1
+		}
 	}
 
 	if len(failed) > 0 || buildFailedCount > 0 {

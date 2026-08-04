@@ -166,6 +166,13 @@ func TestTruncateANSIMultiByte(t *testing.T) {
 	})
 }
 
+func TestBarEmptyGlyphPortable(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: empty glyph avoids unsupported shade char", func(t *tape.T) {
+		t.NotEqual(string(barEmpty), "\u2591")
+		t.End()
+	})
+}
+
 func TestRenderBarZeroTotal(t *testing.T) {
 	tape.Test(t, "formatter-progress-bar: render bar zero total", func(t *tape.T) {
 		result := renderBar(0, 0, DEFAULT_COLOR)
