@@ -132,7 +132,7 @@ func TestFromEventIgnoresEmptyTest(t *testing.T) {
 func TestNewCIForcesTap(t *testing.T) {
 	Test(t, "formatter: CI env forces tap format", func(t *T) {
 		var buf strings.Builder
-		t.TB().Setenv("CI", "true")
+		t.TB().Setenv("CI", "1")
 		s := New("whatever", &buf, 1)
 		s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
 		t.Ok(strings.Contains(buf.String(), "TAP version"))
