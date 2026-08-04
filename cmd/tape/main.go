@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+
 	"github.com/coderaiser/go-tape"
 
 	"github.com/BurntSushi/toml"
@@ -93,7 +94,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	if ver {
-	    version := tape.VersionLine();
+		version := tape.VersionLine()
 		if _, err := fmt.Fprintln(stdout, version); err != nil {
 			log.Fatal(err)
 		}

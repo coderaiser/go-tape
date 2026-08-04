@@ -1,9 +1,9 @@
 package tape
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
-	_ "embed"
 )
 
 //go:embed package.json
