@@ -166,9 +166,19 @@ func TestTruncateANSIMultiByte(t *testing.T) {
 	})
 }
 
-func TestBarEmptyGlyphPortable(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: empty glyph avoids unsupported shade char", func(t *tape.T) {
-		t.NotEqual(string(barEmpty), "\u2591")
+func TestBarGlyphsAreNarrowWidth(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: bar glyphs are eaw=N to avoid misalignment", func(t *tape.T) {
+		// U+2588 FULL BLOCK and U+00B7 MIDDLE DOT are eaw=A (ambiguous) —
+		// they render as 1 or 2 columns depending on the terminal, breaking
+		// bar alignment. Both characters must be eaw=N (narrow, always 1 col).
+		t.Equal(string(barComplete), "\u25aa") // ▪ BLACK SMALL SQUARE — eaw=N
+		t.End()
+	})
+}
+
+func TestBarEmptyGlyphIsNarrowWidth(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: empty glyph is eaw=N to avoid misalignment", func(t *tape.T) {
+		t.Equal(string(barEmpty), "\u2591") // ░ LIGHT SHADE — eaw=N
 		t.End()
 	})
 }
