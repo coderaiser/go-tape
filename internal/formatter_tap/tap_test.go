@@ -43,20 +43,21 @@ func TestTAPSuccess(t *testing.T) {
 	})
 }
 
-func TestTAPFailWithOperator(t *testing.T) {
-	tape.Test(t, "formatter-tap: Fail with operator shows expected and result", func(t *tape.T) {
+func TestTAPFailWithOutput(t *testing.T) {
+	tape.Test(t, "formatter-tap: Fail with output uses it directly", func(t *tape.T) {
 		f := formatter_tap.New()
-		result := f.Fail(1, "scope: foo", "Equal", "got", "want", "", "", "")
-		t.Match(result, "not ok 1")
+		cut := "operator: should equal\n        expected: want\n        result: got\n"
+		result := f.Fail(1, "scope: foo", "should equal", "got", "want", cut, "", "")
+		t.Equal(result, "not ok 1 scope: foo\n"+cut+"\n")
 		t.End()
 	})
 }
 
-func TestTAPFailWithoutOperator(t *testing.T) {
-	tape.Test(t, "formatter-tap: Fail without operator shows raw output", func(t *tape.T) {
+func TestTAPFailWithoutOutput(t *testing.T) {
+	tape.Test(t, "formatter-tap: Fail without output falls back to parsed fields", func(t *tape.T) {
 		f := formatter_tap.New()
-		result := f.Fail(1, "scope: foo", "", nil, nil, "raw output", "", "")
-		t.Match(result, "raw output")
+		result := f.Fail(1, "scope: foo", "should equal", "got", "want", "", "", "")
+		t.Equal(result, "not ok 1 scope: foo\n    operator: should equal\n    expected: want\n    result: got\n\n")
 		t.End()
 	})
 }
@@ -64,8 +65,8 @@ func TestTAPFailWithoutOperator(t *testing.T) {
 func TestTAPFailWithAt(t *testing.T) {
 	tape.Test(t, "formatter-tap: Fail includes at when non-empty", func(t *tape.T) {
 		f := formatter_tap.New()
-		result := f.Fail(1, "scope: foo", "Equal", "got", "want", "", "file.go:10:", "")
-		t.Match(result, "file.go:10:")
+		result := f.Fail(1, "scope: foo", "should equal", "got", "want", "", "file:///proj/file.go:10", "")
+		t.Match(result, "file:///proj/file.go:10")
 		t.End()
 	})
 }
@@ -73,8 +74,17 @@ func TestTAPFailWithAt(t *testing.T) {
 func TestTAPFailWithErrorStack(t *testing.T) {
 	tape.Test(t, "formatter-tap: Fail includes stack when non-empty", func(t *tape.T) {
 		f := formatter_tap.New()
-		result := f.Fail(1, "scope: foo", "Equal", "got", "want", "", "", "stack trace")
+		result := f.Fail(1, "scope: foo", "should equal", "got", "want", "", "", "stack trace")
 		t.Match(result, "stack trace")
+		t.End()
+	})
+}
+
+func TestTAPFailNoYAMLBlock(t *testing.T) {
+	tape.Test(t, "formatter-tap: Fail does not emit YAML --- block", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "should equal", "got", "want", "", "", "")
+		t.NotMatch(result, "---")
 		t.End()
 	})
 }

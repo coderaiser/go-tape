@@ -112,3 +112,47 @@ func TestParseOutputFullBlock(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestParseOutputCutStripsAtPrefix(t *testing.T) {
+	tape.Test(t, "output: Cut strips file:line prefix from first content line", func(t *tape.T) {
+		lines := []string{
+			"=== RUN   TestFoo\n",
+			"    foo_test.go:42: operator: should be truthy\n",
+			"        expected: truthy\n",
+			"        result: false\n",
+			"--- FAIL: TestFoo (0.00s)\n",
+		}
+		fields := output.ParseOutput(lines)
+		t.Equal(fields.Cut, "operator: should be truthy\n        expected: truthy\n        result: false\n")
+		t.End()
+	})
+}
+
+func TestParseOutputCutSkipsNoise(t *testing.T) {
+	tape.Test(t, "output: Cut omits Go test runner noise lines", func(t *tape.T) {
+		lines := []string{
+			"=== RUN   TestFoo\n",
+			"=== RUN   TestFoo/scope:_bar\n",
+			"    foo_test.go:5: operator: should equal\n",
+			"--- FAIL: TestFoo/scope:_bar (0.00s)\n",
+			"--- FAIL: TestFoo (0.00s)\n",
+		}
+		fields := output.ParseOutput(lines)
+		t.Equal(fields.Cut, "operator: should equal\n")
+		t.End()
+	})
+}
+
+func TestParseOutputCutEmptyWhenOnlyNoise(t *testing.T) {
+	os.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
+	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
+	tape.Test(t, "output: Cut is empty when all lines are noise", func(t *tape.T) {
+		lines := []string{
+			"=== RUN   TestFoo\n",
+			"--- FAIL: TestFoo (0.00s)\n",
+		}
+		fields := output.ParseOutput(lines)
+		t.Equal(fields.Cut, "")
+		t.End()
+	})
+}

@@ -101,23 +101,20 @@ func (f *ProgressBarFormatter) Fail(count int, message, operator string, result,
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "\n# %s\n", message)
 	fmt.Fprintf(&sb, "%s not ok %d %s\n", failEmoji, count, message)
-	sb.WriteString("  ---\n")
-	if operator != "" {
-		fmt.Fprintf(&sb, "    operator: %s\n", operator)
-	}
-	if output != "" && operator == "" {
+	if output != "" {
 		sb.WriteString(output)
 	} else {
-		fmt.Fprintf(&sb, "    expected: |-\n      %v\n", expected)
-		fmt.Fprintf(&sb, "    result: |-\n      %v\n", result)
+		fmt.Fprintf(&sb, "    operator: %s\n", operator)
+		fmt.Fprintf(&sb, "    expected: %v\n", expected)
+		fmt.Fprintf(&sb, "    result: %v\n", result)
 	}
 	if at != "" {
-		fmt.Fprintf(&sb, "    %s\n", at)
+		fmt.Fprintf(&sb, "\n    %s\n", at)
 	}
 	if f.stackEnv != "0" && errorStack != "" {
 		fmt.Fprintf(&sb, "    stack: |-\n%s\n", errorStack)
 	}
-	sb.WriteString("  ...\n\n")
+	sb.WriteString("\n")
 	f.out.WriteString(sb.String())
 	return ""
 }

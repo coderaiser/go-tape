@@ -29,21 +29,20 @@ func (f *TAPFormatter) Success(count int, message string) string {
 func (f *TAPFormatter) Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "not ok %d %s\n", count, message)
-	sb.WriteString("  ---\n")
-	fmt.Fprintf(&sb, "    operator: %s\n", operator)
-	if output != "" && operator == "" {
+	if output != "" {
 		sb.WriteString(output)
 	} else {
-		fmt.Fprintf(&sb, "    expected: |-\n      %v\n", expected)
-		fmt.Fprintf(&sb, "    result: |-\n      %v\n", result)
+		fmt.Fprintf(&sb, "    operator: %s\n", operator)
+		fmt.Fprintf(&sb, "    expected: %v\n", expected)
+		fmt.Fprintf(&sb, "    result: %v\n", result)
 	}
 	if at != "" {
-		fmt.Fprintf(&sb, "    %s\n", at)
+		fmt.Fprintf(&sb, "\n    %s\n", at)
 	}
 	if errorStack != "" {
 		fmt.Fprintf(&sb, "    stack: |-\n%s\n", errorStack)
 	}
-	sb.WriteString("  ...\n\n")
+	sb.WriteString("\n")
 	return sb.String()
 }
 

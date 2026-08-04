@@ -118,7 +118,7 @@ func (s *State) FromEvent(e model.Event) {
 		write(s.w, s.formatter.Fail(
 			s.count, label,
 			fields.Operator, fields.Result, fields.Expected,
-			fields.Raw, fileLink(fields.At, s.dir), fields.ErrorStack,
+			fields.Cut, fileLink(fields.At, s.dir), fields.ErrorStack,
 		))
 		write(s.w, s.formatter.TestEnd(s.count, s.total, s.failed, label))
 	case "skip":

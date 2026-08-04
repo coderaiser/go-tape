@@ -276,7 +276,7 @@ func failOutput(pb *ProgressBarFormatter, count int, message, operator string, r
 
 func TestFailWithOperator(t *testing.T) {
 	tape.Test(t, "formatter-progress-bar: fail with operator", func(t *tape.T) {
-		result := failOutput(New(10), 1, "scope: x", "Equal", "got", "want", "", "", "")
+		result := failOutput(New(10), 1, "scope: x", "should equal", "got", "want", "", "", "")
 		t.Ok(strings.Contains(result, "not ok 1"))
 		t.End()
 	})
@@ -284,8 +284,19 @@ func TestFailWithOperator(t *testing.T) {
 
 func TestFailWithoutOperator(t *testing.T) {
 	tape.Test(t, "formatter-progress-bar: fail without operator", func(t *tape.T) {
-		result := failOutput(New(10), 1, "scope: x", "", nil, nil, "raw output", "", "")
-		t.Ok(strings.Contains(result, "raw output"))
+		cut := "operator: should equal\n        expected: want\n        result: got\n"
+		result := failOutput(New(10), 1, "scope: x", "should equal", "got", "want", cut, "", "")
+		t.Ok(strings.Contains(result, cut))
+		t.End()
+	})
+}
+
+func TestFailNoYAMLBlock(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail does not emit YAML --- block", func(t *tape.T) {
+		pb := New(10)
+		pb.Fail(1, "scope: x", "should equal", "got", "want", "", "", "")
+		result := pb.End(1, 0, 1, 0)
+		t.NotOk(strings.Contains(result, "---"))
 		t.End()
 	})
 }
