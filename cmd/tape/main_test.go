@@ -136,7 +136,6 @@ func TestCheckSkippedOffExitCode(t *testing.T) {
 	})
 }
 
-
 func TestCoverageFlagExitZero(t *testing.T) {
 	Test(t, "main: -c exits 0 when all covered", func(t *T) {
 		var out, errOut strings.Builder
@@ -197,7 +196,6 @@ func TestCoverageReportFileNotEmpty(t *testing.T) {
 	})
 }
 
-
 func TestCoverageHelpContainsCFlag(t *testing.T) {
 	Test(t, "main: -h output contains -c flag", func(t *T) {
 		var out, errOut strings.Builder
@@ -215,4 +213,3 @@ func TestCoverageHelpContainsRFlag(t *testing.T) {
 		t.End()
 	})
 }
-
