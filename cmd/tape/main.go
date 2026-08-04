@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"github.com/coderaiser/go-tape"
 
 	"github.com/BurntSushi/toml"
 	"github.com/coderaiser/go-coverage"
@@ -56,8 +57,6 @@ func loadUsage() string {
 	return sb.String()
 }
 
-const version = "1.0.0"
-
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
@@ -94,6 +93,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	if ver {
+	    version := tape.VersionLine();
 		if _, err := fmt.Fprintln(stdout, version); err != nil {
 			log.Fatal(err)
 		}

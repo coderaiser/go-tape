@@ -64,13 +64,6 @@ func TestRunHelpOutput(t *testing.T) {
 	})
 }
 
-func TestVersionConst(t *testing.T) {
-	Test(t, "main: version is 1.0.0", func(t *T) {
-		t.Equal(version, "1.0.0")
-		t.End()
-	})
-}
-
 func TestHelpOutputContainsTapeTimeout(t *testing.T) {
 	Test(t, "main: -h output contains TAPE_TIMEOUT", func(t *T) {
 		var out, errOut strings.Builder
