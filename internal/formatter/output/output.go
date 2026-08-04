@@ -18,7 +18,7 @@ var (
 	reAt       = regexp.MustCompile(`^\s+(\S+\.go:\d+:)\s*`)
 	reResult   = regexp.MustCompile(`^\s+result:\s+(.+)`)
 	reExpected = regexp.MustCompile(`^\s+expected:\s+(.+)`)
-	reOperator = regexp.MustCompile(`^\s+(Equal|NotEqual|Ok|NotOk|DeepEqual|NotDeepEqual|Match|NotMatch|Error|NoError|Pass|Fail)`)
+	reOperator = regexp.MustCompile(`^\s+operator:\s+(.+)`)
 )
 
 func ParseOutput(lines []string) OutputFields {
@@ -39,7 +39,7 @@ func ParseOutput(lines []string) OutputFields {
 			continue
 		}
 		if m := reOperator.FindStringSubmatch(line); m != nil {
-			fields.Operator = m[1]
+			fields.Operator = strings.TrimSpace(m[1])
 			continue
 		}
 	}

@@ -25,8 +25,8 @@ func TestParseOutputEmpty(t *testing.T) {
 
 func TestParseOutputOperator(t *testing.T) {
 	tape.Test(t, "output: parses operator line", func(t *tape.T) {
-		fields := output.ParseOutput([]string{"    Equal\n"})
-		t.Equal(fields.Operator, "Equal")
+		fields := output.ParseOutput([]string{"    operator: should equal\n"})
+		t.Equal(fields.Operator, "should equal")
 		t.End()
 	})
 }
@@ -66,13 +66,13 @@ func TestParseOutputRaw(t *testing.T) {
 func TestParseOutputAllOperators(t *testing.T) {
 	tape.Test(t, "output: all known operators parse", func(t *tape.T) {
 		operators := []string{
-			"Equal", "NotEqual", "Ok", "NotOk",
-			"DeepEqual", "NotDeepEqual", "Match", "NotMatch",
-			"Error", "NoError", "Pass", "Fail",
+			"should equal", "should not equal", "should be truthy", "should be falsy",
+			"should deep equal", "should not deep equal", "should match", "should not match",
+			"pass", "fail",
 		}
 		reached := true
 		for _, op := range operators {
-			fields := output.ParseOutput([]string{"    " + op + "\n"})
+			fields := output.ParseOutput([]string{"    operator: " + op + "\n"})
 			if fields.Operator != op {
 				reached = false
 			}
@@ -99,13 +99,13 @@ func TestParseOutputFullBlock(t *testing.T) {
 	defer os.Unsetenv("TAPE_CHECK_ASSERTIONS_COUNT")
 	tape.Test(t, "output: full failure block parses all fields", func(t *tape.T) {
 		lines := []string{
-			"    Equal\n",
+			"    operator: should equal\n",
 			"    result: 1\n",
 			"    expected: 2\n",
 			"    tape_test.go:10:\n",
 		}
 		fields := output.ParseOutput(lines)
-		t.Equal(fields.Operator, "Equal")
+		t.Equal(fields.Operator, "should equal")
 		t.Equal(fields.Result, "1")
 		t.Equal(fields.Expected, "2")
 		t.Equal(fields.At, "tape_test.go:10:")
