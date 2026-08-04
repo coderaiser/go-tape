@@ -230,6 +230,54 @@ func TestNewAllFormats(t *testing.T) {
 	})
 }
 
+// TestTestLabelWithSlash covers the branch where the test name contains a slash.
+func TestTestLabelWithSlash(t *testing.T) {
+	Test(t, "formatter: testLabel strips prefix before slash", func(t *T) {
+		t.Equal(testLabel("TestFoo/scope:_bar_baz"), "scope: bar baz")
+		t.End()
+	})
+}
+
+// TestTestLabelWithoutSlash covers the branch where the test name has no slash.
+func TestTestLabelWithoutSlash(t *testing.T) {
+	Test(t, "formatter: testLabel returns name unchanged when no slash", func(t *T) {
+		t.Equal(testLabel("scope:_bar"), "scope: bar")
+		t.End()
+	})
+}
+
+// TestFileLinkEmptyAt covers the early-return branch in fileLink.
+func TestFileLinkEmptyAt(t *testing.T) {
+	Test(t, "formatter: fileLink returns empty string for empty at", func(t *T) {
+		t.Equal(fileLink("", "/some/dir"), "")
+		t.End()
+	})
+}
+
+// TestFileLinkWithDir covers the branch where dir is set and at is relative.
+func TestFileLinkWithDir(t *testing.T) {
+	Test(t, "formatter: fileLink prepends dir to relative at", func(t *T) {
+		t.Equal(fileLink("file.go:10:", "/proj"), "file:///proj/file.go:10")
+		t.End()
+	})
+}
+
+// TestFileLinkAbsoluteAt covers the branch where at is already absolute.
+func TestFileLinkAbsoluteAt(t *testing.T) {
+	Test(t, "formatter: fileLink does not prepend dir to absolute at", func(t *T) {
+		t.Equal(fileLink("/abs/file.go:10:", "/proj"), "file:///abs/file.go:10")
+		t.End()
+	})
+}
+
+// TestFileLinkNoDir covers the branch where dir is empty.
+func TestFileLinkNoDir(t *testing.T) {
+	Test(t, "formatter: fileLink with no dir uses at as-is", func(t *T) {
+		t.Equal(fileLink("file.go:5:", ""), "file://file.go:5")
+		t.End()
+	})
+}
+
 // TestWriteNonEmptyString exercises the discard-write path in write().
 func TestWriteNonEmptyString(t *testing.T) {
 	Test(t, "formatter: write emits non-empty output", func(t *T) {
