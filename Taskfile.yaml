@@ -9,7 +9,7 @@ tasks:
       Run tests with tape scoped to the library package only.
       run.go (CLI glue) is intentionally excluded.
     cmds:
-      - coverage || tape
+      - tape --coverage
   build:
     desc: Build the binary for the current platform
     cmds:
