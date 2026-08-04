@@ -21,7 +21,6 @@ const (
 var okEmoji = OkEmoji
 var failEmoji = FailEmoji
 var skipEmoji = SkipEmoji
-var okMark = OkMark
 
 type ProgressBarFormatter struct {
 	total    int
