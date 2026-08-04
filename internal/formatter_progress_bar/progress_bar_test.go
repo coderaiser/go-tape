@@ -223,11 +223,11 @@ func TestTruncateOverLimit(t *testing.T) {
 	})
 }
 
-func TestStartReturnsEmpty(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: start returns empty", func(t *tape.T) {
+func TestStartReturnsTAPHeader(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: start returns TAP version 13 header", func(t *tape.T) {
 		pb := New(10)
 		result := pb.Start(10)
-		t.Equal(result, "")
+		t.Equal(result, "TAP version 13\n")
 		t.End()
 	})
 }

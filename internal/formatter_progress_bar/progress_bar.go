@@ -59,7 +59,7 @@ func New(total int) *ProgressBarFormatter {
 }
 
 func (f *ProgressBarFormatter) Start(total int) string {
-	return ""
+	return "TAP version 13\n"
 }
 
 func (f *ProgressBarFormatter) Test(name string) string { return "" }

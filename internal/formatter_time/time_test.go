@@ -13,7 +13,7 @@ func TestTimeFormatterStart(t *testing.T) {
 	Test(t, "formatter-time: Start returns empty string", func(t *T) {
 		f := formatter_time.New(10, &strings.Builder{})
 		result := f.Start(10)
-		t.Equal(result, "")
+		t.Equal(result, "TAP version 13\n")
 		t.End()
 	})
 }
