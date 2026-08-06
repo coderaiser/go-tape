@@ -3,6 +3,8 @@ package formatter_tap
 import (
 	"fmt"
 	"strings"
+
+	"github.com/coderaiser/go-tape/internal/diff"
 )
 
 // TAPFormatter outputs TAP version 13.
@@ -29,21 +31,29 @@ func (f *TAPFormatter) Success(count int, message string) string {
 // Fail emits a TAP13 not-ok line followed by diagnostic detail.
 // When diff is non-empty it is written verbatim on its own; otherwise the
 // operator/expected/result/at/stack fields are written as indented lines.
-func (f *TAPFormatter) Fail(count int, message, operator string, result, expected any, diff, at, errorStack string) string {
+func (f *TAPFormatter) Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "not ok %d %s\n", count, message)
 
-	if diff != "" {
-		sb.WriteString(diff)
+	if output != "" {
+		sb.WriteString(output)
 	} else {
 		if operator != "" {
-			fmt.Fprintf(&sb, "    operator: %s\n", operator)
+			fmt.Fprintf(&sb, "  ---\n    operator: %s\n", operator)
 		}
-		if expected != nil {
-			fmt.Fprintf(&sb, "    expected: %v\n", expected)
-		}
-		if result != nil {
-			fmt.Fprintf(&sb, "    result: %v\n", result)
+		if d := diff.Diff(expected, result); d != "" {
+			fmt.Fprintf(&sb, "      diff: |-\n")
+			for _, line := range strings.Split(strings.TrimRight(d, "\n"), "\n") {
+				fmt.Fprintf(&sb, "      %s\n", line)
+			}
+			sb.WriteString("  ...\n")
+		} else {
+			if expected != nil {
+				fmt.Fprintf(&sb, "    expected: %v\n", expected)
+			}
+			if result != nil {
+				fmt.Fprintf(&sb, "    result: %v\n", result)
+			}
 		}
 		if at != "" {
 			fmt.Fprintf(&sb, "    at %s\n", at)

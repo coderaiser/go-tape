@@ -54,10 +54,22 @@ func TestTAPFailWithOutput(t *testing.T) {
 }
 
 func TestTAPFailWithoutOutput(t *testing.T) {
-	tape.Test(t, "formatter-tap: Fail without output falls back to parsed fields", func(t *tape.T) {
+	tape.Test(t, "formatter-tap: Fail without output has not ok line", func(t *tape.T) {
 		f := formatter_tap.New()
 		result := f.Fail(1, "scope: foo", "should equal", "got", "want", "", "", "")
-		t.Equal(result, "not ok 1 scope: foo\n    operator: should equal\n    expected: want\n    result: got\n\n")
+		t.Match(result, "not ok 1 scope: foo")
+		t.End()
+	})
+	tape.Test(t, "formatter-tap: Fail without output has operator", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "should equal", "got", "want", "", "", "")
+		t.Match(result, "operator: should equal")
+		t.End()
+	})
+	tape.Test(t, "formatter-tap: Fail without output has diff block", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "should equal", "got", "want", "", "", "")
+		t.Match(result, "diff: |-")
 		t.End()
 	})
 }
@@ -80,11 +92,17 @@ func TestTAPFailWithErrorStack(t *testing.T) {
 	})
 }
 
-func TestTAPFailNoYAMLBlock(t *testing.T) {
-	tape.Test(t, "formatter-tap: Fail does not emit YAML --- block", func(t *tape.T) {
+func TestTAPFailWithDiff(t *testing.T) {
+	tape.Test(t, "formatter-tap: Fail emits diff minus line", func(t *tape.T) {
 		f := formatter_tap.New()
 		result := f.Fail(1, "scope: foo", "should equal", "got", "want", "", "", "")
-		t.NotMatch(result, "---")
+		t.Match(result, `- "want"`)
+		t.End()
+	})
+	tape.Test(t, "formatter-tap: Fail emits diff plus line", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "should equal", "got", "want", "", "", "")
+		t.Match(result, `+ "got"`)
 		t.End()
 	})
 }
