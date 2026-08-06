@@ -225,6 +225,16 @@ func TestCoverageUncoveredNoGoodJob(t *testing.T) {
 	})
 }
 
+func TestCoverageSkippedOnTestFailure(t *testing.T) {
+	Test(t, "main: -c skips coverage output when tests fail", func(t *T) {
+		var out, errOut strings.Builder
+		code := run([]string{"-c", "./testdata/failing/..."}, &out, &errOut)
+		t.Equal(code, 1)
+		t.NotMatch(out.String(), "good job")
+		t.End()
+	})
+}
+
 func TestCoverageHelpContainsCFlag(t *testing.T) {
 	Test(t, "main: -h output contains -c flag", func(t *T) {
 		var out, errOut strings.Builder

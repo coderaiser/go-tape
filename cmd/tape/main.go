@@ -227,7 +227,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	f.End(len(passed), len(failed), skipped)
 
-	if covOpts.enabled {
+	if covOpts.enabled && len(failed) == 0 && buildFailedCount == 0 {
 		reportPath := ""
 		if covOpts.report {
 			reportPath = covOpts.path
