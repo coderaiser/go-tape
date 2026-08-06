@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// TAPFormatter outputs TAP version 13.
+// TAPFormatter outputs TAP version 13 with YAML diagnostic blocks.
 type TAPFormatter struct{}
 
 func New() *TAPFormatter { return &TAPFormatter{} }
@@ -26,23 +26,47 @@ func (f *TAPFormatter) Success(count int, message string) string {
 	return fmt.Sprintf("ok %d %s\n", count, message)
 }
 
-func (f *TAPFormatter) Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string {
+// Fail emits a TAP13 not-ok line followed by a YAML diagnostic block:
+//
+//	not ok 4 should equal
+//	  ---
+//	    operator: equal
+//	      diff: |-
+//	      - 0
+//	      + 1
+//	    at file:///path/file.go:16:7
+//	  ...
+func (f *TAPFormatter) Fail(count int, message, operator string, result, expected any, diff, at, errorStack string) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "not ok %d %s\n", count, message)
-	if output != "" {
-		sb.WriteString(output)
-	} else {
+	sb.WriteString("  ---\n")
+
+	if operator != "" {
 		fmt.Fprintf(&sb, "    operator: %s\n", operator)
+	}
+
+	if diff != "" {
+		sb.WriteString("      diff: |-\n")
+		for _, line := range strings.Split(diff, "\n") {
+			fmt.Fprintf(&sb, "      %s\n", line)
+		}
+	} else if result != nil || expected != nil {
+		// fallback: no diff available, show raw values
 		fmt.Fprintf(&sb, "    expected: %v\n", expected)
 		fmt.Fprintf(&sb, "    result: %v\n", result)
 	}
+
 	if at != "" {
-		fmt.Fprintf(&sb, "\n    %s\n", at)
+		fmt.Fprintf(&sb, "    at %s\n", at)
 	}
 	if errorStack != "" {
-		fmt.Fprintf(&sb, "    stack: |-\n%s\n", errorStack)
+		sb.WriteString("    stack: |-\n")
+		for _, line := range strings.Split(strings.TrimRight(errorStack, "\n"), "\n") {
+			fmt.Fprintf(&sb, "      %s\n", line)
+		}
 	}
-	sb.WriteString("\n")
+
+	sb.WriteString("  ...\n")
 	return sb.String()
 }
 
