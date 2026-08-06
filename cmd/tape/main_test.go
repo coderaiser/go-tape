@@ -230,6 +230,12 @@ func TestCoverageSkippedOnTestFailure(t *testing.T) {
 		var out, errOut strings.Builder
 		code := run([]string{"-c", "./testdata/failing/..."}, &out, &errOut)
 		t.Equal(code, 1)
+		t.End()
+	})
+
+	Test(t, "main: -c skips coverage output when tests fail: no good job", func(t *T) {
+		var out, errOut strings.Builder
+		code := run([]string{"-c", "./testdata/failing/..."}, &out, &errOut)
 		t.NotMatch(out.String(), "good job")
 		t.End()
 	})
