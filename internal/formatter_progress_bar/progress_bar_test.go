@@ -274,6 +274,22 @@ func failOutput(pb *ProgressBarFormatter, count int, message, operator string, r
 	return pb.End(count, 0, 1, 0)
 }
 
+func TestFailWithEqualValues(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail with equal values shows expected and result", func(t *tape.T) {
+		result := failOutput(New(10), 1, "scope: x", "Equal", "same", "same", "", "", "")
+		t.Ok(strings.Contains(result, "expected:"))
+		t.End()
+	})
+}
+
+func TestFailWithNoOperator(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail with no operator skips operator line", func(t *tape.T) {
+		result := failOutput(New(10), 1, "scope: x", "", "got", "want", "", "", "")
+		t.NotOk(strings.Contains(result, "operator:"))
+		t.End()
+	})
+}
+
 func TestFailWithOperator(t *testing.T) {
 	tape.Test(t, "formatter-progress-bar: fail with operator", func(t *tape.T) {
 		result := failOutput(New(10), 1, "scope: x", "should equal", "got", "want", "", "", "")
