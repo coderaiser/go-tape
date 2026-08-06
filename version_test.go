@@ -4,27 +4,27 @@ import (
 	"testing"
 )
 
-func TestVersion(t *testing.T) {
-	Test(t, "version: VersionFromJSON returns version string", func(t *T) {
-		result := VersionFromJSON([]byte(`{"version":"1.2.3"}`))
+func TestTapeVersion(t *testing.T) {
+	Test(t, "version: TapeVersionFromJSON returns version string", func(t *T) {
+		result := TapeVersionFromJSON([]byte(`{"version":"1.2.3"}`))
 		t.Equal(result, "1.2.3")
 		t.End()
 	})
 
-	Test(t, "version: VersionFromJSON returns unknown on invalid JSON", func(t *T) {
-		result := VersionFromJSON([]byte(`{invalid`))
+	Test(t, "version: TapeVersionFromJSON returns unknown on invalid JSON", func(t *T) {
+		result := TapeVersionFromJSON([]byte(`{invalid`))
 		t.Equal(result, "unknown")
 		t.End()
 	})
 
-	Test(t, "version: VersionFromJSON returns unknown on empty version", func(t *T) {
-		result := VersionFromJSON([]byte(`{"version":""}`))
+	Test(t, "version: TapeVersionFromJSON returns unknown on empty version", func(t *T) {
+		result := TapeVersionFromJSON([]byte(`{"version":""}`))
 		t.Equal(result, "unknown")
 		t.End()
 	})
 
-	Test(t, "version: VersionLine contains v", func(t *T) {
-		result := VersionLine()
+	Test(t, "version: TapeVersionLine contains v", func(t *T) {
+		result := TapeVersionLine()
 		t.Match(result, "v")
 		t.End()
 	})

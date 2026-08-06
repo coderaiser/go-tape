@@ -9,25 +9,25 @@ import (
 //go:embed package.json
 var packageJSONBytes []byte
 
-// Version returns the version string embedded from package.json at build time.
-func VersionFromJSON(packageJSONBytes []byte) string {
+// TapeVersion returns the version string embedded from package.json at build time.
+func TapeVersionFromJSON(packageJSONBytes []byte) string {
 	var pkg struct {
-		Version string `json:"version"`
+		TapeVersion string `json:"version"`
 	}
 	if err := json.Unmarshal(packageJSONBytes, &pkg); err != nil {
 		return "unknown"
 	}
-	if pkg.Version == "" {
+	if pkg.TapeVersion == "" {
 		return "unknown"
 	}
-	return pkg.Version
+	return pkg.TapeVersion
 }
 
-func Version() string {
-	return VersionFromJSON(packageJSONBytes)
+func TapeVersion() string {
+	return TapeVersionFromJSON(packageJSONBytes)
 }
 
-// VersionLine returns "go-coverage x.y.z" for -v output.
-func VersionLine() string {
-	return fmt.Sprintf("v%s", Version())
+// TapeVersionLine returns "go-coverage x.y.z" for -v output.
+func TapeVersionLine() string {
+	return fmt.Sprintf("v%s", TapeVersion())
 }

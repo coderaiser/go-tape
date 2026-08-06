@@ -95,7 +95,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	if ver {
-		version := tape.VersionLine()
+		version := tape.TapeVersionLine()
 		if _, err := fmt.Fprintln(stdout, version); err != nil {
 			log.Fatal(err)
 		}
