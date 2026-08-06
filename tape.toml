@@ -1,0 +1,6 @@
+[test]
+formatter = "progress-bar"
+exclude = ["fixture"]
+
+[coverage]
+exclude = ["node_modules"]
