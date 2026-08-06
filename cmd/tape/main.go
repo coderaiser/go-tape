@@ -19,6 +19,7 @@ import (
 	"github.com/coderaiser/go-tape/internal/formatter"
 	"github.com/coderaiser/go-tape/internal/runner"
 	"github.com/coderaiser/go-tape/internal/state"
+	"github.com/coderaiser/go-tape/internal/tapeconfig"
 )
 
 //go:embed help.toml
@@ -119,9 +120,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	dir := "."
 
+	tcfg := tapeconfig.Load(".tape.toml")
+	exclude := tcfg.Test.Exclude
+
 	// check duplicates before running
 	if !*noCheckDuplicates && config.CheckDuplicates() {
-		dups, err := tapeast.FindDuplicates(dir)
+		dups, err := tapeast.FindDuplicates(dir, exclude)
 		if err != nil {
 			_, _ = fmt.Fprintf(stderr, "tape: scan duplicates: %v\n", err)
 			return 1
@@ -136,14 +140,14 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	// count tests for progress bar total
-	total, err := tapeast.CountTestsInTestFiles(dir)
+	total, err := tapeast.CountTestsInTestFiles(dir, exclude)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "tape: count tests: %v\n", err)
 		return 1
 	}
 
 	// find Only calls — restrict run if any found
-	onlyCalls, err := tapeast.FindOnlyCalls(dir)
+	onlyCalls, err := tapeast.FindOnlyCalls(dir, exclude)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "tape: scan Only: %v\n", err)
 		return 1
@@ -211,7 +215,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	// When Only calls are present, recompute with full name list
 	if len(onlyCalls) > 0 {
-		allNames, err := tapeast.FindAllTestNames(dir)
+		allNames, err := tapeast.FindAllTestNames(dir, exclude)
 		if err == nil {
 			if err := store.MarkSkipped(allNames); err != nil {
 				_, _ = fmt.Fprintf(stderr, "tape: mark skipped: %v\n", err)

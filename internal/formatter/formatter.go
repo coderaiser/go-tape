@@ -62,7 +62,7 @@ type State struct {
 
 // New returns the formatter for the given format string.
 func New(format string, w io.Writer, total int) *State {
-	if os.Getenv("CI") == "1" {
+	if ci := os.Getenv("CI"); ci == "1" || ci == "true" {
 		format = "fail"
 	} else if format == "" {
 		format = "progress-bar"
