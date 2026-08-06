@@ -312,3 +312,24 @@ func TestFromEventFailUnstructuredOutput(t *testing.T) {
 		t.End()
 	})
 }
+
+// TestFromEventFailStructuredFieldsClearsCut covers formatter.go:122-124 —
+// when a fail event has structured operator/result/expected fields alongside
+// unstructured Cut output, rawOutput must be cleared so the formatter
+// generates a proper diff block instead of emitting the raw text.
+func TestFromEventFailStructuredFieldsClearsCut(t *testing.T) {
+	Test(t, "formatter: structured fail fields clear raw Cut output", func(t *T) {
+		var buf strings.Builder
+		t.TB().Setenv("CI", "false")
+		s := New("tap", &buf, 1)
+		s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
+		// operator line sets the Operator field; prior output line sets Cut
+		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "some raw output\n"})
+		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "  operator: equal\n"})
+		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "  expected: |-\n    want\n"})
+		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "  result: |-\n    got\n"})
+		s.FromEvent(model.Event{Action: "fail", Test: "scope: x"})
+		t.NotMatch(buf.String(), "some raw output")
+		t.End()
+	})
+}

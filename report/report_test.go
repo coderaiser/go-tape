@@ -132,3 +132,25 @@ func TestRunScannerError(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestRunStoreApplyErrorContinues(t *testing.T) {
+	Test(t, "report: unknown action events are skipped without error", func(t *T) {
+		const unknownAction = `{"Action":"unknown_action","Test":"scope: x"}
+` + passingJSON
+		var sb strings.Builder
+		err := report.Run(strings.NewReader(unknownAction), &sb, "tap", 1)
+		t.NotOk(err)
+		t.End()
+	})
+}
+
+func TestRunStoreApplyErrorOutputContinues(t *testing.T) {
+	Test(t, "report: valid events after unknown action still appear in output", func(t *T) {
+		const unknownAction = `{"Action":"unknown_action","Test":"scope: x"}
+` + passingJSON
+		var sb strings.Builder
+		report.Run(strings.NewReader(unknownAction), &sb, "tap", 1)
+		t.Match(sb.String(), "ok 1")
+		t.End()
+	})
+}

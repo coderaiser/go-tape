@@ -163,3 +163,39 @@ func TestTAPFailGeneratedDiff(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestTAPFailEqualValuesShowsExpected(t *testing.T) {
+	tape.Test(t, "formatter-tap: Fail with equal values shows expected", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "equal", "same", "same", "", "", "")
+		t.Match(result, "expected:")
+		t.End()
+	})
+}
+
+func TestTAPFailEqualValuesShowsResult(t *testing.T) {
+	tape.Test(t, "formatter-tap: Fail with equal values shows result", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "equal", "same", "same", "", "", "")
+		t.Match(result, "result:")
+		t.End()
+	})
+}
+
+func TestTAPFailNilExpected(t *testing.T) {
+	tape.Test(t, "formatter-tap: Fail with nil expected omits expected line", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "equal", nil, nil, "", "", "")
+		t.NotMatch(result, "expected:")
+		t.End()
+	})
+}
+
+func TestTAPFailNilResult(t *testing.T) {
+	tape.Test(t, "formatter-tap: Fail with nil result omits result line", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "equal", nil, nil, "", "", "")
+		t.NotMatch(result, "result:")
+		t.End()
+	})
+}
