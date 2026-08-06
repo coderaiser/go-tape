@@ -1,6 +1,7 @@
 package report_test
 
 import (
+	"bufio"
 	"strings"
 	"testing"
 
@@ -109,6 +110,25 @@ func TestRunMixedPassFailSuppressPass(t *testing.T) {
 		var sb strings.Builder
 		report.Run(strings.NewReader(passingJSON+failingJSON), &sb, "fail", 2)
 		t.NotMatch(sb.String(), "ok 1")
+		t.End()
+	})
+}
+
+func TestRunUnknownActionSkipped(t *testing.T) {
+	Test(t, "report: unknown action is skipped without error", func(t *T) {
+		var sb strings.Builder
+		result := report.Run(strings.NewReader(`{"Action":"bogus","Test":"TestFoo"}`), &sb, "tap", 1)
+		t.NotOk(result)
+		t.End()
+	})
+}
+
+func TestRunScannerError(t *testing.T) {
+	Test(t, "report: scanner error returns error", func(t *T) {
+		long := strings.Repeat("a", bufio.MaxScanTokenSize+1)
+		var sb strings.Builder
+		result := report.Run(strings.NewReader(long), &sb, "tap", 1)
+		t.Ok(result != nil)
 		t.End()
 	})
 }
