@@ -805,7 +805,7 @@ func TestIsTestMethodCallUnknownExprFalse(t *testing.T) {
 		calls, _ := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
 		t.Equal(len(calls), 0)
 		t.End()
-		})
+	})
 }
 
 // TestCountTestsQualifiedOnlyForm ensures CountTests counts tape.Test.Only
