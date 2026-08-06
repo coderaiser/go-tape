@@ -1,3 +1,16 @@
+2026.08.07, v1.3.1
+
+fix:
+- 8e8a156 version
+- cdea402 formatter-tap: Fail output without YAML block
+- ba91be2 tapeconfig: errors.Is for missing file
+- 3a224c7 tape: coverage
+
+feature:
+- 57ca52b formatter: CI
+- 7afb404 ast: add exclude parameter to test discovery functions
+- 4c5a405 tapeconfig: add .tape.toml config loading package
+
 2026.08.06, v1.3.0
 
 feature:
