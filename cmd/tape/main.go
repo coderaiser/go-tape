@@ -240,7 +240,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			_, _ = fmt.Fprintf(stderr, "tape: seek coverprofile: %v\n", err)
 			return 1
 		}
-		if err := coverage.ProcessProfile(coverTmp, covOpts.format, reportPath, stdout); err != nil {
+		if err := coverage.ProcessProfileWithConfig(coverTmp, covOpts.format, reportPath, tcfg.Coverage.Exclude, stdout); err != nil {
 			if !errors.Is(err, coverage.ErrUncovered) {
 				_, _ = fmt.Fprintf(stderr, "tape: coverage: %v\n", err)
 				return 1
