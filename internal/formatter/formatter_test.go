@@ -287,4 +287,12 @@ func TestWriteNonEmptyString(t *testing.T) {
 		t.Match(buf.String(), "ok 1")
 		t.End()
 	})
+	Test(t, "formatter: CI=true forces fail format", func(t *T) {
+		var buf strings.Builder
+		t.TB().Setenv("CI", "true")
+		s := New("whatever", &buf, 1)
+		s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
+		t.Ok(strings.Contains(buf.String(), "TAP version"))
+		t.End()
+	})
 }
