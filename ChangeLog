@@ -1,3 +1,11 @@
+2026.08.06, v1.2.4
+
+fix:
+- 7a1b903 tape: when test fail do not show coverage
+
+feature:
+- 569d6cf tape: fail output
+
 2026.08.04, v1.2.3
 
 fix:
