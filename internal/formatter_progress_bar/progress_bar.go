@@ -59,6 +59,9 @@ func New(total int) *ProgressBarFormatter {
 }
 
 func (f *ProgressBarFormatter) Start(total int) string {
+	if f.show {
+		fmt.Fprint(os.Stderr, "\033[?25l")
+	}
 	return "TAP version 13\n"
 }
 
@@ -126,7 +129,7 @@ func (f *ProgressBarFormatter) Comment(message string) string {
 func (f *ProgressBarFormatter) End(count, passed, failed, skipped int) string {
 	var sb strings.Builder
 	if f.show {
-		fmt.Fprintf(os.Stderr, "\r\033[2K")
+		fmt.Fprintf(os.Stderr, "\r\033[2K\033[?25h")
 	}
 	sb.WriteString(f.out.String())
 	if f.show {

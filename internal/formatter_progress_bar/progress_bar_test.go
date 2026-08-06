@@ -421,6 +421,46 @@ func TestTestEndWithFailOverfill(t *testing.T) {
 	})
 }
 
+func TestStartHidesCursorWhenShow(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: start hides cursor when show is true", func(t *tape.T) {
+		t.TB().Setenv("TAPE_PROGRESS_BAR", "1")
+		pb := New(10)
+		result := pb.Start(10)
+		t.Equal(result, "TAP version 13\n")
+		t.End()
+	})
+}
+
+func TestStartNoHideCursorWhenHidden(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: start does not hide cursor when show is false", func(t *tape.T) {
+		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
+		pb := New(1000)
+		result := pb.Start(1000)
+		t.Equal(result, "TAP version 13\n")
+		t.End()
+	})
+}
+
+func TestEndRestoresCursorWhenShow(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: end restores cursor when show is true", func(t *tape.T) {
+		t.TB().Setenv("TAPE_PROGRESS_BAR", "1")
+		pb := New(10)
+		pb.TestEnd(1, 10, 0, "scope: x")
+		result := pb.End(5, 5, 0, 0)
+		t.Ok(strings.Contains(result, "1..5"))
+		t.End()
+	})
+}
+
+func TestTermWidthInvalidString(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: term width invalid string falls back to syscall", func(t *tape.T) {
+		t.TB().Setenv("TAPE_TERM_WIDTH", "bad")
+		result := termWidth()
+		t.Ok(result > 0)
+		t.End()
+	})
+}
+
 func TestOkLineDefault(t *testing.T) {
 	tape.Test(t, "progress-bar: ok line has no extra space by default", func(t *tape.T) {
 		t.TB().Setenv("TERMINAL_EMULATOR", "")
