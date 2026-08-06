@@ -156,3 +156,19 @@ func TestParseOutputCutEmptyWhenOnlyNoise(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestParseOutputDiffBlock(t *testing.T) {
+	tape.Test(t, "output: parses diff block into Diff field", func(t *tape.T) {
+		lines := []string{
+			"- expected\n",
+			"+ received\n",
+			"\n",
+			"- 1\n",
+			"+ 2\n",
+			"    operator: should equal\n",
+		}
+		fields := output.ParseOutput(lines)
+		t.Ok(fields.Diff == "- 1\n+ 2" && fields.Operator == "should equal")
+		t.End()
+	})
+}
