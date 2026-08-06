@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// TAPFormatter outputs TAP version 13 with YAML diagnostic blocks.
+// TAPFormatter outputs TAP version 13.
 type TAPFormatter struct{}
 
 func New() *TAPFormatter { return &TAPFormatter{} }
@@ -26,47 +26,34 @@ func (f *TAPFormatter) Success(count int, message string) string {
 	return fmt.Sprintf("ok %d %s\n", count, message)
 }
 
-// Fail emits a TAP13 not-ok line followed by a YAML diagnostic block:
-//
-//	not ok 4 should equal
-//	  ---
-//	    operator: equal
-//	      diff: |-
-//	      - 0
-//	      + 1
-//	    at file:///path/file.go:16:7
-//	  ...
+// Fail emits a TAP13 not-ok line followed by diagnostic detail.
+// When diff is non-empty it is written verbatim on its own; otherwise the
+// operator/expected/result/at/stack fields are written as indented lines.
 func (f *TAPFormatter) Fail(count int, message, operator string, result, expected any, diff, at, errorStack string) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "not ok %d %s\n", count, message)
-	sb.WriteString("  ---\n")
-
-	if operator != "" {
-		fmt.Fprintf(&sb, "    operator: %s\n", operator)
-	}
 
 	if diff != "" {
-		sb.WriteString("      diff: |-\n")
-		for _, line := range strings.Split(diff, "\n") {
-			fmt.Fprintf(&sb, "      %s\n", line)
+		sb.WriteString(diff)
+	} else {
+		if operator != "" {
+			fmt.Fprintf(&sb, "    operator: %s\n", operator)
 		}
-	} else if result != nil || expected != nil {
-		// fallback: no diff available, show raw values
-		fmt.Fprintf(&sb, "    expected: %v\n", expected)
-		fmt.Fprintf(&sb, "    result: %v\n", result)
+		if expected != nil {
+			fmt.Fprintf(&sb, "    expected: %v\n", expected)
+		}
+		if result != nil {
+			fmt.Fprintf(&sb, "    result: %v\n", result)
+		}
+		if at != "" {
+			fmt.Fprintf(&sb, "    at %s\n", at)
+		}
+		if errorStack != "" {
+			fmt.Fprintf(&sb, "    stack: %s\n", errorStack)
+		}
 	}
 
-	if at != "" {
-		fmt.Fprintf(&sb, "    at %s\n", at)
-	}
-	if errorStack != "" {
-		sb.WriteString("    stack: |-\n")
-		for _, line := range strings.Split(strings.TrimRight(errorStack, "\n"), "\n") {
-			fmt.Fprintf(&sb, "      %s\n", line)
-		}
-	}
-
-	sb.WriteString("  ...\n")
+	sb.WriteString("\n")
 	return sb.String()
 }
 
