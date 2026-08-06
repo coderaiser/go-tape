@@ -115,10 +115,17 @@ func (s *State) FromEvent(e model.Event) {
 		s.failed++
 		lines := s.outputs[e.Test]
 		fields := output.ParseOutput(lines)
+		// When structured fields were parsed (operator/result/expected),
+		// pass empty output so Fail generates a proper diff block.
+		// Only pass Cut through when it's unstructured (e.g. panic output).
+		rawOutput := fields.Cut
+		if fields.Operator != "" || fields.Result != "" || fields.Expected != "" {
+			rawOutput = ""
+		}
 		write(s.w, s.formatter.Fail(
 			s.count, label,
 			fields.Operator, fields.Result, fields.Expected,
-			fields.Cut, fileLink(fields.At, s.dir), fields.ErrorStack,
+			rawOutput, fileLink(fields.At, s.dir), fields.ErrorStack,
 		))
 		write(s.w, s.formatter.TestEnd(s.count, s.total, s.failed, label))
 	case "skip":
