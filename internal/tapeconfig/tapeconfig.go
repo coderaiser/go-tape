@@ -3,6 +3,7 @@
 package tapeconfig
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -34,7 +35,7 @@ func Default() Config {
 func Load(path string) Config {
 	cfg := Default()
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
-		if !os.IsNotExist(err) {
+		if !errors.Is(err, os.ErrNotExist) {
 			fmt.Fprintf(os.Stderr, "warning: could not load %s: %v\n", path, err)
 		}
 	}

@@ -1,8 +1,10 @@
 package tapeconfig_test
 
 import (
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	. "github.com/coderaiser/go-tape"
@@ -19,6 +21,26 @@ func writeTapeconfigFile(t *testing.T, path, content string) {
 func TestLoadMissingFileReturnsDefaults(t *testing.T) {
 	Test(t, "tapeconfig: missing file returns defaults", func(t *T) {
 		t.DeepEqual(tapeconfig.Load("/nonexistent/path/.tape.toml"), tapeconfig.Default())
+		t.End()
+	})
+}
+
+func TestLoadMissingFileNoWarning(t *testing.T) {
+	Test(t, "tapeconfig: missing file does not print warning to stderr", func(t *T) {
+		// Capture stderr by redirecting os.Stderr temporarily.
+		r, w, _ := os.Pipe()
+		old := os.Stderr
+		os.Stderr = w
+
+		tapeconfig.Load("/nonexistent/path/.tape.toml")
+
+		w.Close()
+		os.Stderr = old
+
+		var buf strings.Builder
+		io.Copy(&buf, r)
+
+		t.Equal(buf.String(), "")
 		t.End()
 	})
 }
