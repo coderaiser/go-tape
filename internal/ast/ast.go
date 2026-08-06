@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/bmatcuk/doublestar/v4"
 )
 
 // OnlyCall represents a tape.Only() call with its parent TestXxx function.
@@ -17,9 +19,9 @@ type OnlyCall struct {
 }
 
 // CountTests returns total tape.Test + tape.Only + tape.Skip calls in dir.
-func CountTests(dir string) (int, error) {
+func CountTests(dir string, exclude []string) (int, error) {
 	total := 0
-	err := walkFiles(dir, func(src string) error {
+	err := walkFiles(dir, exclude, func(src string) error {
 		names, err := findCallNames(src, "Test", "Only", "Skip")
 		if err != nil {
 			return err
@@ -31,9 +33,9 @@ func CountTests(dir string) (int, error) {
 }
 
 // FindDuplicates returns test names appearing more than once in dir.
-func FindDuplicates(dir string) ([]string, error) {
+func FindDuplicates(dir string, exclude []string) ([]string, error) {
 	seen := make(map[string]int)
-	err := walkFiles(dir, func(src string) error {
+	err := walkFiles(dir, exclude, func(src string) error {
 		names, err := findCallNames(src, "Test", "Only", "Skip")
 		if err != nil {
 			return err
@@ -56,9 +58,9 @@ func FindDuplicates(dir string) ([]string, error) {
 }
 
 // FindOnlyCalls returns all tape.Only() calls with enclosing TestXxx name.
-func FindOnlyCalls(dir string) ([]OnlyCall, error) {
+func FindOnlyCalls(dir string, exclude []string) ([]OnlyCall, error) {
 	var all []OnlyCall
-	err := walkFiles(dir, func(src string) error {
+	err := walkFiles(dir, exclude, func(src string) error {
 		calls, err := FindOnlyCallsInSource(src)
 		if err != nil {
 			return err
@@ -179,13 +181,33 @@ func isTestMethodCall(call *ast.CallExpr, method string) bool {
 	return false
 }
 
-func walkFiles(dir string, fn func(string) error) error {
+// isExcludedDir reports whether path matches any of the exclusion patterns.
+// Matching is done against both the full relative path and the directory's
+// base name using doublestar.Match. For example, "fixture" skips any
+// fixture/ subtree; "cmd/fixture" skips only that specific path.
+func isExcludedDir(path string, patterns []string) bool {
+	name := filepath.Base(path)
+	for _, pattern := range patterns {
+		if m, _ := doublestar.Match(pattern, path); m {
+			return true
+		}
+		if m, _ := doublestar.Match(pattern, name); m {
+			return true
+		}
+	}
+	return false
+}
+
+func walkFiles(dir string, exclude []string, fn func(string) error) error {
 	return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
 		if d.IsDir() {
+			if isExcludedDir(path, exclude) {
+				return fs.SkipDir
+			}
 			return nil
 		}
 
@@ -212,12 +234,15 @@ func hasBuildIgnore(src string) bool {
 }
 
 // walkTestFiles is like walkFiles but restricted to _test.go files.
-func walkTestFiles(dir string, fn func(string) error) error {
+func walkTestFiles(dir string, exclude []string, fn func(string) error) error {
 	return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
+			if isExcludedDir(path, exclude) {
+				return fs.SkipDir
+			}
 			return nil
 		}
 		if !strings.HasSuffix(path, "_test.go") {
@@ -236,9 +261,9 @@ func walkTestFiles(dir string, fn func(string) error) error {
 
 // CountTestsInTestFiles counts tape.Test/Only/Skip calls only in *_test.go files.
 // Use this from the CLI to avoid counting fixture files.
-func CountTestsInTestFiles(dir string) (int, error) {
+func CountTestsInTestFiles(dir string, exclude []string) (int, error) {
 	total := 0
-	err := walkTestFiles(dir, func(src string) error {
+	err := walkTestFiles(dir, exclude, func(src string) error {
 		names, err := findCallNames(src, "Test", "Only", "Skip")
 		if err != nil {
 			return err
@@ -250,9 +275,9 @@ func CountTestsInTestFiles(dir string) (int, error) {
 }
 
 // FindAllTestNames returns all tape.Test/Only/Skip name strings in *_test.go files.
-func FindAllTestNames(dir string) ([]string, error) {
+func FindAllTestNames(dir string, exclude []string) ([]string, error) {
 	var all []string
-	err := walkTestFiles(dir, func(src string) error {
+	err := walkTestFiles(dir, exclude, func(src string) error {
 		names, err := findCallNames(src, "Test", "Only", "Skip")
 		if err != nil {
 			return err

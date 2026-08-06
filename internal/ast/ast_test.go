@@ -133,7 +133,7 @@ func TestCountTests(t *testing.T) {
 			}
 		`)
 
-		n, err := tapeast.CountTests(dir)
+		n, err := tapeast.CountTests(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -159,7 +159,7 @@ func TestFindDuplicatesFound(t *testing.T) {
 			}
 		`)
 
-		dups, err := tapeast.FindDuplicates(dir)
+		dups, err := tapeast.FindDuplicates(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -184,7 +184,7 @@ func TestFindOnlyCallsDir(t *testing.T) {
 			}
 		`)
 
-		calls, err := tapeast.FindOnlyCalls(dir)
+		calls, err := tapeast.FindOnlyCalls(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -196,7 +196,7 @@ func TestFindOnlyCallsDir(t *testing.T) {
 
 func TestFindOnlyCallsMissingDir(t *testing.T) {
 	AstTest(t, "ast: FindOnlyCalls errors on missing dir", func(t *AstT) {
-		_, err := tapeast.FindOnlyCalls("nonexistent")
+		_, err := tapeast.FindOnlyCalls("nonexistent", nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -212,7 +212,7 @@ func TestFindOnlyCallsInSourceInvalid(t *testing.T) {
 
 func TestCountTestsMissingDir(t *testing.T) {
 	AstTest(t, "ast: CountTests errors on missing dir", func(t *AstT) {
-		_, err := tapeast.CountTests("nonexistent")
+		_, err := tapeast.CountTests("nonexistent", nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -220,7 +220,7 @@ func TestCountTestsMissingDir(t *testing.T) {
 
 func TestFindDuplicatesMissingDir(t *testing.T) {
 	AstTest(t, "ast: FindDuplicates errors on missing dir", func(t *AstT) {
-		_, err := tapeast.FindDuplicates("nonexistent")
+		_, err := tapeast.FindDuplicates("nonexistent", nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -294,7 +294,7 @@ func TestFindSkipCallsMethodSyntaxResult(t *testing.T) {
 			}
 		`
 
-		names, _ := tapeast.FindAllTestNames(t.TB().TempDir())
+		names, _ := tapeast.FindAllTestNames(t.TB().TempDir(), nil)
 		_ = names
 		calls, err := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
 		if err != nil {
@@ -310,7 +310,7 @@ func TestFindSkipCallsMethodSyntaxResult(t *testing.T) {
 
 func TestWalkFilesReadError(t *testing.T) {
 	AstTest(t, "ast: CountTests errors on nonexistent directory", func(t *AstT) {
-		_, err := tapeast.CountTests("/nonexistent/path/that/does/not/exist")
+		_, err := tapeast.CountTests("/nonexistent/path/that/does/not/exist", nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -324,7 +324,7 @@ func TestCountTestsInvalidGo(t *testing.T) {
 			not go code {{{{
 		`)
 
-		_, err := tapeast.CountTests(dir)
+		_, err := tapeast.CountTests(dir, nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -338,7 +338,7 @@ func TestFindDuplicatesInvalidGo(t *testing.T) {
 			not go code {{{{
 		`)
 
-		_, err := tapeast.FindDuplicates(dir)
+		_, err := tapeast.FindDuplicates(dir, nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -352,7 +352,7 @@ func TestFindOnlyCallsDirInvalidGo(t *testing.T) {
 			not go code {{{{
 		`)
 
-		_, err := tapeast.FindOnlyCalls(dir)
+		_, err := tapeast.FindOnlyCalls(dir, nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -367,7 +367,7 @@ func TestWalkFilesReadFileError(t *testing.T) {
 			t.TB().Fatal(err)
 		}
 
-		_, err = tapeast.CountTests(dir)
+		_, err = tapeast.CountTests(dir, nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -435,7 +435,7 @@ func TestCountTestsRecursive(t *testing.T) {
 			}
 		`)
 
-		n, err := tapeast.CountTests(dir)
+		n, err := tapeast.CountTests(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -460,7 +460,7 @@ func TestFindOnlyCallsRecursive(t *testing.T) {
 			}
 		`)
 
-		calls, err := tapeast.FindOnlyCalls(dir)
+		calls, err := tapeast.FindOnlyCalls(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -503,7 +503,7 @@ func TestFindDuplicatesRecursive(t *testing.T) {
 			}
 		`)
 
-		dups, err := tapeast.FindDuplicates(dir)
+		dups, err := tapeast.FindDuplicates(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -523,7 +523,7 @@ func TestCountTestsInTestFilesIgnoresNonTestFiles(t *testing.T) {
 
 			func init() { tape.Test(nil, "x: y", nil) }
 		`)
-		n, err := tapeast.CountTestsInTestFiles(dir)
+		n, err := tapeast.CountTestsInTestFiles(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -545,7 +545,7 @@ func TestCountTestsInTestFilesCountsTestFiles(t *testing.T) {
 				Test(t, "foo: one", func(t *Test.T) { t.End() })
 			}
 		`)
-		n, err := tapeast.CountTestsInTestFiles(dir)
+		n, err := tapeast.CountTestsInTestFiles(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -568,7 +568,7 @@ func TestFindAllTestNamesReturnsNames(t *testing.T) {
 				Test(t, "foo: two", func(t *Test.T) { t.End() })
 			}
 		`)
-		names, err := tapeast.FindAllTestNames(dir)
+		names, err := tapeast.FindAllTestNames(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -584,7 +584,7 @@ func TestWalkTestFilesReadFileError(t *testing.T) {
 		if err != nil {
 			t.TB().Fatal(err)
 		}
-		_, err = tapeast.CountTestsInTestFiles(dir)
+		_, err = tapeast.CountTestsInTestFiles(dir, nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -605,7 +605,7 @@ func TestWalkFilesIgnoresBuildIgnore(t *testing.T) {
 				Test(t, "foo: bar", func(t *Test.T) { t.End() })
 			}
 		`)
-		n, err := tapeast.CountTests(dir)
+		n, err := tapeast.CountTests(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -629,7 +629,7 @@ func TestWalkTestFilesIgnoresBuildIgnore(t *testing.T) {
 				Test(t, "foo: bar", func(t *Test.T) { t.End() })
 			}
 		`)
-		n, err := tapeast.CountTestsInTestFiles(dir)
+		n, err := tapeast.CountTestsInTestFiles(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -645,7 +645,7 @@ func TestCountTestsInTestFilesInvalidGo(t *testing.T) {
 		if err != nil {
 			t.TB().Fatal(err)
 		}
-		_, err = tapeast.CountTestsInTestFiles(dir)
+		_, err = tapeast.CountTestsInTestFiles(dir, nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -658,7 +658,7 @@ func TestFindAllTestNamesInvalidGo(t *testing.T) {
 		if err != nil {
 			t.TB().Fatal(err)
 		}
-		_, err = tapeast.FindAllTestNames(dir)
+		_, err = tapeast.FindAllTestNames(dir, nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -671,7 +671,7 @@ func TestWalkFilesSkipsNonGoFiles(t *testing.T) {
 		if err != nil {
 			t.TB().Fatal(err)
 		}
-		n, err := tapeast.CountTests(dir)
+		n, err := tapeast.CountTests(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -687,7 +687,7 @@ func TestWalkTestFilesSkipsNonTestGoFiles(t *testing.T) {
 		if err != nil {
 			t.TB().Fatal(err)
 		}
-		n, err := tapeast.CountTestsInTestFiles(dir)
+		n, err := tapeast.CountTestsInTestFiles(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
@@ -698,7 +698,7 @@ func TestWalkTestFilesSkipsNonTestGoFiles(t *testing.T) {
 
 func TestCountTestsInTestFilesMissingDir(t *testing.T) {
 	AstTest(t, "ast: CountTestsInTestFiles errors on missing dir", func(t *AstT) {
-		_, err := tapeast.CountTestsInTestFiles("nonexistent")
+		_, err := tapeast.CountTestsInTestFiles("nonexistent", nil)
 		t.Ok(err)
 		t.End()
 	})
@@ -805,7 +805,7 @@ func TestIsTestMethodCallUnknownExprFalse(t *testing.T) {
 		calls, _ := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
 		t.Equal(len(calls), 0)
 		t.End()
-	})
+		})
 }
 
 // TestCountTestsQualifiedOnlyForm ensures CountTests counts tape.Test.Only
@@ -826,11 +826,172 @@ func TestCountTestsQualifiedOnlyForm(t *testing.T) {
 				tape.Test.Only(t, "foo: two", func(t *tape.T) { t.End() })
 			}
 		`)
-		n, err := tapeast.CountTests(dir)
+		n, err := tapeast.CountTests(dir, nil)
 		if err != nil {
 			t.TB().Fatal(err)
 		}
 		t.Equal(n, 2)
+		t.End()
+	})
+}
+
+func TestCountTestsInTestFilesSkipsExcludedDirs(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles skips dirs in exclude list", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("root_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestRoot(t *testing.T) {
+				Test(t, "root: one", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		fixture("fixture/fixture_test.go", `
+			package fixture
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFixture(t *testing.T) {
+				Test(t, "fixture: one", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		n, err := tapeast.CountTestsInTestFiles(dir, []string{"fixture"})
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(n, 1)
+		t.End()
+	})
+}
+
+func TestCountTestsInTestFilesDoesNotSkipNonExcludedDirs(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles does not skip non-excluded dirs", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("root_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestRoot(t *testing.T) {
+				Test(t, "root: one", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		fixture("fixture/fixture_test.go", `
+			package fixture
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFixture(t *testing.T) {
+				Test(t, "fixture: one", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		n, err := tapeast.CountTestsInTestFiles(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(n, 2)
+		t.End()
+	})
+}
+
+func TestFindDuplicatesSkipsExcludedDirs(t *testing.T) {
+	AstTest(t, "ast: FindDuplicates skips excluded dirs", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("root_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestRoot(t *testing.T) {
+				Test(t, "same: name", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		fixture("fixture/fixture_test.go", `
+			package fixture
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFixture(t *testing.T) {
+				Test(t, "same: name", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		dups, err := tapeast.FindDuplicates(dir, []string{"fixture"})
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(dups), 0)
+		t.End()
+	})
+}
+
+func TestFindOnlyCallsSkipsExcludedDirs(t *testing.T) {
+	AstTest(t, "ast: FindOnlyCalls skips excluded dirs", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("root_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestRoot(t *testing.T) {
+				Test.Only(t, "root: only", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		fixture("fixture/fixture_test.go", `
+			package fixture
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFixture(t *testing.T) {
+				Test.Only(t, "fixture: only", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		calls, err := tapeast.FindOnlyCalls(dir, []string{"fixture"})
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.DeepEqual(calls, []tapeast.OnlyCall{{Parent: "TestRoot", Name: "root: only"}})
+		t.End()
+	})
+}
+
+func TestIsExcludedDirMatchesExactName(t *testing.T) {
+	AstTest(t, "ast: isExcludedDir matches exact name", func(t *AstT) {
+		t.Ok(tapeast.IsExcludedDir("fixture", []string{"fixture"}))
+		t.End()
+	})
+}
+
+func TestIsExcludedDirMatchesGlobPattern(t *testing.T) {
+	AstTest(t, "ast: isExcludedDir matches glob pattern", func(t *AstT) {
+		t.Ok(tapeast.IsExcludedDir("cmd/fixture", []string{"cmd/f*"}))
+		t.End()
+	})
+}
+
+func TestIsExcludedDirDoesNotMatchUnrelatedDir(t *testing.T) {
+	AstTest(t, "ast: isExcludedDir does not match unrelated dir", func(t *AstT) {
+		t.NotOk(tapeast.IsExcludedDir("somedir", []string{"fixture"}))
 		t.End()
 	})
 }

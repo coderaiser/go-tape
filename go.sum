@@ -8,8 +8,8 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/bmatcuk/doublestar/v4 v4.10.0 h1:zU9WiOla1YA122oLM6i4EXvGW62DvKZVxIe6TYWexEs=
 github.com/bmatcuk/doublestar/v4 v4.10.0/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
-github.com/coderaiser/go-coverage v1.4.3 h1:B/3l29jS0zql3vboN+PjKYiXjorRQuqY09GIjKkYcOE=
-github.com/coderaiser/go-coverage v1.4.3/go.mod h1:Q1ATPCSWoQBQXSxzGPulHhvQ5ceI9gRX/zUXANmZ/l4=
+github.com/coderaiser/go-coverage v1.5.1 h1:+4nWw+p4in06nGGI2beytHE7bLy+IacIT7deTeXr+Pk=
+github.com/coderaiser/go-coverage v1.5.1/go.mod h1:Q1ATPCSWoQBQXSxzGPulHhvQ5ceI9gRX/zUXANmZ/l4=
 github.com/dlclark/regexp2/v2 v2.5.2 h1:HAsucWRhsqcDzl6Ua9aR8JwYOTzrZyPrF0/FNxJVAI0=
 github.com/dlclark/regexp2/v2 v2.5.2/go.mod h1:avUrQvPaLz2DrFNHJF0taWAFFX2C1GMSSoeiqFjcBmU=
 github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=
