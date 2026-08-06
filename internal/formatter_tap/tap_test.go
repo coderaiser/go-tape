@@ -142,3 +142,24 @@ func TestTAPEndWithFailed(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestTAPFailGeneratedDiff(t *testing.T) {
+	tape.Test(t, "formatter-tap: Fail generates diff when output empty and values differ", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "equal", "hello", "world", "", "", "")
+		t.Match(result, "diff: |-")
+		t.End()
+	})
+	tape.Test(t, "formatter-tap: Fail generated diff has minus line", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "equal", "hello", "world", "", "", "")
+		t.Match(result, `- "world"`)
+		t.End()
+	})
+	tape.Test(t, "formatter-tap: Fail generated diff has plus line", func(t *tape.T) {
+		f := formatter_tap.New()
+		result := f.Fail(1, "scope: foo", "equal", "hello", "world", "", "", "")
+		t.Match(result, `+ "hello"`)
+		t.End()
+	})
+}

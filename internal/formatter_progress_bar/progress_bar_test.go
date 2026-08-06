@@ -476,3 +476,16 @@ func TestOkLineJetBrains(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestFailGeneratedDiff(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail generates diff when output empty and values differ", func(t *tape.T) {
+		result := failOutput(New(10), 1, "scope: x", "equal", "hello", "world", "", "", "")
+		t.Ok(strings.Contains(result, "diff: |-"))
+		t.End()
+	})
+	tape.Test(t, "formatter-progress-bar: fail generated diff has minus line", func(t *tape.T) {
+		result := failOutput(New(10), 1, "scope: x", "equal", "hello", "world", "", "", "")
+		t.Ok(strings.Contains(result, `- "world"`))
+		t.End()
+	})
+}

@@ -296,3 +296,19 @@ func TestWriteNonEmptyString(t *testing.T) {
 		t.End()
 	})
 }
+
+// TestFromEventFailUnstructuredOutput covers the rawOutput = fields.Cut branch
+// (formatter.go:122-124) — triggered when a fail event has no structured
+// operator/result/expected fields (e.g. a panic or plain log line).
+func TestFromEventFailUnstructuredOutput(t *testing.T) {
+	Test(t, "formatter: unstructured fail output passes Cut through", func(t *T) {
+		var buf strings.Builder
+		t.TB().Setenv("CI", "false")
+		s := New("tap", &buf, 1)
+		s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
+		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "    panic: something went wrong\n"})
+		s.FromEvent(model.Event{Action: "fail", Test: "scope: x"})
+		t.Match(buf.String(), "not ok")
+		t.End()
+	})
+}
