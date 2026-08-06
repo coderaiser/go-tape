@@ -5,6 +5,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/coderaiser/go-tape/internal/diff"
 )
 
 const (
@@ -107,9 +109,20 @@ func (f *ProgressBarFormatter) Fail(count int, message, operator string, result,
 	if output != "" {
 		sb.WriteString(output)
 	} else {
-		fmt.Fprintf(&sb, "    operator: %s\n", operator)
-		fmt.Fprintf(&sb, "    expected: %v\n", expected)
-		fmt.Fprintf(&sb, "    result: %v\n", result)
+		sb.WriteString("  ---\n")
+		if operator != "" {
+			fmt.Fprintf(&sb, "    operator: %s\n", operator)
+		}
+		if d := diff.Diff(expected, result); d != "" {
+			fmt.Fprintf(&sb, "      diff: |-\n")
+			for _, line := range strings.Split(strings.TrimRight(d, "\n"), "\n") {
+				fmt.Fprintf(&sb, "      %s\n", line)
+			}
+		} else {
+			fmt.Fprintf(&sb, "    expected: |-\n      %v\n", expected)
+			fmt.Fprintf(&sb, "    result: |-\n      %v\n", result)
+		}
+		sb.WriteString("  ...\n")
 	}
 	if at != "" {
 		fmt.Fprintf(&sb, "\n    %s\n", at)

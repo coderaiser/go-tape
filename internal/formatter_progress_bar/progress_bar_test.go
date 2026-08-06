@@ -291,12 +291,10 @@ func TestFailWithoutOperator(t *testing.T) {
 	})
 }
 
-func TestFailNoYAMLBlock(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail does not emit YAML --- block", func(t *tape.T) {
-		pb := New(10)
-		pb.Fail(1, "scope: x", "should equal", "got", "want", "", "", "")
-		result := pb.End(1, 0, 1, 0)
-		t.NotOk(strings.Contains(result, "---"))
+func TestFailWithDiff(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail emits diff block", func(t *tape.T) {
+		result := failOutput(New(10), 1, "scope: x", "should equal", "got", "want", "", "", "")
+		t.Ok(strings.Contains(result, "diff: |-"))
 		t.End()
 	})
 }

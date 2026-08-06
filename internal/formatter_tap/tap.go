@@ -38,29 +38,30 @@ func (f *TAPFormatter) Fail(count int, message, operator string, result, expecte
 	if output != "" {
 		sb.WriteString(output)
 	} else {
+		sb.WriteString("  ---\n")
 		if operator != "" {
-			fmt.Fprintf(&sb, "  ---\n    operator: %s\n", operator)
+			fmt.Fprintf(&sb, "    operator: %s\n", operator)
 		}
 		if d := diff.Diff(expected, result); d != "" {
 			fmt.Fprintf(&sb, "      diff: |-\n")
 			for _, line := range strings.Split(strings.TrimRight(d, "\n"), "\n") {
 				fmt.Fprintf(&sb, "      %s\n", line)
 			}
-			sb.WriteString("  ...\n")
 		} else {
 			if expected != nil {
-				fmt.Fprintf(&sb, "    expected: %v\n", expected)
+				fmt.Fprintf(&sb, "    expected: |-\n      %v\n", expected)
 			}
 			if result != nil {
-				fmt.Fprintf(&sb, "    result: %v\n", result)
+				fmt.Fprintf(&sb, "    result: |-\n      %v\n", result)
 			}
 		}
 		if at != "" {
 			fmt.Fprintf(&sb, "    at %s\n", at)
 		}
 		if errorStack != "" {
-			fmt.Fprintf(&sb, "    stack: %s\n", errorStack)
+			fmt.Fprintf(&sb, "    stack: |-\n%s\n", errorStack)
 		}
+		sb.WriteString("  ...\n")
 	}
 
 	sb.WriteString("\n")
