@@ -1,3 +1,17 @@
+2026.08.07, v1.3.2
+
+fix:
+- f8a1bf1 go-coverage
+- 9c4601f report
+- 8505b21 testdata: failing test as subtest for coverage detection
+- 3f93b46 tape: pass coverage exclude to ProcessProfileWithConfig
+
+feature:
+- 6077fbe tape: formatter: like in supertape
+- 6b81f0c formatter: simplify
+- a9c86e2 formatter: tap: fail
+- a4afccd formatter_progress_bar: cursor
+
 2026.08.07, v1.3.1
 
 fix:
