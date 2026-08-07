@@ -27,9 +27,10 @@ import (
 func Run(r io.Reader, w io.Writer, format string, total int) error {
 	f := formatter.New(format, w, total)
 
-	// state.New() builds a fixed state machine from hardcoded transitions and
-	// cannot fail in practice; panic so the dead error branch is not a coverage gap.
-	store, _ := state.New()
+	store, err := state.New()
+	if err != nil {
+		return err
+	}
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
