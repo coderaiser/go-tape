@@ -7,6 +7,10 @@ import (
 )
 
 // Operators contains the built-in assertion functions for extension packages.
+// Extensions should use these functions (Equal, NotEqual, DeepEqual, etc.) to
+// build named operators, then read the Result.Output field for the diff string.
+// This mirrors the supertape extension API: operators are the building block,
+// and the diff is encapsulated inside the Result.
 type Operators struct {
 	Equal        func(result, expected any) Result
 	NotEqual     func(result, expected any) Result

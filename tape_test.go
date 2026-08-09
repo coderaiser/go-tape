@@ -161,6 +161,19 @@ func TestBuiltinOperatorsPublic(t *testing.T) {
 		t.End()
 	})
 }
+func TestBuiltinOperatorsOutputContainsDiff(t *testing.T) {
+	Test(t, "tape: BuiltinOperators.Equal returns Result with Ok false", func(t *T) {
+		r := BuiltinOperators.Equal("got", "expected")
+		t.Ok(r.Ok == false)
+		t.End()
+	})
+	Test(t, "tape: BuiltinOperators.Equal returns Result with non-empty Output", func(t *T) {
+		r := BuiltinOperators.Equal("got", "expected")
+		t.Ok(r.Output != "")
+		t.End()
+	})
+}
+
 
 func TestTestSkipNoop(t *testing.T) {
 	ran := false
