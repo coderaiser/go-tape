@@ -20,7 +20,7 @@ func writeTapeconfigFile(t *testing.T, path, content string) {
 
 func TestLoadMissingFileReturnsDefaults(t *testing.T) {
 	Test(t, "tapeconfig: missing file returns defaults", func(t *T) {
-		t.DeepEqual(tapeconfig.Load("/nonexistent/path/.tape.toml"), tapeconfig.Default())
+		t.DeepEqual(tapeconfig.Load("/nonexistent/path"), tapeconfig.Default())
 		t.End()
 	})
 }
@@ -32,7 +32,7 @@ func TestLoadMissingFileNoWarning(t *testing.T) {
 		old := os.Stderr
 		os.Stderr = w
 
-		tapeconfig.Load("/nonexistent/path/.tape.toml")
+		tapeconfig.Load("/nonexistent/path")
 
 		w.Close()
 		os.Stderr = old
@@ -60,7 +60,7 @@ exclude = ["docs"]
 		expected.Test.Formatter = "tap"
 		expected.Test.Exclude = []string{"vendor"}
 		expected.Coverage.Exclude = []string{"docs"}
-		t.DeepEqual(tapeconfig.Load(path), expected)
+		t.DeepEqual(tapeconfig.Load(dir), expected)
 		t.End()
 	})
 }
@@ -74,7 +74,7 @@ exclude = ["docs"]
 `)
 		expected := tapeconfig.Default()
 		expected.Coverage.Exclude = []string{"docs"}
-		t.DeepEqual(tapeconfig.Load(path), expected)
+		t.DeepEqual(tapeconfig.Load(dir), expected)
 		t.End()
 	})
 }
@@ -89,7 +89,7 @@ bogus = "value"
 `)
 		expected := tapeconfig.Default()
 		expected.Test.Formatter = "tap"
-		t.DeepEqual(tapeconfig.Load(path), expected)
+		t.DeepEqual(tapeconfig.Load(dir), expected)
 		t.End()
 	})
 }
@@ -100,7 +100,7 @@ func TestLoadMalformedReturnsDefaults(t *testing.T) {
 		path := filepath.Join(dir, ".tape.toml")
 		writeTapeconfigFile(t.TB(), path, `[this is not valid toml
 `)
-		t.DeepEqual(tapeconfig.Load(path), tapeconfig.Default())
+		t.DeepEqual(tapeconfig.Load(dir), tapeconfig.Default())
 		t.End()
 	})
 }
@@ -112,6 +112,45 @@ func TestDefaultReturnsExpected(t *testing.T) {
 		expected.Test.Exclude = []string{"fixture"}
 		expected.Coverage.Exclude = []string{"node_modules"}
 		t.DeepEqual(tapeconfig.Default(), expected)
+		t.End()
+	})
+}
+
+func TestLoadDotPrefix(t *testing.T) {
+	Test(t, "tapeconfig: Load reads .tape.toml when present", func(t *T) {
+		dir := t.TB().TempDir()
+		os.WriteFile(filepath.Join(dir, ".tape.toml"), []byte("[test]\nformatter = \"json\"\n"), 0644)
+		cfg := Load(dir)
+		t.Equal(cfg.Test.Formatter, "json")
+		t.End()
+	})
+}
+
+func TestLoadNoDotFallback(t *testing.T) {
+	Test(t, "tapeconfig: Load falls back to tape.toml when no dot-prefix file", func(t *T) {
+		dir := t.TB().TempDir()
+		os.WriteFile(filepath.Join(dir, "tape.toml"), []byte("[test]\nformatter = \"json\"\n"), 0644)
+		cfg := Load(dir)
+		t.Equal(cfg.Test.Formatter, "json")
+		t.End()
+	})
+}
+
+func TestLoadMissingUsesDefault(t *testing.T) {
+	Test(t, "tapeconfig: Load returns Default when no config file present", func(t *T) {
+		cfg := Load(t.TB().TempDir())
+		t.Equal(cfg.Test.Formatter, "progress-bar")
+		t.End()
+	})
+}
+
+func TestLoadDotPrefixTakesPriority(t *testing.T) {
+	Test(t, "tapeconfig: .tape.toml takes priority over tape.toml", func(t *T) {
+		dir := t.TB().TempDir()
+		os.WriteFile(filepath.Join(dir, ".tape.toml"), []byte("[test]\nformatter = \"tap\"\n"), 0644)
+		os.WriteFile(filepath.Join(dir, "tape.toml"), []byte("[test]\nformatter = \"json\"\n"), 0644)
+		cfg := Load(dir)
+		t.Equal(cfg.Test.Formatter, "tap")
 		t.End()
 	})
 }

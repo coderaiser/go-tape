@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 )
@@ -30,14 +31,21 @@ func Default() Config {
 	return cfg
 }
 
-// Load reads the TOML config at path. A missing file returns Default();
-// a malformed file prints a warning to stderr and returns Default().
-func Load(path string) Config {
-	cfg := Default()
-	if _, err := toml.DecodeFile(path, &cfg); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			fmt.Fprintf(os.Stderr, "warning: could not load %s: %v\n", path, err)
+// Load reads tape config from dir, trying .tape.toml then tape.toml.
+// Missing file returns Default(); malformed file prints a warning and
+// returns Default().
+func Load(dir string) Config {
+	for _, name := range []string{".tape.toml", "tape.toml"} {
+		path := filepath.Join(dir, name)
+		if _, err := os.Stat(path); err != nil {
+			continue
 		}
+		cfg := Default()
+		if _, err := toml.DecodeFile(path, &cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not load %s: %v\n", path, err)
+			return Default()
+		}
+		return cfg
 	}
-	return cfg
+	return Default()
 }

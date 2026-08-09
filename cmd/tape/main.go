@@ -121,7 +121,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	dir := "."
 
-	tcfg := tapeconfig.Load(".tape.toml")
+	tcfg := tapeconfig.Load(dir)
 	exclude := tcfg.Test.Exclude
 
 	// check duplicates before running
