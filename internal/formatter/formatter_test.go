@@ -2,6 +2,7 @@ package formatter
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -330,6 +331,51 @@ func TestFromEventFailStructuredFieldsClearsCut(t *testing.T) {
 		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "  result: |-\n    got\n"})
 		s.FromEvent(model.Event{Action: "fail", Test: "scope: x"})
 		t.NotMatch(buf.String(), "some raw output")
+		t.End()
+	})
+}
+
+func TestReadModuleName(t *testing.T) {
+	Test(t, "formatter: readModuleName reads module from go.mod", func(t *T) {
+		dir := t.TB().TempDir()
+		os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/mymod\n\ngo 1.21\n"), 0644)
+		t.Equal(readModuleName(dir), "example.com/mymod")
+		t.End()
+	})
+	Test(t, "formatter: readModuleName returns empty when no go.mod", func(t *T) {
+		t.Equal(readModuleName(t.TB().TempDir()), "")
+		t.End()
+	})
+}
+
+func TestPkgDir(t *testing.T) {
+	Test(t, "formatter: pkgDir returns module root for root package", func(t *T) {
+		t.Equal(pkgDir("example.com/mymod", "example.com/mymod", "/abs/mymod"), "/abs/mymod")
+		t.End()
+	})
+	Test(t, "formatter: pkgDir appends sub-package path", func(t *T) {
+		t.Equal(pkgDir("example.com/mymod/internal/foo", "example.com/mymod", "/abs/mymod"), "/abs/mymod/internal/foo")
+		t.End()
+	})
+	Test(t, "formatter: pkgDir returns dir when pkg is empty", func(t *T) {
+		t.Equal(pkgDir("", "example.com/mymod", "/abs/mymod"), "/abs/mymod")
+		t.End()
+	})
+}
+
+func TestFromEventFailPackageDir(t *testing.T) {
+	Test(t, "formatter: fail event uses Package field to resolve file URL", func(t *T) {
+		var buf strings.Builder
+		t.TB().Setenv("CI", "false")
+		dir := t.TB().TempDir()
+		os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/mymod\n\ngo 1.21\n"), 0644)
+		s := newWithDir("tap", &buf, 1, dir)
+		s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
+		s.FromEvent(model.Event{Action: "output", Test: "scope: x",
+			Output: "    foo_test.go:10: \n"})
+		s.FromEvent(model.Event{Action: "fail", Test: "scope: x",
+			Package: "example.com/mymod/internal/pkg"})
+		t.Match(buf.String(), "internal/pkg/foo_test.go:10")
 		t.End()
 	})
 }

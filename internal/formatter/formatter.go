@@ -3,6 +3,7 @@ package formatter
 import (
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/coderaiser/go-tape/internal/formatter/output"
@@ -58,6 +59,7 @@ type State struct {
 	formatter Formatter
 	w         io.Writer
 	dir       string
+	modName   string // module name from go.mod, used to resolve package dirs
 }
 
 // New returns the formatter for the given format string.
@@ -90,8 +92,47 @@ func New(format string, w io.Writer, total int) *State {
 	}
 	if dir, err := os.Getwd(); err == nil {
 		s.dir = dir
+		s.modName = readModuleName(dir)
 	}
 	write(w, f.Start(total))
+	return s
+}
+
+// readModuleName reads the module name from go.mod in dir.
+func readModuleName(dir string) string {
+	data, err := os.ReadFile(filepath.Join(dir, "go.mod"))
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.SplitN(string(data), "\n", 10) {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module "))
+		}
+	}
+	return ""
+}
+
+// pkgDir resolves the absolute directory for a package import path.
+// e.g. pkg="example.com/mod/internal/foo", modName="example.com/mod", dir="/abs/mod"
+// → "/abs/mod/internal/foo"
+func pkgDir(pkg, modName, dir string) string {
+	if pkg == "" || dir == "" {
+		return dir
+	}
+	rel := strings.TrimPrefix(pkg, modName)
+	rel = strings.TrimPrefix(rel, "/")
+	if rel == "" {
+		return dir
+	}
+	return filepath.Join(dir, rel)
+}
+
+// newWithDir is like New but injects a specific dir (for testing).
+func newWithDir(format string, w io.Writer, total int, dir string) *State {
+	s := New(format, w, total)
+	s.dir = dir
+	s.modName = readModuleName(dir)
 	return s
 }
 
@@ -125,7 +166,7 @@ func (s *State) FromEvent(e model.Event) {
 		write(s.w, s.formatter.Fail(
 			s.count, label,
 			fields.Operator, fields.Result, fields.Expected,
-			rawOutput, fileLink(fields.At, s.dir), fields.ErrorStack,
+			rawOutput, fileLink(fields.At, pkgDir(e.Package, s.modName, s.dir)), fields.ErrorStack,
 		))
 		write(s.w, s.formatter.TestEnd(s.count, s.total, s.failed, label))
 	case "skip":
