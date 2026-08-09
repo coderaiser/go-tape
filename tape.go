@@ -17,7 +17,9 @@ var (
 )
 
 func setOnlyName(name string) {
+	mu.Lock()
 	onlyName = name
+	mu.Unlock()
 }
 
 // assertOne resets the assertion counter for a test and removes it on cleanup.
@@ -63,16 +65,27 @@ func (f TestFn) Skip(_ *testing.T, _ string, _ func(t *T)) {}
 // Only runs a single subtest, skipping all others.
 // Use as Test.Only(t, name, fn).
 func (f TestFn) Only(t *testing.T, name string, fn func(t *T)) {
+	setOnlyName(name)
+	t.Cleanup(func() { setOnlyName("") })
 	f(t, name, fn)
 }
 
-// Test runs a subtest with guards: scope check, assertion count, timeout, End check.
+// Test runs a subtest with guards: scope check, onlyName filter, assertion count, timeout, End check.
 var Test TestFn = func(t *testing.T, name string, fn func(t *T)) {
 	t.Helper()
 
 	// guard 1: scope check
 	if config.CheckScopes() && !scope.Valid(name) {
 		t.Fatalf("tape: invalid scope name: %q — expected 'scope: message'", name)
+	}
+
+	mu.Lock()
+	only := onlyName
+	mu.Unlock()
+
+	if only != "" && name != only {
+		t.Run(name, func(t *testing.T) { t.Skip() })
+		return
 	}
 
 	t.Run(name, func(t *testing.T) {

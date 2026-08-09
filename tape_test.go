@@ -307,6 +307,21 @@ func TestExtendFnOnlyRuns(t *testing.T) {
 	})
 }
 
+func TestOnlyGuardSkipsOthers(t *testing.T) {
+	ran := false
+	Test.Only(t, "tape: only guard: target", func(t *T) {
+		t.Ok(true)
+		t.End()
+	})
+	Test(t, "tape: only guard: other", func(t *T) {
+		ran = true
+		t.End()
+	})
+	if ran {
+		t.Fatal("Only guard: non-matching test ran its body")
+	}
+}
+
 // -- internal helpers coverage --
 
 func TestAssertOneCleanup(t *testing.T) {
