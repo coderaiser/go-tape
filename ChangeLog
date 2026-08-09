@@ -1,3 +1,14 @@
+2026.08.09, v1.3.5
+
+fix:
+- 2dcfd03 tapeconfig: Load tries .tape.toml then tape.toml
+- 9391184 tape: Only sets onlyName guard to skip non-matching tests
+- 81b80df tape: report duplicates as TAP not ok with file URI locations
+
+feature:
+- 81ec76e tape: config: improve
+- 49da5a5 tape: ExtendFn named type with Skip and Only methods
+
 2026.08.09, v1.3.4
 
 fix:
