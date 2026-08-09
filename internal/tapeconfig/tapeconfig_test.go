@@ -120,7 +120,7 @@ func TestLoadDotPrefix(t *testing.T) {
 	Test(t, "tapeconfig: Load reads .tape.toml when present", func(t *T) {
 		dir := t.TB().TempDir()
 		os.WriteFile(filepath.Join(dir, ".tape.toml"), []byte("[test]\nformatter = \"json\"\n"), 0644)
-		cfg := Load(dir)
+		cfg := tapeconfig.Load(dir)
 		t.Equal(cfg.Test.Formatter, "json")
 		t.End()
 	})
@@ -130,7 +130,7 @@ func TestLoadNoDotFallback(t *testing.T) {
 	Test(t, "tapeconfig: Load falls back to tape.toml when no dot-prefix file", func(t *T) {
 		dir := t.TB().TempDir()
 		os.WriteFile(filepath.Join(dir, "tape.toml"), []byte("[test]\nformatter = \"json\"\n"), 0644)
-		cfg := Load(dir)
+		cfg := tapeconfig.Load(dir)
 		t.Equal(cfg.Test.Formatter, "json")
 		t.End()
 	})
@@ -138,7 +138,7 @@ func TestLoadNoDotFallback(t *testing.T) {
 
 func TestLoadMissingUsesDefault(t *testing.T) {
 	Test(t, "tapeconfig: Load returns Default when no config file present", func(t *T) {
-		cfg := Load(t.TB().TempDir())
+		cfg := tapeconfig.Load(t.TB().TempDir())
 		t.Equal(cfg.Test.Formatter, "progress-bar")
 		t.End()
 	})
@@ -149,7 +149,7 @@ func TestLoadDotPrefixTakesPriority(t *testing.T) {
 		dir := t.TB().TempDir()
 		os.WriteFile(filepath.Join(dir, ".tape.toml"), []byte("[test]\nformatter = \"tap\"\n"), 0644)
 		os.WriteFile(filepath.Join(dir, "tape.toml"), []byte("[test]\nformatter = \"json\"\n"), 0644)
-		cfg := Load(dir)
+		cfg := tapeconfig.Load(dir)
 		t.Equal(cfg.Test.Formatter, "tap")
 		t.End()
 	})

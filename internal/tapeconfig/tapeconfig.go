@@ -3,7 +3,6 @@
 package tapeconfig
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
