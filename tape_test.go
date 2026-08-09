@@ -174,7 +174,6 @@ func TestBuiltinOperatorsOutputContainsDiff(t *testing.T) {
 	})
 }
 
-
 func TestTestSkipNoop(t *testing.T) {
 	ran := false
 	Test.Skip(t, "tape: skipped block", func(t *T) { ran = true })
