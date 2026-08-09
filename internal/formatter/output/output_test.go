@@ -197,3 +197,75 @@ func TestParseOutputTapeEndNoisePrimaryAtKept(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestParseOutputOperatorWithFilePrefix(t *testing.T) {
+	tape.Test(t, "output: parses operator from line with file:line: prefix", func(t *tape.T) {
+		lines := []string{"    tape_test.go:37: operator: transform\n"}
+		fields := output.ParseOutput(lines)
+		t.Equal(fields.Operator, "transform")
+		t.End()
+	})
+}
+
+func TestParseOutputAtAndOperatorSameLine(t *testing.T) {
+	tape.Test(t, "output: At and Operator both set when on same line", func(t *tape.T) {
+		lines := []string{"    tape_test.go:37: operator: noTransform\n"}
+		fields := output.ParseOutput(lines)
+		t.Equal(fields.At, "tape_test.go:37:")
+		t.End()
+	})
+}
+
+func TestParseOutputResultWithFilePrefix(t *testing.T) {
+	tape.Test(t, "output: parses result from line with file:line: prefix", func(t *tape.T) {
+		lines := []string{"    tape_test.go:10: result: 42\n"}
+		fields := output.ParseOutput(lines)
+		t.Equal(fields.Result, "42")
+		t.End()
+	})
+}
+
+func TestParseOutputExpectedWithFilePrefix(t *testing.T) {
+	tape.Test(t, "output: parses expected from line with file:line: prefix", func(t *tape.T) {
+		lines := []string{"    tape_test.go:10: expected: 43\n"}
+		fields := output.ParseOutput(lines)
+		t.Equal(fields.Expected, "43")
+		t.End()
+	})
+}
+
+func TestParseOutputFullErrorfBlock(t *testing.T) {
+	tape.Test(t, "output: full Errorf block produces correct Operator and Diff", func(t *tape.T) {
+		lines := []string{
+			"    t_test.go:37: operator: transform\n",
+			"        expected: hello\n",
+			"        result: world\n",
+			"        - expected\n",
+			"        + received\n",
+			"        \n",
+			"        - hello\n",
+			"        + world\n",
+		}
+		fields := output.ParseOutput(lines)
+		t.Equal(fields.Operator, "transform")
+		t.End()
+	})
+}
+
+func TestParseOutputFullErrorfBlockDiff(t *testing.T) {
+	tape.Test(t, "output: full Errorf block has non-empty Diff", func(t *tape.T) {
+		lines := []string{
+			"    t_test.go:37: operator: transform\n",
+			"        expected: hello\n",
+			"        result: world\n",
+			"        - expected\n",
+			"        + received\n",
+			"        \n",
+			"        - hello\n",
+			"        + world\n",
+		}
+		fields := output.ParseOutput(lines)
+		t.Ok(fields.Diff != "")
+		t.End()
+	})
+}

@@ -17,11 +17,11 @@ type OutputFields struct {
 }
 
 var (
-	reAt       = regexp.MustCompile(`^\s+(\S+\.go:\d+:)\s*`)
-	reResult   = regexp.MustCompile(`^\s+result:\s+(.+)`)
-	reExpected = regexp.MustCompile(`^\s+expected:\s+(.+)`)
-	reOperator = regexp.MustCompile(`^\s+operator:\s+(.+)`)
 	reNoise    = regexp.MustCompile(`^(=== RUN|--- FAIL:|--- PASS:|FAIL|PASS|ok\s)`)
+	reAt       = regexp.MustCompile(`^\s+(\S+\.go:\d+:)\s*`)
+	reResult   = regexp.MustCompile(`^\s*result:\s+(.+)`)
+	reExpected = regexp.MustCompile(`^\s*expected:\s+(.+)`)
+	reOperator = regexp.MustCompile(`^\s*operator:\s+(.+)`)
 	reAtPrefix = regexp.MustCompile(`^\s+\S+\.go:\d+:\s*`)
 	// tape-internal guard messages that are secondary to the real failure
 	reTapeNoise = regexp.MustCompile(`^tape:\s`)
@@ -77,6 +77,14 @@ func ParseOutput(lines []string) OutputFields {
 				continue
 			}
 			fields.At = m[1]
+			// parse the rest of the line through field matchers before storing in Cut
+			if mo := reOperator.FindStringSubmatch(rest); mo != nil {
+				fields.Operator = strings.TrimSpace(mo[1])
+			} else if mr := reResult.FindStringSubmatch(rest); mr != nil {
+				fields.Result = strings.TrimSpace(mr[1])
+			} else if me := reExpected.FindStringSubmatch(rest); me != nil {
+				fields.Expected = strings.TrimSpace(me[1])
+			}
 			if rest != "" {
 				cutLines = append(cutLines, rest+"\n")
 			}
