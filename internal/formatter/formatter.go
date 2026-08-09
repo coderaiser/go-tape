@@ -35,7 +35,7 @@ func fileLink(at, dir string) string {
 	if dir != "" && !strings.HasPrefix(at, "/") {
 		at = dir + "/" + at
 	}
-	return "file://" + at
+	return "at file://" + at
 }
 
 // Formatter matches supertape's formatter event API exactly.

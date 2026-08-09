@@ -257,7 +257,7 @@ func TestFileLinkEmptyAt(t *testing.T) {
 // TestFileLinkWithDir covers the branch where dir is set and at is relative.
 func TestFileLinkWithDir(t *testing.T) {
 	Test(t, "formatter: fileLink prepends dir to relative at", func(t *T) {
-		t.Equal(fileLink("file.go:10:", "/proj"), "file:///proj/file.go:10")
+		t.Equal(fileLink("file.go:10:", "/proj"), "at file:///proj/file.go:10")
 		t.End()
 	})
 }
@@ -265,7 +265,7 @@ func TestFileLinkWithDir(t *testing.T) {
 // TestFileLinkAbsoluteAt covers the branch where at is already absolute.
 func TestFileLinkAbsoluteAt(t *testing.T) {
 	Test(t, "formatter: fileLink does not prepend dir to absolute at", func(t *T) {
-		t.Equal(fileLink("/abs/file.go:10:", "/proj"), "file:///abs/file.go:10")
+		t.Equal(fileLink("/abs/file.go:10:", "/proj"), "at file:///abs/file.go:10")
 		t.End()
 	})
 }
@@ -273,7 +273,7 @@ func TestFileLinkAbsoluteAt(t *testing.T) {
 // TestFileLinkNoDir covers the branch where dir is empty.
 func TestFileLinkNoDir(t *testing.T) {
 	Test(t, "formatter: fileLink with no dir uses at as-is", func(t *T) {
-		t.Equal(fileLink("file.go:5:", ""), "file://file.go:5")
+		t.Equal(fileLink("file.go:5:", ""), "at file://file.go:5")
 		t.End()
 	})
 }
