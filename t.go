@@ -30,13 +30,33 @@ func (tt *T) Setenv(key, value string) {
 	tt.t.Setenv(key, value)
 }
 
-// Report records an operator.Result, marking pass or fail on the underlying test.
-func (tt *T) Report(r operator.Result) {
+// Report records a Result, marking pass or fail on the underlying test.
+func (tt *T) Report(r Result) {
 	tt.t.Helper()
 	if !r.Ok {
 		tt.t.Errorf("operator: %s\nexpected: %v\nresult: %v\n%s",
 			r.Message, r.Expected, r.Result, r.Output)
 	}
+}
+
+// report adapts an internal operator.Result to the public Report surface.
+func (tt *T) report(r operator.Result) {
+	tt.Report(toResult(r))
+}
+
+// ReportCustom records a custom operator result and counts it against the
+// one-assertion-per-block guard. Extension packages use it to report named
+// operators such as transform, noTransform, report and noReport.
+func (tt *T) ReportCustom(ok bool, operatorName, output string, got, expected any) {
+	tt.t.Helper()
+	hit(tt.t)
+	tt.Report(Result{
+		Ok:       ok,
+		Message:  operatorName,
+		Result:   got,
+		Expected: expected,
+		Output:   output,
+	})
 }
 
 // Equal asserts result == expected using strict equality.
@@ -45,7 +65,7 @@ func (tt *T) Report(r operator.Result) {
 func (tt *T) Equal(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	tt.Report(operator.Equal(result, expected))
+	tt.report(operator.Equal(result, expected))
 }
 
 // NotEqual asserts result != expected.
@@ -53,7 +73,7 @@ func (tt *T) Equal(result, expected any) {
 func (tt *T) NotEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	tt.Report(operator.NotEqual(result, expected))
+	tt.report(operator.NotEqual(result, expected))
 }
 
 // DeepEqual asserts deep equality using reflect.DeepEqual.
@@ -61,28 +81,28 @@ func (tt *T) NotEqual(result, expected any) {
 func (tt *T) DeepEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	tt.Report(operator.DeepEqual(result, expected))
+	tt.report(operator.DeepEqual(result, expected))
 }
 
 // NotDeepEqual asserts values are not deeply equal.
 func (tt *T) NotDeepEqual(result, expected any) {
 	tt.t.Helper()
 	hit(tt.t)
-	tt.Report(operator.NotDeepEqual(result, expected))
+	tt.report(operator.NotDeepEqual(result, expected))
 }
 
 // Ok asserts result is truthy.
 func (tt *T) Ok(result any) {
 	tt.t.Helper()
 	hit(tt.t)
-	tt.Report(operator.Ok(result))
+	tt.report(operator.Ok(result))
 }
 
 // NotOk asserts result is falsy.
 func (tt *T) NotOk(result any) {
 	tt.t.Helper()
 	hit(tt.t)
-	tt.Report(operator.NotOk(result))
+	tt.report(operator.NotOk(result))
 }
 
 // Match asserts result matches pattern.
@@ -90,7 +110,7 @@ func (tt *T) NotOk(result any) {
 func (tt *T) Match(result string, pattern any) {
 	tt.t.Helper()
 	hit(tt.t)
-	tt.Report(operator.Match(result, pattern))
+	tt.report(operator.Match(result, pattern))
 }
 
 // NotMatch asserts result does not match pattern.
@@ -98,7 +118,7 @@ func (tt *T) Match(result string, pattern any) {
 func (tt *T) NotMatch(result string, pattern any) {
 	tt.t.Helper()
 	hit(tt.t)
-	tt.Report(operator.NotMatch(result, pattern))
+	tt.report(operator.NotMatch(result, pattern))
 }
 
 // Pass generates an unconditional passing assertion.
@@ -109,7 +129,7 @@ func (tt *T) Pass(message ...string) {
 	if len(message) > 0 {
 		msg = message[0]
 	}
-	tt.Report(operator.Pass(msg))
+	tt.report(operator.Pass(msg))
 }
 
 // Fail generates an unconditional failing assertion.
@@ -119,11 +139,11 @@ func (tt *T) Fail(message any) {
 	hit(tt.t)
 	switch msg := message.(type) {
 	case string:
-		tt.Report(operator.Fail(msg))
+		tt.report(operator.Fail(msg))
 	case error:
-		tt.Report(operator.Fail(msg.Error()))
+		tt.report(operator.Fail(msg.Error()))
 	default:
-		tt.Report(operator.Fail("fail"))
+		tt.report(operator.Fail("fail"))
 	}
 }
 

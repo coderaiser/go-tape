@@ -127,6 +127,60 @@ func TestTComment(t *testing.T) {
 	})
 }
 
+// -- ReportCustom / public Result --
+
+func TestTReportCustomPass(t *testing.T) {
+	Test(t, "tape: ReportCustom pass counts assertion", func(t *T) {
+		t.ReportCustom(true, "transform", "", "got", "expected")
+		t.End()
+	})
+}
+
+func TestTReportCustomFail(t *testing.T) {
+	tt := &T{t: &testing.T{}}
+	tt.ReportCustom(false, "transform", "diff", "got", "expected")
+	if !tt.t.Failed() {
+		t.Fatal("expected failure recorded")
+	}
+}
+
+func TestBuiltinOperatorsPublic(t *testing.T) {
+	Test(t, "tape: BuiltinOperators return public results", func(t *T) {
+		equal := BuiltinOperators.Equal(1, 1)
+		notEqual := BuiltinOperators.NotEqual(1, 2)
+		deepEqual := BuiltinOperators.DeepEqual([]int{1}, []int{1})
+		notDeepEqual := BuiltinOperators.NotDeepEqual([]int{1}, []int{2})
+		ok := BuiltinOperators.Ok(true)
+		notOk := BuiltinOperators.NotOk(false)
+		match := BuiltinOperators.Match("hello", "hello")
+		notMatch := BuiltinOperators.NotMatch("hello", `\d+`)
+		pass := BuiltinOperators.Pass("all good")
+		fail := BuiltinOperators.Fail("boom")
+		t.Ok(equal.Ok && notEqual.Ok && deepEqual.Ok && notDeepEqual.Ok && ok.Ok &&
+			notOk.Ok && match.Ok && notMatch.Ok && pass.Ok && !fail.Ok)
+		t.End()
+	})
+}
+
+func TestTestSkipNoop(t *testing.T) {
+	ran := false
+	Test.Skip(t, "tape: skipped block", func(t *T) { ran = true })
+	if ran {
+		t.Fatal("Skip must not run the function")
+	}
+}
+
+func TestTestOnlyMethod(t *testing.T) {
+	ran := false
+	Test.Only(t, "tape: only block", func(t *T) {
+		ran = true
+		t.End()
+	})
+	if !ran {
+		t.Fatal("Only must run the function")
+	}
+}
+
 // -- helpers --
 
 func TestHelperIsPrimitive(t *testing.T) {

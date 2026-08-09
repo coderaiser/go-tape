@@ -8,30 +8,30 @@ import (
 
 // Operators contains the built-in assertion functions for extension packages.
 type Operators struct {
-	Equal        func(result, expected any) operator.Result
-	NotEqual     func(result, expected any) operator.Result
-	DeepEqual    func(result, expected any) operator.Result
-	NotDeepEqual func(result, expected any) operator.Result
-	Ok           func(result any) operator.Result
-	NotOk        func(result any) operator.Result
-	Match        func(result string, pattern any) operator.Result
-	NotMatch     func(result string, pattern any) operator.Result
-	Pass         func(message string) operator.Result
-	Fail         func(message string) operator.Result
+	Equal        func(result, expected any) Result
+	NotEqual     func(result, expected any) Result
+	DeepEqual    func(result, expected any) Result
+	NotDeepEqual func(result, expected any) Result
+	Ok           func(result any) Result
+	NotOk        func(result any) Result
+	Match        func(result string, pattern any) Result
+	NotMatch     func(result string, pattern any) Result
+	Pass         func(message string) Result
+	Fail         func(message string) Result
 }
 
 // BuiltinOperators is the canonical instance passed to extension factories.
 var BuiltinOperators = Operators{
-	Equal:        operator.Equal,
-	NotEqual:     operator.NotEqual,
-	DeepEqual:    operator.DeepEqual,
-	NotDeepEqual: operator.NotDeepEqual,
-	Ok:           operator.Ok,
-	NotOk:        operator.NotOk,
-	Match:        operator.Match,
-	NotMatch:     operator.NotMatch,
-	Pass:         operator.Pass,
-	Fail:         operator.Fail,
+	Equal:        func(result, expected any) Result { return toResult(operator.Equal(result, expected)) },
+	NotEqual:     func(result, expected any) Result { return toResult(operator.NotEqual(result, expected)) },
+	DeepEqual:    func(result, expected any) Result { return toResult(operator.DeepEqual(result, expected)) },
+	NotDeepEqual: func(result, expected any) Result { return toResult(operator.NotDeepEqual(result, expected)) },
+	Ok:           func(result any) Result { return toResult(operator.Ok(result)) },
+	NotOk:        func(result any) Result { return toResult(operator.NotOk(result)) },
+	Match:        func(result string, pattern any) Result { return toResult(operator.Match(result, pattern)) },
+	NotMatch:     func(result string, pattern any) Result { return toResult(operator.NotMatch(result, pattern)) },
+	Pass:         func(message string) Result { return toResult(operator.Pass(message)) },
+	Fail:         func(message string) Result { return toResult(operator.Fail(message)) },
 }
 
 // Extend[XT any] creates a test function that passes an extended T to fn.
