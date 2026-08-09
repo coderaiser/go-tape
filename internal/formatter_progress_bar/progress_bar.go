@@ -5,8 +5,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-
-	"github.com/coderaiser/go-tape/internal/diff"
 )
 
 const (
@@ -64,7 +62,9 @@ func (f *ProgressBarFormatter) Start(total int) string {
 	if f.show {
 		fmt.Fprint(os.Stderr, "\033[?25l")
 	}
-	return "TAP version 13\n"
+	// buffer TAP version header — flushed at End() just like supertape's out() buffer
+	f.out.WriteString("TAP version 13\n")
+	return ""
 }
 
 func (f *ProgressBarFormatter) Test(name string) string { return "" }
@@ -104,32 +104,22 @@ func (f *ProgressBarFormatter) Success(count int, message string) string { retur
 
 func (f *ProgressBarFormatter) Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string {
 	var sb strings.Builder
+	// blank line before the block, then scope comment, then not-ok line
 	fmt.Fprintf(&sb, "\n# %s\n", message)
 	fmt.Fprintf(&sb, "%s not ok %d %s\n", failEmoji, count, message)
+	sb.WriteString("  ---\n")
+	fmt.Fprintf(&sb, "    operator: %s\n", operator)
 	if output != "" {
 		sb.WriteString(output)
 	} else {
-		sb.WriteString("  ---\n")
-		if operator != "" {
-			fmt.Fprintf(&sb, "    operator: %s\n", operator)
-		}
-		if d := diff.Diff(expected, result); d != "" {
-			fmt.Fprintf(&sb, "      diff: |-\n")
-			for _, line := range strings.Split(strings.TrimRight(d, "\n"), "\n") {
-				fmt.Fprintf(&sb, "      %s\n", line)
-			}
-		} else {
-			fmt.Fprintf(&sb, "    expected: |-\n      %v\n", expected)
-			fmt.Fprintf(&sb, "    result: |-\n      %v\n", result)
-		}
-		sb.WriteString("  ...\n")
+		fmt.Fprintf(&sb, "    expected: |-\n      %v\n", expected)
+		fmt.Fprintf(&sb, "    result: |-\n      %v\n", result)
 	}
-	if at != "" {
-		fmt.Fprintf(&sb, "\n    %s\n", at)
-	}
+	fmt.Fprintf(&sb, "    %s\n", at)
 	if f.stackEnv != "0" && errorStack != "" {
 		fmt.Fprintf(&sb, "    stack: |-\n%s\n", errorStack)
 	}
+	sb.WriteString("  ...\n")
 	sb.WriteString("\n")
 	f.out.WriteString(sb.String())
 	return ""
@@ -140,28 +130,44 @@ func (f *ProgressBarFormatter) Comment(message string) string {
 }
 
 func (f *ProgressBarFormatter) End(count, passed, failed, skipped int) string {
-	var sb strings.Builder
 	if f.show {
 		fmt.Fprintf(os.Stderr, "\r\033[2K\033[?25h")
 	}
-	sb.WriteString(f.out.String())
-	if f.show {
-		sb.WriteString("\n")
+
+	// collect all buffered lines (fail blocks + summary) joined with \n,
+	// matching supertape's out() buffer which uses join('\n')
+	lines := []string{}
+
+	// flush buffered fail output — split on \n, drop trailing empty
+	if s := f.out.String(); s != "" {
+		parts := strings.Split(strings.TrimRight(s, "\n"), "\n")
+		lines = append(lines, parts...)
 	}
-	fmt.Fprintf(&sb, "1..%d\n", count)
-	fmt.Fprintf(&sb, "# tests %d\n", count)
-	fmt.Fprintf(&sb, "# pass %d\n", passed)
+
+	// summary block — mirrors supertape end() out() calls exactly
+	lines = append(lines, "")
+	lines = append(lines, fmt.Sprintf("1..%d", count))
+	lines = append(lines, fmt.Sprintf("# tests %d", count))
+	lines = append(lines, fmt.Sprintf("# pass %d", passed))
 	if skipped > 0 {
-		fmt.Fprintf(&sb, "# %s skip %d\n", skipEmoji, skipped)
+		lines = append(lines, fmt.Sprintf("# %s skip %d", skipEmoji, skipped))
 	}
-	sb.WriteString("\n")
+	lines = append(lines, "")
 	if failed > 0 {
-		fmt.Fprintf(&sb, "# %s fail %d\n", failEmoji, failed)
+		lines = append(lines, fmt.Sprintf("# %s fail %d", failEmoji, failed))
 	} else {
-		sb.WriteString(okLine())
+		lines = append(lines, strings.TrimRight(okLine(), "\n"))
 	}
-	sb.WriteString("\n")
-	return sb.String()
+	lines = append(lines, "")
+	lines = append(lines, "")
+
+	result := strings.Join(lines, "\n")
+	// prepend \r so the first line overwrites the cleared bar position,
+	// matching supertape's `return \`\r${out()}\``
+	if f.show {
+		return "\r" + result
+	}
+	return result
 }
 
 // okLine returns the success marker line. JetBrains' JediTerm misaligns the

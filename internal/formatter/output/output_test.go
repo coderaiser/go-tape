@@ -2,6 +2,7 @@ package output_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	tape "github.com/coderaiser/go-tape"
@@ -169,6 +170,30 @@ func TestParseOutputDiffBlock(t *testing.T) {
 		}
 		fields := output.ParseOutput(lines)
 		t.Ok(fields.Diff == "- 1\n+ 2" && fields.Operator == "should equal")
+		t.End()
+	})
+}
+
+func TestParseOutputTapeEndNoiseSuppressed(t *testing.T) {
+	tape.Test(t, "output: tape: t.End() not called is filtered from Cut", func(t *tape.T) {
+		lines := []string{
+			"    extend.go:40: parse error: 2:1: expected 'package', found t\n",
+			"    tape.go:99: tape: t.End() not called\n",
+		}
+		fields := output.ParseOutput(lines)
+		t.Ok(!strings.Contains(fields.Cut, "t.End() not called"))
+		t.End()
+	})
+}
+
+func TestParseOutputTapeEndNoisePrimaryAtKept(t *testing.T) {
+	tape.Test(t, "output: real error At kept when tape noise follows", func(t *tape.T) {
+		lines := []string{
+			"    extend.go:40: parse error: 2:1: expected 'package', found t\n",
+			"    tape.go:99: tape: t.End() not called\n",
+		}
+		fields := output.ParseOutput(lines)
+		t.Equal(fields.At, "extend.go:40:")
 		t.End()
 	})
 }

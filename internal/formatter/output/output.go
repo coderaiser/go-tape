@@ -23,6 +23,8 @@ var (
 	reOperator = regexp.MustCompile(`^\s+operator:\s+(.+)`)
 	reNoise    = regexp.MustCompile(`^(=== RUN|--- FAIL:|--- PASS:|FAIL|PASS|ok\s)`)
 	reAtPrefix = regexp.MustCompile(`^\s+\S+\.go:\d+:\s*`)
+	// tape-internal guard messages that are secondary to the real failure
+	reTapeNoise = regexp.MustCompile(`^tape:\s`)
 	reANSI     = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 	// diff header lines emitted by diff.Diff
 	reDiffHeader = regexp.MustCompile(`^\s*[-+] (?:expected|received)\s*$`)
@@ -68,10 +70,15 @@ func ParseOutput(lines []string) OutputFields {
 		}
 
 		if m := reAt.FindStringSubmatch(clean); m != nil {
-			fields.At = m[1]
 			rest := reAtPrefix.ReplaceAllString(clean, "")
-			if rest != "" && rest != "\n" {
-				cutLines = append(cutLines, rest)
+			rest = strings.TrimRight(rest, "\n")
+			// skip tape-internal guard messages (e.g. "tape: t.End() not called")
+			if reTapeNoise.MatchString(rest) {
+				continue
+			}
+			fields.At = m[1]
+			if rest != "" {
+				cutLines = append(cutLines, rest+"\n")
 			}
 			continue
 		}

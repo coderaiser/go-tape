@@ -223,11 +223,11 @@ func TestTruncateOverLimit(t *testing.T) {
 	})
 }
 
-func TestStartReturnsTAPHeader(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: start returns TAP version 13 header", func(t *tape.T) {
+func TestStartReturnsEmpty(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: start returns empty string", func(t *tape.T) {
 		pb := New(10)
 		result := pb.Start(10)
-		t.Equal(result, "TAP version 13\n")
+		t.Equal(result, "")
 		t.End()
 	})
 }
@@ -283,9 +283,9 @@ func TestFailWithEqualValues(t *testing.T) {
 }
 
 func TestFailWithNoOperator(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail with no operator skips operator line", func(t *tape.T) {
+	tape.Test(t, "formatter-progress-bar: fail with no operator emits empty operator line", func(t *tape.T) {
 		result := failOutput(New(10), 1, "scope: x", "", "got", "want", "", "", "")
-		t.NotOk(strings.Contains(result, "operator:"))
+		t.Ok(strings.Contains(result, "operator: \n"))
 		t.End()
 	})
 }
@@ -307,10 +307,10 @@ func TestFailWithoutOperator(t *testing.T) {
 	})
 }
 
-func TestFailWithDiff(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail emits diff block", func(t *tape.T) {
+func TestFailWithExpectedResult(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail emits expected and result blocks", func(t *tape.T) {
 		result := failOutput(New(10), 1, "scope: x", "should equal", "got", "want", "", "", "")
-		t.Ok(strings.Contains(result, "diff: |-"))
+		t.Ok(strings.Contains(result, "expected: |-") && strings.Contains(result, "result: |-"))
 		t.End()
 	})
 }
@@ -440,7 +440,7 @@ func TestStartHidesCursorWhenShow(t *testing.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "1")
 		pb := New(10)
 		result := pb.Start(10)
-		t.Equal(result, "TAP version 13\n")
+		t.Equal(result, "")
 		t.End()
 	})
 }
@@ -450,7 +450,7 @@ func TestStartNoHideCursorWhenHidden(t *testing.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
 		pb := New(1000)
 		result := pb.Start(1000)
-		t.Equal(result, "TAP version 13\n")
+		t.Equal(result, "")
 		t.End()
 	})
 }
@@ -493,15 +493,15 @@ func TestOkLineJetBrains(t *testing.T) {
 	})
 }
 
-func TestFailGeneratedDiff(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail generates diff when output empty and values differ", func(t *tape.T) {
+func TestFailExpectedResultValues(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail shows expected value", func(t *tape.T) {
 		result := failOutput(New(10), 1, "scope: x", "equal", "hello", "world", "", "", "")
-		t.Ok(strings.Contains(result, "diff: |-"))
+		t.Ok(strings.Contains(result, "expected: |-\n      world\n"))
 		t.End()
 	})
-	tape.Test(t, "formatter-progress-bar: fail generated diff has minus line", func(t *tape.T) {
+	tape.Test(t, "formatter-progress-bar: fail shows result value", func(t *tape.T) {
 		result := failOutput(New(10), 1, "scope: x", "equal", "hello", "world", "", "", "")
-		t.Ok(strings.Contains(result, `- "world"`))
+		t.Ok(strings.Contains(result, "result: |-\n      hello\n"))
 		t.End()
 	})
 }
