@@ -284,6 +284,29 @@ func TestExtend(t *testing.T) {
 	})
 }
 
+func TestExtendFnSkipIsNoop(t *testing.T) {
+	Test(t, "tape: ExtendFn.Skip does not run the body", func(t *T) {
+		ran := false
+		ef := Extend(func(base *T) *T { return base })
+		ef.Skip(t.TB(), "tape: skip test", func(_ *T) { ran = true })
+		t.Equal(ran, false)
+		t.End()
+	})
+}
+
+func TestExtendFnOnlyRuns(t *testing.T) {
+	Test(t, "tape: ExtendFn.Only runs the body", func(t *T) {
+		ran := false
+		ef := Extend(func(base *T) *T { return base })
+		ef.Only(t.TB(), "tape: only test", func(inner *T) {
+			ran = true
+			inner.End()
+		})
+		t.Ok(ran)
+		t.End()
+	})
+}
+
 // -- internal helpers coverage --
 
 func TestAssertOneCleanup(t *testing.T) {

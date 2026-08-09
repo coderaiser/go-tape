@@ -11,9 +11,14 @@ import (
 )
 
 var (
-	mu    sync.Mutex
-	count = make(map[*testing.T]int)
+	mu       sync.Mutex
+	count    = make(map[*testing.T]int)
+	onlyName string
 )
+
+func setOnlyName(name string) {
+	onlyName = name
+}
 
 // assertOne resets the assertion counter for a test and removes it on cleanup.
 func assertOne(t *testing.T) {

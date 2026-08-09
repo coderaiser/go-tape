@@ -38,11 +38,24 @@ var BuiltinOperators = Operators{
 	Fail:         func(message string) Result { return toResult(operator.Fail(message)) },
 }
 
-// Extend[XT any] creates a test function that passes an extended T to fn.
-func Extend[XT any](factory func(*T) XT) func(*testing.T, string, func(XT)) {
-	return func(t *testing.T, name string, fn func(XT)) {
+// ExtendFn[XT] is the return type of Extend. Being a named type allows
+// .Skip() and .Only() to be attached, mirroring TestFn for extended T.
+type ExtendFn[XT any] func(t *testing.T, name string, fn func(XT))
+
+// Skip marks the subtest as skipped without running its body.
+func (f ExtendFn[XT]) Skip(_ *testing.T, _ string, _ func(XT)) {}
+
+// Only runs one subtest; all others are skipped via the onlyName guard.
+func (f ExtendFn[XT]) Only(t *testing.T, name string, fn func(XT)) {
+	setOnlyName(name)
+	f(t, name, fn)
+}
+
+// Extend creates a test function that passes an extended T to fn.
+func Extend[XT any](factory func(*T) XT) ExtendFn[XT] {
+	return ExtendFn[XT](func(t *testing.T, name string, fn func(XT)) {
 		Test(t, name, func(base *T) {
 			fn(factory(base))
 		})
-	}
+	})
 }
