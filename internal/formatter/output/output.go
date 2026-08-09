@@ -25,7 +25,7 @@ var (
 	reAtPrefix = regexp.MustCompile(`^\s+\S+\.go:\d+:\s*`)
 	// tape-internal guard messages that are secondary to the real failure
 	reTapeNoise = regexp.MustCompile(`^tape:\s`)
-	reANSI     = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	reANSI      = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 	// diff header lines emitted by diff.Diff
 	reDiffHeader = regexp.MustCompile(`^\s*[-+] (?:expected|received)\s*$`)
 	// diff content lines: start with "- " or "+ " (after stripping leading space+ANSI)
