@@ -169,6 +169,97 @@ func TestFindDuplicatesFound(t *testing.T) {
 	})
 }
 
+func TestFindDuplicatesReturnsLocations(t *testing.T) {
+	AstTest(t, "ast: FindDuplicates returns Duplicate with locations", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("foo_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFoo(t *testing.T) {
+				Test(t, "foo: bar", func(t *Test.T) { t.End() })
+				Test(t, "foo: bar", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		dups, err := tapeast.FindDuplicates(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		t.Ok(len(dups) == 1)
+		t.End()
+	})
+	AstTest(t, "ast: FindDuplicates locations count equals occurrences", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("foo_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFoo(t *testing.T) {
+				Test(t, "foo: bar", func(t *Test.T) { t.End() })
+				Test(t, "foo: bar", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		dups, err := tapeast.FindDuplicates(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		t.Ok(len(dups[0].Locations) == 2)
+		t.End()
+	})
+}
+
+func TestFindDuplicatesLocationFile(t *testing.T) {
+	AstTest(t, "ast: FindDuplicates Location.File is non-empty", func(t *AstT) {
+		dir := t.TB().TempDir()
+		writeFile(t.TB(), dir+"/a_test.go", `
+			package p
+			import "testing"
+			var Test = func(t *testing.T, name string, fn func()) {}
+			func TestA(t *testing.T) {
+				Test(t, "dup name", func() {})
+				Test(t, "dup name", func() {})
+			}
+		`)
+		dups, err := tapeast.FindDuplicates(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Ok(dups[0].Locations[0].File != "")
+		t.End()
+	})
+}
+
+func TestFindDuplicatesLocationLine(t *testing.T) {
+	AstTest(t, "ast: FindDuplicates Location.Line is non-zero", func(t *AstT) {
+		dir := t.TB().TempDir()
+		writeFile(t.TB(), dir+"/a_test.go", `
+			package p
+			import "testing"
+			var Test = func(t *testing.T, name string, fn func()) {}
+			func TestA(t *testing.T) {
+				Test(t, "dup name", func() {})
+				Test(t, "dup name", func() {})
+			}
+		`)
+		dups, err := tapeast.FindDuplicates(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Ok(dups[0].Locations[0].Line > 0)
+		t.End()
+	})
+}
+
 func TestFindOnlyCallsDir(t *testing.T) {
 	AstTest(t, "ast: FindOnlyCalls reads all go files in dir", func(t *AstT) {
 		dir := t.TB().TempDir()
@@ -508,9 +599,73 @@ func TestFindDuplicatesRecursive(t *testing.T) {
 			t.TB().Fatal(err)
 		}
 
-		expected := []string{"duplicate: name"}
+		t.Ok(len(dups) == 1)
+		t.End()
+	})
+	AstTest(t, "ast: FindDuplicates recursive returns correct name", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
 
-		t.DeepEqual(dups, expected)
+		fixture("root_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestRoot(t *testing.T) {
+				Test(t, "duplicate: name", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		fixture("sub/sub_test.go", `
+			package sub
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestSub(t *testing.T) {
+				Test(t, "duplicate: name", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		dups, err := tapeast.FindDuplicates(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		t.Ok(dups[0].Name == "duplicate: name")
+		t.End()
+	})
+	AstTest(t, "ast: FindDuplicates recursive returns two locations", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("root_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestRoot(t *testing.T) {
+				Test(t, "duplicate: name", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		fixture("sub/sub_test.go", `
+			package sub
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestSub(t *testing.T) {
+				Test(t, "duplicate: name", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		dups, err := tapeast.FindDuplicates(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		t.Ok(len(dups[0].Locations) == 2)
 		t.End()
 	})
 }

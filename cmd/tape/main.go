@@ -17,6 +17,7 @@ import (
 	tapeast "github.com/coderaiser/go-tape/internal/ast"
 	"github.com/coderaiser/go-tape/internal/config"
 	"github.com/coderaiser/go-tape/internal/formatter"
+	"github.com/coderaiser/go-tape/internal/formatter_tap"
 	"github.com/coderaiser/go-tape/internal/runner"
 	"github.com/coderaiser/go-tape/internal/state"
 	"github.com/coderaiser/go-tape/internal/tapeconfig"
@@ -131,10 +132,21 @@ func run(args []string, stdout, stderr io.Writer) int {
 			return 1
 		}
 		if len(dups) > 0 {
-			_, _ = fmt.Fprintf(stderr, "tape: duplicate test names found:\n")
+			f := formatter_tap.New()
+			count := 0
 			for _, d := range dups {
-				_, _ = fmt.Fprintf(stderr, "  %s\n", d)
+				first := d.Locations[0]
+				second := d.Locations[1]
+				firstURI := fmt.Sprintf("file://%s:%d:1", first.File, first.Line)
+				secondURI := fmt.Sprintf("file://%s:%d:1", second.File, second.Line)
+				message := fmt.Sprintf("Duplicate at %s", firstURI)
+				at := fmt.Sprintf("at %s", secondURI)
+				stack := fmt.Sprintf("Error: Duplicate at %s\n    at findDuplicates (tape)", firstURI)
+				count++
+				fmt.Fprint(stdout, f.Fail(count, message, "fail", nil, nil, "", at, stack))
 			}
+			fmt.Fprintf(stdout, "\n1..%d\n# tests %d\n# pass 0\n# fail %d\n\n",
+				count, count, count)
 			return 1
 		}
 	}

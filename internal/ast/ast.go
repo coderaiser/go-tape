@@ -18,6 +18,19 @@ type OnlyCall struct {
 	Name   string // name string argument
 }
 
+// Location is a file:line position for a test-name string literal.
+type Location struct {
+	File string // absolute path
+	Line int
+}
+
+// Duplicate holds a test name that appears more than once and the file/line
+// of each occurrence.
+type Duplicate struct {
+	Name      string
+	Locations []Location
+}
+
 // CountTests returns total tape.Test + tape.Only + tape.Skip calls in dir.
 func CountTests(dir string, exclude []string) (int, error) {
 	total := 0
@@ -33,25 +46,43 @@ func CountTests(dir string, exclude []string) (int, error) {
 }
 
 // FindDuplicates returns test names appearing more than once in dir.
-func FindDuplicates(dir string, exclude []string) ([]string, error) {
-	seen := make(map[string]int)
-	err := walkFiles(dir, exclude, func(src string) error {
-		names, err := findCallNames(src, "Test", "Only", "Skip")
+func FindDuplicates(dir string, exclude []string) ([]Duplicate, error) {
+	seen := make(map[string][]Location)
+	err := walkFilesWithPath(dir, exclude, func(path, src string) error {
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, path, src, 0)
 		if err != nil {
 			return err
 		}
-		for _, n := range names {
-			seen[n]++
-		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			matched := isTestCall(call) ||
+				isTestMethodCall(call, "Only") ||
+				isTestMethodCall(call, "Skip")
+			if matched && len(call.Args) >= 2 {
+				if lit, ok := call.Args[1].(*ast.BasicLit); ok {
+					name := strings.Trim(lit.Value, `"`)
+					pos := fset.Position(lit.Pos())
+					seen[name] = append(seen[name], Location{
+						File: pos.Filename,
+						Line: pos.Line,
+					})
+				}
+			}
+			return true
+		})
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	var dups []string
-	for name, count := range seen {
-		if count > 1 {
-			dups = append(dups, name)
+	var dups []Duplicate
+	for name, locs := range seen {
+		if len(locs) > 1 {
+			dups = append(dups, Duplicate{Name: name, Locations: locs})
 		}
 	}
 	return dups, nil
@@ -225,6 +256,43 @@ func walkFiles(dir string, exclude []string, fn func(string) error) error {
 		}
 
 		return fn(string(src))
+	})
+}
+
+// walkFilesWithPath is like walkFiles but passes the absolute file path as the
+// first argument to fn.
+func walkFilesWithPath(dir string, exclude []string, fn func(string, string) error) error {
+	return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			if isExcludedDir(path, exclude) {
+				return fs.SkipDir
+			}
+			return nil
+		}
+
+		if filepath.Ext(path) != ".go" {
+			return nil
+		}
+
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			return err
+		}
+
+		src, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		if hasBuildIgnore(string(src)) {
+			return nil
+		}
+
+		return fn(abs, string(src))
 	})
 }
 
