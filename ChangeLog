@@ -1,3 +1,8 @@
+2026.08.09, v1.3.6
+
+fix:
+- 235532a output: parse operator from reAt rest line
+
 2026.08.09, v1.3.5
 
 fix:
