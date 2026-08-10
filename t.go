@@ -49,7 +49,7 @@ func (tt *T) Report(r Result) {
 			Output:   r.Output,
 		})
 		tt.t.Log("TAPE:" + string(b)) // structured sentinel — for stream parser
-		tt.t.Fail()                    // marks test failed — no freeform text
+		tt.t.Fail()                   // marks test failed — no freeform text
 	}
 }
 
