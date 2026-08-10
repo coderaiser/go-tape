@@ -1,6 +1,7 @@
 package tape
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -34,8 +35,21 @@ func (tt *T) Setenv(key, value string) {
 func (tt *T) Report(r Result) {
 	tt.t.Helper()
 	if !r.Ok {
-		tt.t.Errorf("operator: %s\nexpected: %v\nresult: %v\n%s",
-			r.Message, r.Expected, r.Result, r.Output)
+		b, _ := json.Marshal(struct {
+			Message  string `json:"message"`
+			Operator string `json:"operator"`
+			Result   any    `json:"result"`
+			Expected any    `json:"expected"`
+			Output   string `json:"output"`
+		}{
+			Message:  r.Message,
+			Operator: r.Message,
+			Result:   r.Result,
+			Expected: r.Expected,
+			Output:   r.Output,
+		})
+		tt.t.Log("TAPE:" + string(b)) // structured sentinel — for stream parser
+		tt.t.Fail()                    // marks test failed — no freeform text
 	}
 }
 
