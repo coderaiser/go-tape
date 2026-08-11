@@ -102,23 +102,56 @@ func FindOnlyCalls(dir string, exclude []string) ([]OnlyCall, error) {
 	return all, err
 }
 
+// funcSpan is the position range of a top-level TestXxx function declaration.
+type funcSpan struct {
+	name  string
+	start token.Pos
+	end   token.Pos
+}
+
 // FindOnlyCallsInSource parses Go source and returns Only calls.
 // Pure — no I/O. Used directly in tests.
+//
+// Parent lookup uses position spans rather than traversal order, so Only calls
+// inside anonymous function literals are attributed to the correct enclosing
+// TestXxx function.
 func FindOnlyCallsInSource(src string) ([]OnlyCall, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, "src.go", src, 0)
 	if err != nil {
 		return nil, err
 	}
-	var calls []OnlyCall
-	var currentFunc string
-	ast.Inspect(f, func(n ast.Node) bool {
-		if fn, ok := n.(*ast.FuncDecl); ok {
-			if fn.Name != nil && strings.HasPrefix(fn.Name.Name, "Test") {
-				currentFunc = fn.Name.Name
-			}
-			return true
+
+	// First pass: collect position spans of all top-level TestXxx functions.
+	var spans []funcSpan
+	for _, decl := range f.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Name == nil || fn.Body == nil {
+			continue
 		}
+		if strings.HasPrefix(fn.Name.Name, "Test") {
+			spans = append(spans, funcSpan{
+				name:  fn.Name.Name,
+				start: fn.Pos(),
+				end:   fn.End(),
+			})
+		}
+	}
+
+	// parentOf returns the TestXxx function name whose span contains pos,
+	// or "" if none does.
+	parentOf := func(pos token.Pos) string {
+		for _, s := range spans {
+			if pos >= s.start && pos <= s.end {
+				return s.name
+			}
+		}
+		return ""
+	}
+
+	// Second pass: find all Only calls and look up their parent by position.
+	var calls []OnlyCall
+	ast.Inspect(f, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)
 		if !ok {
 			return true
@@ -129,7 +162,8 @@ func FindOnlyCallsInSource(src string) ([]OnlyCall, error) {
 		if len(call.Args) >= 2 {
 			if lit, ok := call.Args[1].(*ast.BasicLit); ok {
 				name := strings.Trim(lit.Value, `"`)
-				calls = append(calls, OnlyCall{Parent: currentFunc, Name: name})
+				parent := parentOf(call.Pos())
+				calls = append(calls, OnlyCall{Parent: parent, Name: name})
 			}
 		}
 		return true

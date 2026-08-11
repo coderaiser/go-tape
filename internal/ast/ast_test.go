@@ -1130,6 +1130,107 @@ func TestFindOnlyCallsSkipsExcludedDirs(t *testing.T) {
 	})
 }
 
+func TestFindOnlyCallsInsideAnonFunc(t *testing.T) {
+	AstTest(t, "ast: Only inside anonymous func literal is attributed to enclosing TestXxx", func(t *AstT) {
+		src := `
+			package foo
+
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+
+			func TestFoo(t *testing.T) {
+				setup := func() {
+					Test.Only(t, "foo: inside anon", func(t *Test.T) { t.End() })
+				}
+				setup()
+			}
+		`
+		calls, err := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.DeepEqual(calls, []tapeast.OnlyCall{
+			{Parent: "TestFoo", Name: "foo: inside anon"},
+		})
+		t.End()
+	})
+}
+
+func TestFindOnlyCallsCrossFuncSpans(t *testing.T) {
+	AstTest(t, "ast: Only calls in different TestXxx functions each get correct parent", func(t *AstT) {
+		src := `
+			package foo
+
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+
+			func TestAlpha(t *testing.T) {
+				Test.Only(t, "alpha: one", func(t *Test.T) { t.End() })
+			}
+
+			func TestBeta(t *testing.T) {
+				Test.Only(t, "beta: one", func(t *Test.T) { t.End() })
+			}
+		`
+		calls, err := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.DeepEqual(calls, []tapeast.OnlyCall{
+			{Parent: "TestAlpha", Name: "alpha: one"},
+			{Parent: "TestBeta", Name: "beta: one"},
+		})
+		t.End()
+	})
+}
+
+func TestFindOnlyCallsOutsideTestFunc(t *testing.T) {
+	AstTest(t, "ast: Only call outside any TestXxx gets empty parent", func(t *AstT) {
+		src := `
+			package foo
+
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+
+			func helper(t *testing.T) {
+				Test.Only(t, "foo: orphan", func(t *Test.T) { t.End() })
+			}
+		`
+		calls, err := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 1)
+		t.End()
+	})
+	AstTest(t, "ast: Only call outside any TestXxx has empty Parent", func(t *AstT) {
+		src := `
+			package foo
+
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+
+			func helper(t *testing.T) {
+				Test.Only(t, "foo: orphan", func(t *Test.T) { t.End() })
+			}
+		`
+		calls, err := tapeast.FindOnlyCallsInSource(dedent.Dedent(src))
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(calls[0].Parent, "")
+		t.End()
+	})
+}
+
 func TestIsExcludedDirMatchesExactName(t *testing.T) {
 	AstTest(t, "ast: isExcludedDir matches exact name", func(t *AstT) {
 		t.Ok(tapeast.IsExcludedDir("fixture", []string{"fixture"}))
