@@ -1,57 +1,83 @@
 package formatter_fail_test
 
 import (
-	"regexp"
 	"testing"
 
-	tape "github.com/coderaiser/go-tape"
+	. "github.com/coderaiser/go-tape"
 	"github.com/coderaiser/go-tape/internal/formatter_fail"
+	"github.com/coderaiser/go-tape/internal/stream"
 )
 
-func TestFailFormatterTestStoresName(t *testing.T) {
-	tape.Test(t, "formatter-fail: Test stores current test name", func(t *tape.T) {
+func TestFailFormatterTestEndSuppressed(t *testing.T) {
+	Test(t, "formatter-fail: test-end event returns empty (passing suppressed)", func(t *T) {
 		f := formatter_fail.New()
-		result := f.Test("scope: foo")
+		result := f.Event(stream.Event{Type: stream.TypeTestEnd, Test: "scope: foo", Count: 1})
 		t.Equal(result, "")
 		t.End()
 	})
 }
 
-func TestFailFormatterFailWithCurrentTest(t *testing.T) {
-	tape.Test(t, "formatter-fail: Fail prepends current test name", func(t *tape.T) {
+func TestFailFormatterTestEndStoresName(t *testing.T) {
+	Test(t, "formatter-fail: fail after test-end prepends stored test name", func(t *T) {
 		f := formatter_fail.New()
-		f.Test("scope: foo")
-		result := f.Fail(1, "scope: foo", "Equal", "got", "want", "", "", "")
+		f.Event(stream.Event{Type: stream.TypeTestEnd, Test: "scope: foo", Count: 1})
+		result := f.Event(stream.Event{
+			Type: stream.TypeFail, Test: "scope: foo", Count: 2,
+			Operator: "Equal", Result: "got", Expected: "want",
+		})
 		t.Match(result, "# scope: foo")
 		t.End()
 	})
 }
 
-func TestFailFormatterAlwaysPrependsTestName(t *testing.T) {
-	tape.Test(t, "formatter-fail: Fail always prepends test name (even when empty)", func(t *tape.T) {
+func TestFailFormatterFailPrependsEmptyWhenNoTestEnd(t *testing.T) {
+	Test(t, "formatter-fail: fail prepends header even when no prior test-end", func(t *T) {
 		f := formatter_fail.New()
-		// no prior Test() call — currentTest is ""
-		result := f.Fail(1, "scope: foo", "Equal", "got", "want", "", "", "")
-		t.Match(result, regexp.MustCompile(`^# `))
+		result := f.Event(stream.Event{
+			Type: stream.TypeFail, Test: "scope: foo", Count: 1,
+			Operator: "Equal", Result: "got", Expected: "want",
+		})
+		t.Match(result, "# \n")
 		t.End()
 	})
 }
 
 func TestFailFormatterKeepsErrorStack(t *testing.T) {
-	tape.Test(t, "formatter-fail: Fail includes error stack (not stripped like formatter-short)", func(t *tape.T) {
+	Test(t, "formatter-fail: fail keeps error stack (not stripped like short)", func(t *T) {
 		f := formatter_fail.New()
-		f.Test("scope: foo")
-		result := f.Fail(1, "scope: foo", "Equal", "got", "want", "", "", "my stack trace")
+		result := f.Event(stream.Event{
+			Type:       stream.TypeFail,
+			Test:       "scope: foo",
+			Count:      1,
+			Operator:   "Equal",
+			Result:     "got",
+			Expected:   "want",
+			ErrorStack: "my stack trace",
+		})
 		t.Match(result, "my stack trace")
 		t.End()
 	})
 }
 
-func TestFailFormatterSuccessReturnsEmpty(t *testing.T) {
-	tape.Test(t, "formatter-fail: Success suppresses passing test output", func(t *tape.T) {
+func TestFailFormatterUnknownFail(t *testing.T) {
+	Test(t, "formatter-fail: unknown-fail event includes raw output", func(t *T) {
 		f := formatter_fail.New()
-		result := f.Success(1, "scope: foo")
-		t.Equal(result, "")
+		result := f.Event(stream.Event{
+			Type:   stream.TypeUnknownFail,
+			Test:   "scope: foo",
+			Count:  1,
+			Output: "panic: boom\n",
+		})
+		t.Match(result, "panic: boom")
+		t.End()
+	})
+}
+
+func TestFailFormatterEndDelegates(t *testing.T) {
+	Test(t, "formatter-fail: End delegates to tap", func(t *T) {
+		f := formatter_fail.New()
+		result := f.End(3, 1, 0)
+		t.Match(result, "# fail 1")
 		t.End()
 	})
 }
