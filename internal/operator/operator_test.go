@@ -24,6 +24,54 @@ func TestEqualFail(t *testing.T) {
 	})
 }
 
+func TestEqualSlicesSameContent(t *testing.T) {
+	Test(t, "operator: Equal fails for slices with same content", func(t *T) {
+		result := operator.Equal([]int{1}, []int{1})
+		t.NotOk(result.Ok)
+		t.End()
+	})
+}
+
+func TestEqualSlicesSameContentOutput(t *testing.T) {
+	Test(t, "operator: Equal emits 'values not equal, but deepEqual' for matching slices", func(t *T) {
+		result := operator.Equal([]int{1}, []int{1})
+		t.Equal(result.Output, "values not equal, but deepEqual")
+		t.End()
+	})
+}
+
+func TestEqualEmptySlices(t *testing.T) {
+	Test(t, "operator: Equal fails for two empty slices", func(t *T) {
+		result := operator.Equal([]int{}, []int{})
+		t.NotOk(result.Ok)
+		t.End()
+	})
+}
+
+func TestEqualEmptySlicesOutput(t *testing.T) {
+	Test(t, "operator: Equal emits 'values not equal, but deepEqual' for two empty slices", func(t *T) {
+		result := operator.Equal([]int{}, []int{})
+		t.Equal(result.Output, "values not equal, but deepEqual")
+		t.End()
+	})
+}
+
+func TestEqualNilNil(t *testing.T) {
+	Test(t, "operator: Equal passes for nil == nil", func(t *T) {
+		result := operator.Equal(nil, nil)
+		t.Ok(result.Ok)
+		t.End()
+	})
+}
+
+func TestEqualStringsDiff(t *testing.T) {
+	Test(t, "operator: Equal fails with diff for different strings", func(t *T) {
+		result := operator.Equal("a", "b")
+		t.NotOk(result.Ok)
+		t.End()
+	})
+}
+
 func TestNotEqualPass(t *testing.T) {
 	Test(t, "operator: NotEqual returns ok for different primitives", func(t *T) {
 		result := operator.NotEqual(1, 2)

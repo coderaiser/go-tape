@@ -18,14 +18,34 @@ type Result struct {
 	At       string // source location (filled by T.Report, not operator)
 }
 
-// Equal asserts result == expected using reflect.DeepEqual.
+// Equal asserts result == expected using identity (==).
+// If identity fails but the values are deeply equal, the test still fails
+// with the message "values not equal, but deepEqual" — matching supertape's
+// equal semantics. Use DeepEqual for structural comparison of slices/maps.
 func Equal(result, expected any) Result {
-	ok := reflect.DeepEqual(result, expected)
+	ok := isComparable(result) && isComparable(expected) && result == expected
 	out := ""
 	if !ok {
-		out = diff.Diff(expected, result)
+		if reflect.DeepEqual(result, expected) {
+			out = "values not equal, but deepEqual"
+		} else {
+			out = diff.Diff(expected, result)
+		}
 	}
 	return Result{Ok: ok, Message: "should equal", Result: result, Expected: expected, Output: out}
+}
+
+// isComparable reports whether v can be compared with ==.
+// Slices, maps, and funcs are not comparable and must use DeepEqual.
+func isComparable(v any) bool {
+	if v == nil {
+		return true
+	}
+	switch reflect.TypeOf(v).Kind() {
+	case reflect.Slice, reflect.Map, reflect.Func:
+		return false
+	}
+	return true
 }
 
 // NotEqual asserts result != expected for primitives and pointers.
