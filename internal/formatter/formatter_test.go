@@ -110,7 +110,6 @@ func TestNewCITrueForcesFail(t *testing.T) {
 	})
 }
 
-
 func TestEmitTestEnd(t *testing.T) {
 	Test(t, "formatter: Emit test-end writes output", func(t *T) {
 		t.TB().Setenv("CI", "false")

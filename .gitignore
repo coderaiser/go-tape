@@ -3,11 +3,10 @@
 *.lock
 *.out
 *.lcov
+*.html
 
 .idea
 .DS_Store
-
-*.html
 
 node_modules
 /tape
