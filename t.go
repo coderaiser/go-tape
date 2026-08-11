@@ -2,9 +2,6 @@ package tape
 
 import (
 	"encoding/json"
-	"fmt"
-	"reflect"
-	"regexp"
 	"testing"
 
 	"github.com/coderaiser/go-tape/internal/operator"
@@ -43,7 +40,7 @@ func (tt *T) Report(r Result) {
 			Output   string `json:"output"`
 		}{
 			Message:  r.Message,
-			Operator: r.Message,
+			Operator: r.Operator,
 			Result:   r.Result,
 			Expected: r.Expected,
 			Output:   r.Output,
@@ -52,7 +49,6 @@ func (tt *T) Report(r Result) {
 		tt.t.Fail()                   // marks test failed — no freeform text
 	}
 }
-
 
 // ReportCustom records a custom operator result and counts it against the
 // one-assertion-per-block guard. Extension packages use it to report named
@@ -167,31 +163,4 @@ func (tt *T) Comment(message string) {
 // Required when TAPE_CHECK_END is enabled (default: on).
 func (tt *T) End() {
 	tt.ended = true
-}
-
-// toRegexp is kept for backward compatibility with tests.
-func toRegexp(pattern any) (*regexp.Regexp, error) {
-	switch p := pattern.(type) {
-	case *regexp.Regexp:
-		return p, nil
-	case string:
-		return regexp.Compile(p)
-	default:
-		return nil, fmt.Errorf("pattern must be string or *regexp.Regexp, got %T", pattern)
-	}
-}
-
-// isPrimitive is kept for backward compatibility with tests.
-func isPrimitive(v any) bool {
-	switch v.(type) {
-	case bool,
-		int, int8, int16, int32, int64,
-		uint, uint8, uint16, uint32, uint64,
-		float32, float64,
-		complex64, complex128,
-		string, uintptr:
-		return true
-	}
-	t := reflect.TypeOf(v)
-	return t != nil && t.Kind() == reflect.Pointer
 }

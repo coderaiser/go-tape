@@ -3,7 +3,6 @@ package tape
 import (
 	"errors"
 	"os"
-	"regexp"
 	"testing"
 )
 
@@ -195,20 +194,6 @@ func TestTestOnlyMethod(t *testing.T) {
 
 // -- helpers --
 
-func TestHelperIsPrimitive(t *testing.T) {
-	Test(t, "tape: isPrimitive true for int", func(t *T) {
-		t.Ok(isPrimitive(42))
-		t.End()
-	})
-}
-
-func TestHelperIsNotPrimitive(t *testing.T) {
-	Test(t, "tape: isPrimitive false for slice", func(t *T) {
-		t.NotOk(isPrimitive([]int{1}))
-		t.End()
-	})
-}
-
 func TestHelperTruthy(t *testing.T) {
 	Test(t, "tape: Ok true for true", func(t *T) {
 		t.Ok(true)
@@ -377,23 +362,6 @@ func TestTEqualPointer(t *testing.T) {
 	})
 }
 
-// -- isPrimitive coverage --
-
-func TestIsPrimitivePointer(t *testing.T) {
-	x := 42
-	Test(t, "tape: isPrimitive true for pointer", func(tt *T) {
-		tt.Ok(isPrimitive(&x))
-		tt.End()
-	})
-}
-
-func TestIsPrimitiveNil(t *testing.T) {
-	Test(t, "tape: isPrimitive false for nil", func(tt *T) {
-		tt.NotOk(isPrimitive(nil))
-		tt.End()
-	})
-}
-
 // -- truthy coverage via t.Ok / t.NotOk --
 
 func TestTruthyNil(t *testing.T) {
@@ -422,22 +390,6 @@ func TestTruthyDefault(t *testing.T) {
 		tt.Ok(struct{}{})
 		tt.End()
 	})
-}
-
-// -- toRegexp coverage --
-
-func TestToRegexpInvalidRegex(t *testing.T) {
-	_, err := toRegexp("[invalid")
-	if err == nil {
-		t.Fatal("expected error for invalid regex")
-	}
-}
-
-func TestToRegexpInvalidType(t *testing.T) {
-	_, err := toRegexp(42)
-	if err == nil {
-		t.Fatal("expected error for invalid type")
-	}
 }
 
 func TestOnlyRuns(t *testing.T) {
@@ -485,16 +437,5 @@ func TestTestOnlyCallsFnDirectly(t *testing.T) {
 	})
 	if !ran {
 		t.Fatal("Test did not call fn")
-	}
-}
-
-func TestToRegexpWithRegexpType(t *testing.T) {
-	re := regexp.MustCompile("hello")
-	got, err := toRegexp(re)
-	if err != nil {
-		t.Fatal("unexpected error")
-	}
-	if got != re {
-		t.Fatal("expected same regexp")
 	}
 }
