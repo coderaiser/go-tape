@@ -118,7 +118,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if flags.NArg() > 0 {
 		path = flags.Arg(0)
 	}
-	dir := "."
+	dir := dirFromPattern(path)
 
 	tcfg := tapeconfig.Load(dir)
 	exclude := tcfg.Test.Exclude
@@ -137,12 +137,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 				second := d.Locations[1]
 				firstURI := fmt.Sprintf("file://%s:%d:1", first.File, first.Line)
 				secondURI := fmt.Sprintf("file://%s:%d:1", second.File, second.Line)
-				message := fmt.Sprintf("Duplicate at %s", firstURI)
-				at := fmt.Sprintf("at %s", secondURI)
-				stack := fmt.Sprintf("Error: Duplicate at %s\n    at findDuplicates (tape)", firstURI)
+				message := fmt.Sprintf("duplicate test name: %q", d.Name)
+				at := fmt.Sprintf("at %s (first)\n    at %s (second)", firstURI, secondURI)
+				stack := fmt.Sprintf("Error: duplicate test name: %q\n    at findDuplicates (tape)", d.Name)
 				fmt.Fprint(stdout, f.Event(stream.Event{
 					Type:       stream.TypeFail,
 					Count:      i + 1,
+					Test:       d.Name,
 					Message:    message,
 					Operator:   "fail",
 					At:         at,
@@ -197,6 +198,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	var lastCount, lastFailed int
 	buildFailed := 0
+	var buildErrors []stream.Event
 
 	for e := range ch {
 		if e.Type == stream.TypeTestEnd {
@@ -205,6 +207,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 		if e.Type == stream.TypeBuildError {
 			buildFailed++
+			buildErrors = append(buildErrors, e)
 		}
 		d.Emit(e)
 	}
@@ -256,7 +259,14 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 
-	if lastFailed > 0 || buildFailed > 0 {
+	if buildFailed > 0 {
+		_, _ = fmt.Fprintf(stderr, "tape: build failed — tests did not run\n\n")
+		for _, e := range buildErrors {
+			_, _ = fmt.Fprintf(stderr, "  %s:\n%s\n", e.Package, e.Output)
+		}
+		return 1
+	}
+	if lastFailed > 0 {
 		return 1
 	}
 	if config.CheckSkipped() && skipped > 0 {

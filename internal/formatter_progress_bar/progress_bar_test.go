@@ -452,3 +452,28 @@ func TestFailExpectedResultValues(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestProgressBarBuildError(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: build-error appears in End output", func(t *tape.T) {
+		f := New(0)
+		f.Event(stream.Event{
+			Type:    stream.TypeBuildError,
+			Package: "example.com/foo",
+			Output:  "foo.go:5:2: declared and not used: x\n",
+		})
+		out := f.End(0, 0, 0)
+		t.Match(out, "build-error")
+		t.End()
+	})
+	tape.Test(t, "formatter-progress-bar: build-error output contains package name", func(t *tape.T) {
+		f := New(0)
+		f.Event(stream.Event{
+			Type:    stream.TypeBuildError,
+			Package: "example.com/foo",
+			Output:  "foo.go:5:2: declared and not used: x\n",
+		})
+		out := f.End(0, 0, 0)
+		t.Match(out, "example.com/foo")
+		t.End()
+	})
+}

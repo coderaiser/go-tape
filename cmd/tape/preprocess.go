@@ -54,3 +54,14 @@ func preprocess(args []string) (coverageOpts, []string) {
 	}
 	return opts, rest
 }
+
+// dirFromPattern derives the filesystem directory to scan from a go test
+// package pattern. "./..." and "." both map to ".".
+// "./internal/foo/..." maps to "./internal/foo".
+func dirFromPattern(path string) string {
+	dir := strings.TrimSuffix(path, "/...")
+	if dir == "" || dir == "." || dir == "./..." {
+		return "."
+	}
+	return dir
+}

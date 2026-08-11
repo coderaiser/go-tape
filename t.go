@@ -53,9 +53,9 @@ func (tt *T) Report(r Result) {
 	}
 }
 
-// report adapts an internal operator.Result to the public Report surface.
+// report calls Report directly — operator.Result and tape.Result are the same type.
 func (tt *T) report(r operator.Result) {
-	tt.Report(toResult(r))
+	tt.Report(r)
 }
 
 // ReportCustom records a custom operator result and counts it against the
