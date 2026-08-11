@@ -4,8 +4,11 @@ import (
 	"fmt"
 
 	"github.com/coderaiser/go-tape/internal/formatter_tap"
+	"github.com/coderaiser/go-tape/internal/stream"
 )
 
+// FailFormatter suppresses passing test output and prepends the test name
+// to every fail block (used in CI mode).
 type FailFormatter struct {
 	*formatter_tap.TAPFormatter
 	currentTest string
@@ -15,19 +18,16 @@ func New() *FailFormatter {
 	return &FailFormatter{TAPFormatter: formatter_tap.New()}
 }
 
-func (f *FailFormatter) Test(name string) string {
-	f.currentTest = name
-	return ""
-}
-
-// Success suppresses passing test output — formatter-fail only shows failures.
-func (f *FailFormatter) Success(count int, message string) string {
-	return ""
-}
-
-// Fail always prepends the current test name and delegates to TAPFormatter
-// (keeping the full error stack, unlike formatter-short which strips it).
-func (f *FailFormatter) Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string {
-	return fmt.Sprintf("# %s\n", f.currentTest) +
-		f.TAPFormatter.Fail(count, message, operator, result, expected, output, at, errorStack)
+// Event stores the current test name and suppresses passing output.
+func (f *FailFormatter) Event(e stream.Event) string {
+	switch e.Type {
+	case stream.TypeTestEnd:
+		f.currentTest = e.Test
+		return "" // suppress passing output
+	case stream.TypeFail, stream.TypeUnknownFail:
+		header := fmt.Sprintf("# %s\n", f.currentTest)
+		return header + f.TAPFormatter.Event(e)
+	default:
+		return f.TAPFormatter.Event(e)
+	}
 }

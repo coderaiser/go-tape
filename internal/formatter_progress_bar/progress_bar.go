@@ -5,6 +5,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/coderaiser/go-tape/internal/stream"
 )
 
 const (
@@ -58,96 +60,86 @@ func New(total int) *ProgressBarFormatter {
 	}
 }
 
-func (f *ProgressBarFormatter) Start(total int) string {
-	if f.show {
-		fmt.Fprint(os.Stderr, "\033[?25l")
-	}
-	// buffer TAP version header — flushed at End() just like supertape's out() buffer
-	f.out.WriteString("TAP version 13\n")
-	return ""
-}
-
-func (f *ProgressBarFormatter) Test(name string) string { return "" }
-
-func (f *ProgressBarFormatter) TestEnd(count, total, failed int, name string) string {
-	if !f.show {
-		return ""
-	}
-
-	failStr := okEmoji
-	if failed > 0 {
-		failStr = fmt.Sprintf("\033[31m%d\033[0m", failed)
-	}
-	bar := renderBar(count, total, f.Color)
-	pct := 0
-	if total > 0 {
-		pct = count * 100 / total
-		if pct > 100 {
-			pct = 100
+// Event dispatches on e.Type. Fail blocks are buffered; other types are no-ops
+// for the progress-bar formatter (it shows progress on stderr, TAP on stdout).
+func (f *ProgressBarFormatter) Event(e stream.Event) string {
+	switch e.Type {
+	case stream.TypeTestEnd:
+		// drive the progress bar on stderr
+		if f.show {
+			failStr := okEmoji
+			if e.Failed > 0 {
+				failStr = fmt.Sprintf("\033[31m%d\033[0m", e.Failed)
+			}
+			bar := renderBar(e.Count, e.Total, f.Color)
+			pct := 0
+			if e.Total > 0 {
+				pct = e.Count * 100 / e.Total
+				if pct > 100 {
+					pct = 100
+				}
+			}
+			displayTotal := e.Total
+			if e.Count > displayTotal {
+				displayTotal = e.Count
+			}
+			truncName := truncate(e.Test, 40)
+			line := fmt.Sprintf("%s %d%% | %s | %d/%d | %s", bar, pct, failStr, e.Count, displayTotal, truncName)
+			width := termWidth()
+			if visibleLen(line) > width {
+				line = truncateANSI(line, width)
+			}
+			fmt.Fprintf(os.Stderr, "\r%s", line)
 		}
+		return ""
+
+	case stream.TypeFail, stream.TypeUnknownFail:
+		// buffer for flush in End
+		var sb strings.Builder
+		fmt.Fprintf(&sb, "\n# %s\n", e.Test)
+		fmt.Fprintf(&sb, "%s not ok %d %s\n", failEmoji, e.Count, e.Test)
+		sb.WriteString("  ---\n")
+		fmt.Fprintf(&sb, "    operator: %s\n", e.Operator)
+		if e.Output != "" {
+			sb.WriteString(e.Output)
+		} else {
+			fmt.Fprintf(&sb, "    expected: |-\n      %v\n", e.Expected)
+			fmt.Fprintf(&sb, "    result: |-\n      %v\n", e.Result)
+		}
+		if e.At != "" {
+			fmt.Fprintf(&sb, "    %s\n", e.At)
+		}
+		if f.stackEnv != "0" && e.ErrorStack != "" {
+			fmt.Fprintf(&sb, "    stack: |-\n%s\n", e.ErrorStack)
+		}
+		sb.WriteString("  ...\n")
+		sb.WriteString("\n")
+		f.out.WriteString(sb.String())
+		return ""
+
+	case stream.TypeComment:
+		return fmt.Sprintf("# %s\n", e.Message)
 	}
-	displayTotal := total
-	if count > displayTotal {
-		displayTotal = count
-	}
-	truncName := truncate(name, 40)
-	line := fmt.Sprintf("%s %d%% | %s | %d/%d | %s", bar, pct, failStr, count, displayTotal, truncName)
-	width := termWidth()
-	if visibleLen(line) > width {
-		line = truncateANSI(line, width)
-	}
-	fmt.Fprintf(os.Stderr, "\r%s", line)
 	return ""
 }
 
-func (f *ProgressBarFormatter) Success(count int, message string) string { return "" }
-
-func (f *ProgressBarFormatter) Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string {
-	var sb strings.Builder
-	// blank line before the block, then scope comment, then not-ok line
-	fmt.Fprintf(&sb, "\n# %s\n", message)
-	fmt.Fprintf(&sb, "%s not ok %d %s\n", failEmoji, count, message)
-	sb.WriteString("  ---\n")
-	fmt.Fprintf(&sb, "    operator: %s\n", operator)
-	if output != "" {
-		sb.WriteString(output)
-	} else {
-		fmt.Fprintf(&sb, "    expected: |-\n      %v\n", expected)
-		fmt.Fprintf(&sb, "    result: |-\n      %v\n", result)
-	}
-	fmt.Fprintf(&sb, "    %s\n", at)
-	if f.stackEnv != "0" && errorStack != "" {
-		fmt.Fprintf(&sb, "    stack: |-\n%s\n", errorStack)
-	}
-	sb.WriteString("  ...\n")
-	sb.WriteString("\n")
-	f.out.WriteString(sb.String())
-	return ""
-}
-
-func (f *ProgressBarFormatter) Comment(message string) string {
-	return fmt.Sprintf("# %s\n", message)
-}
-
-func (f *ProgressBarFormatter) End(count, passed, failed, skipped int) string {
+// End clears the progress bar and flushes all buffered output + summary.
+func (f *ProgressBarFormatter) End(passed, failed, skipped int) string {
 	if f.show {
 		fmt.Fprintf(os.Stderr, "\r\033[2K\033[?25h")
 	}
 
-	// collect all buffered lines (fail blocks + summary) joined with \n,
-	// matching supertape's out() buffer which uses join('\n')
 	lines := []string{}
-
-	// flush buffered fail output — split on \n, drop trailing empty
+	// flush buffered fail output
 	if s := f.out.String(); s != "" {
 		parts := strings.Split(strings.TrimRight(s, "\n"), "\n")
 		lines = append(lines, parts...)
 	}
 
-	// summary block — mirrors supertape end() out() calls exactly
+	total := passed + failed + skipped
 	lines = append(lines, "")
-	lines = append(lines, fmt.Sprintf("1..%d", count))
-	lines = append(lines, fmt.Sprintf("# tests %d", count))
+	lines = append(lines, fmt.Sprintf("1..%d", total))
+	lines = append(lines, fmt.Sprintf("# tests %d", total))
 	lines = append(lines, fmt.Sprintf("# pass %d", passed))
 	if skipped > 0 {
 		lines = append(lines, fmt.Sprintf("# %s skip %d", skipEmoji, skipped))
@@ -162,8 +154,6 @@ func (f *ProgressBarFormatter) End(count, passed, failed, skipped int) string {
 	lines = append(lines, "")
 
 	result := strings.Join(lines, "\n")
-	// prepend \r so the first line overwrites the cleared bar position,
-	// matching supertape's `return \`\r${out()}\``
 	if f.show {
 		return "\r" + result
 	}

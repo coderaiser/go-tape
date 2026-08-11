@@ -6,69 +6,40 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/coderaiser/go-tape/internal/formatter/output"
 	"github.com/coderaiser/go-tape/internal/formatter_fail"
 	"github.com/coderaiser/go-tape/internal/formatter_json_lines"
 	"github.com/coderaiser/go-tape/internal/formatter_progress_bar"
 	"github.com/coderaiser/go-tape/internal/formatter_short"
 	"github.com/coderaiser/go-tape/internal/formatter_tap"
 	"github.com/coderaiser/go-tape/internal/formatter_time"
-	"github.com/coderaiser/go-tape/internal/model"
+	"github.com/coderaiser/go-tape/internal/stream"
 )
 
-// testLabel converts a go test -json Test field like
-// "TestFoo/scope:_bar_baz" into a clean label "scope: bar baz".
-func testLabel(test string) string {
-	if i := strings.LastIndex(test, "/"); i >= 0 {
-		test = test[i+1:]
-	}
-	return strings.ReplaceAll(test, "_", " ")
-}
-
-// fileLink converts a relative "file.go:N:" at string into a
-// "file:///abs/path/file.go:N" terminal-clickable URI.
-func fileLink(at, dir string) string {
-	if at == "" {
-		return ""
-	}
-	// at is "file.go:N:" — strip trailing colon
-	at = strings.TrimRight(at, ":")
-	if dir != "" && !strings.HasPrefix(at, "/") {
-		at = dir + "/" + at
-	}
-	return "at file://" + at
-}
-
-// Formatter matches supertape's formatter event API exactly.
+// Formatter is the interface every formatter must implement.
+// Event is called for each stream event; End is called once at the end.
 type Formatter interface {
-	Start(total int) string
-	Test(name string) string
-	TestEnd(count, total, failed int, name string) string
-	Success(count int, message string) string
-	Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string
-	Comment(message string) string
-	End(count, passed, failed, skipped int) string
+	Event(e stream.Event) string
+	End(passed, failed, skipped int) string
 }
 
-// State tracks streaming state for FromEvent.
-type State struct {
-	count     int
-	failed    int
-	total     int
-	outputs   map[string][]string
-	formatter Formatter
-	w         io.Writer
-	dir       string
-	modName   string // module name from go.mod, used to resolve package dirs
+// Dispatcher wraps a Formatter and resolves the At field to a file URI
+// before dispatch, so individual formatters never need to do path logic.
+type Dispatcher struct {
+	f       Formatter
+	w       io.Writer
+	dir     string
+	modName string
 }
 
-// New returns the formatter for the given format string.
-func New(format string, w io.Writer, total int) *State {
+// New returns a Dispatcher for the given format string, writer, and total
+// test count. Mirrors the old formatter.New signature so main.go barely changes.
+func New(format string, w io.Writer, total int) *Dispatcher {
 	if ci := os.Getenv("CI"); ci == "1" || ci == "true" {
 		format = "fail"
 	} else if format == "" {
 		format = "progress-bar"
 	}
+
 	var f Formatter
 	switch format {
 	case "tap":
@@ -84,21 +55,69 @@ func New(format string, w io.Writer, total int) *State {
 	default:
 		f = formatter_progress_bar.New(total)
 	}
-	s := &State{
-		total:     total,
-		outputs:   make(map[string][]string),
-		formatter: f,
-		w:         w,
-	}
+
+	d := &Dispatcher{f: f, w: w}
 	if dir, err := os.Getwd(); err == nil {
-		s.dir = dir
-		s.modName = readModuleName(dir)
+		d.dir = dir
+		d.modName = readModuleName(dir)
 	}
-	write(w, f.Start(total))
-	return s
+	return d
 }
 
-// readModuleName reads the module name from go.mod in dir.
+// newWithDir is like New but injects a specific dir (for testing).
+func newWithDir(format string, w io.Writer, total int, dir string) *Dispatcher {
+	d := New(format, w, total)
+	d.dir = dir
+	d.modName = readModuleName(dir)
+	return d
+}
+
+// Emit routes a stream.Event through the formatter and writes the result.
+func (d *Dispatcher) Emit(e stream.Event) {
+	// resolve At → URI before dispatch
+	if e.At != "" {
+		e.At = fileLink(e.At, pkgDir(e.Package, d.modName, d.dir))
+	}
+	write(d.w, d.f.Event(e))
+}
+
+// End writes the final summary.
+func (d *Dispatcher) End(passed, failed, skipped int) {
+	write(d.w, d.f.End(passed, failed, skipped))
+}
+
+// --- unexported helpers ---
+
+func testLabel(test string) string {
+	if i := strings.LastIndex(test, "/"); i >= 0 {
+		test = test[i+1:]
+	}
+	return strings.ReplaceAll(test, "_", " ")
+}
+
+func fileLink(at, dir string) string {
+	if at == "" {
+		return ""
+	}
+	at = strings.TrimRight(at, ":")
+	if dir != "" && !strings.HasPrefix(at, "/") {
+		at = dir + "/" + at
+	}
+	return "at file://" + at
+}
+
+func pkgDir(pkg, modName, dir string) string {
+	if pkg == "" || dir == "" {
+		return dir
+	}
+	rel := strings.TrimPrefix(pkg, modName)
+	rel = strings.TrimPrefix(rel, "/")
+	if rel == "" {
+		return dir
+	}
+	return filepath.Join(dir, rel)
+}
+
 func readModuleName(dir string) string {
 	data, err := os.ReadFile(filepath.Join(dir, "go.mod"))
 	if err != nil {
@@ -113,85 +132,9 @@ func readModuleName(dir string) string {
 	return ""
 }
 
-// pkgDir resolves the absolute directory for a package import path.
-// e.g. pkg="example.com/mod/internal/foo", modName="example.com/mod", dir="/abs/mod"
-// → "/abs/mod/internal/foo"
-func pkgDir(pkg, modName, dir string) string {
-	if pkg == "" || dir == "" {
-		return dir
-	}
-	rel := strings.TrimPrefix(pkg, modName)
-	rel = strings.TrimPrefix(rel, "/")
-	if rel == "" {
-		return dir
-	}
-	return filepath.Join(dir, rel)
-}
-
-// newWithDir is like New but injects a specific dir (for testing).
-func newWithDir(format string, w io.Writer, total int, dir string) *State {
-	s := New(format, w, total)
-	s.dir = dir
-	s.modName = readModuleName(dir)
-	return s
-}
-
-// FromEvent routes a model.Event to the appropriate formatter method.
-func (s *State) FromEvent(e model.Event) {
-	if e.Test == "" {
-		return
-	}
-	label := testLabel(e.Test)
-	switch e.Action {
-	case "run":
-		write(s.w, s.formatter.Test(label))
-	case "output":
-		s.outputs[e.Test] = append(s.outputs[e.Test], e.Output)
-	case "pass":
-		s.count++
-		write(s.w, s.formatter.Success(s.count, label))
-		write(s.w, s.formatter.TestEnd(s.count, s.total, s.failed, label))
-	case "fail":
-		s.count++
-		s.failed++
-		lines := s.outputs[e.Test]
-		fields := output.ParseOutput(lines)
-		// When structured fields were parsed (operator/result/expected),
-		// pass empty output so Fail generates a proper diff block.
-		// Only pass Cut through when it's unstructured (e.g. panic output).
-		rawOutput := fields.Cut
-		if fields.Operator != "" || fields.Result != "" || fields.Expected != "" {
-			rawOutput = ""
-		}
-		write(s.w, s.formatter.Fail(
-			s.count, label,
-			fields.Operator, fields.Result, fields.Expected,
-			rawOutput, fileLink(fields.At, pkgDir(e.Package, s.modName, s.dir)), fields.ErrorStack,
-		))
-		write(s.w, s.formatter.TestEnd(s.count, s.total, s.failed, label))
-	case "skip":
-		s.count++
-		write(s.w, s.formatter.TestEnd(s.count, s.total, s.failed, label))
-	}
-}
-
-// End writes the final summary.
-func (s *State) End(passed, failed, skipped int) {
-	// On a cached run, packages that use plain Go subtests (not tape.Test) emit
-	// no subtest events, so s.count may be short of s.total. Emit one synthetic
-	// TestEnd at 100% so the progress bar reaches completion before it is cleared.
-	if s.count < s.total {
-		write(s.w, s.formatter.TestEnd(s.total, s.total, s.failed, ""))
-	}
-	write(s.w, s.formatter.End(s.count, passed, failed, skipped))
-}
-
 func write(w io.Writer, s string) {
 	if s == "" {
 		return
 	}
-	// Discard the error: the writer is os.Stdout, and if it fails the
-	// process environment is already broken — there is nowhere to report
-	// the failure to. No recovery is possible, so be explicit about it.
 	_, _ = w.Write([]byte(s))
 }

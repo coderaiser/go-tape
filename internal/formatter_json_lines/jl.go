@@ -2,8 +2,11 @@ package formatter_json_lines
 
 import (
 	"encoding/json"
+
+	"github.com/coderaiser/go-tape/internal/stream"
 )
 
+// JSONLinesFormatter emits one JSON object per event.
 type JSONLinesFormatter struct {
 	total int
 }
@@ -12,38 +15,17 @@ func New(total int) *JSONLinesFormatter {
 	return &JSONLinesFormatter{total: total}
 }
 
-func (f *JSONLinesFormatter) Start(total int) string    { return "" }
-func (f *JSONLinesFormatter) Test(name string) string   { return "" }
-func (f *JSONLinesFormatter) Comment(msg string) string { return "" }
-
-func (f *JSONLinesFormatter) TestEnd(count, total, failed int, name string) string {
-	b, _ := json.Marshal(map[string]any{
-		"count":  count,
-		"total":  total,
-		"failed": failed,
-		"test":   name,
-	})
+// Event marshals the stream.Event directly — the schema is already json-lines.
+func (f *JSONLinesFormatter) Event(e stream.Event) string {
+	b, _ := json.Marshal(e)
 	return string(b) + "\n"
 }
 
-func (f *JSONLinesFormatter) Success(count int, message string) string { return "" }
-
-func (f *JSONLinesFormatter) Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string {
+// End emits the final summary object.
+func (f *JSONLinesFormatter) End(passed, failed, skipped int) string {
 	b, _ := json.Marshal(map[string]any{
-		"test":     message,
-		"at":       at,
-		"count":    count,
-		"message":  message,
-		"operator": operator,
-		"result":   result,
-		"expected": expected,
-	})
-	return string(b) + "\n"
-}
-
-func (f *JSONLinesFormatter) End(count, passed, failed, skipped int) string {
-	b, _ := json.Marshal(map[string]any{
-		"count":   count,
+		"type":    stream.TypeEnd,
+		"count":   passed + failed + skipped,
 		"passed":  passed,
 		"failed":  failed,
 		"skipped": skipped,
