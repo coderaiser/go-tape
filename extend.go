@@ -26,16 +26,16 @@ type Operators struct {
 
 // BuiltinOperators is the canonical instance passed to extension factories.
 var BuiltinOperators = Operators{
-	Equal:        func(result, expected any) Result { return toResult(operator.Equal(result, expected)) },
-	NotEqual:     func(result, expected any) Result { return toResult(operator.NotEqual(result, expected)) },
-	DeepEqual:    func(result, expected any) Result { return toResult(operator.DeepEqual(result, expected)) },
-	NotDeepEqual: func(result, expected any) Result { return toResult(operator.NotDeepEqual(result, expected)) },
-	Ok:           func(result any) Result { return toResult(operator.Ok(result)) },
-	NotOk:        func(result any) Result { return toResult(operator.NotOk(result)) },
-	Match:        func(result string, pattern any) Result { return toResult(operator.Match(result, pattern)) },
-	NotMatch:     func(result string, pattern any) Result { return toResult(operator.NotMatch(result, pattern)) },
-	Pass:         func(message string) Result { return toResult(operator.Pass(message)) },
-	Fail:         func(message string) Result { return toResult(operator.Fail(message)) },
+	Equal:        func(result, expected any) Result { return operator.Equal(result, expected) },
+	NotEqual:     func(result, expected any) Result { return operator.NotEqual(result, expected) },
+	DeepEqual:    func(result, expected any) Result { return operator.DeepEqual(result, expected) },
+	NotDeepEqual: func(result, expected any) Result { return operator.NotDeepEqual(result, expected) },
+	Ok:           func(result any) Result { return operator.Ok(result) },
+	NotOk:        func(result any) Result { return operator.NotOk(result) },
+	Match:        func(result string, pattern any) Result { return operator.Match(result, pattern) },
+	NotMatch:     func(result string, pattern any) Result { return operator.NotMatch(result, pattern) },
+	Pass:         func(message string) Result { return operator.Pass(message) },
+	Fail:         func(message string) Result { return operator.Fail(message) },
 }
 
 // ExtendFn[XT] is the return type of Extend. Being a named type allows

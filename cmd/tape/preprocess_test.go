@@ -143,28 +143,28 @@ func TestPreprocessNoCoverageFlags(t *testing.T) {
 }
 
 func TestDirFromPatternDotDotDot(t *testing.T) {
-	tape.Test(t, "preprocess: ./... maps to .", func(t *tape.T) {
+	Test(t, "preprocess: ./... maps to .", func(t *T) {
 		t.Equal(dirFromPattern("./..."), ".")
 		t.End()
 	})
 }
 
 func TestDirFromPatternDot(t *testing.T) {
-	tape.Test(t, "preprocess: . maps to .", func(t *tape.T) {
+	Test(t, "preprocess: . maps to .", func(t *T) {
 		t.Equal(dirFromPattern("."), ".")
 		t.End()
 	})
 }
 
 func TestDirFromPatternSubpackage(t *testing.T) {
-	tape.Test(t, "preprocess: ./internal/foo maps to ./internal/foo", func(t *tape.T) {
+	Test(t, "preprocess: ./internal/foo maps to ./internal/foo", func(t *T) {
 		t.Equal(dirFromPattern("./internal/foo"), "./internal/foo")
 		t.End()
 	})
 }
 
 func TestDirFromPatternSubpackageRecursive(t *testing.T) {
-	tape.Test(t, "preprocess: ./internal/foo/... maps to ./internal/foo", func(t *tape.T) {
+	Test(t, "preprocess: ./internal/foo/... maps to ./internal/foo", func(t *T) {
 		t.Equal(dirFromPattern("./internal/foo/..."), "./internal/foo")
 		t.End()
 	})
