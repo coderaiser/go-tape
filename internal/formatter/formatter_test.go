@@ -7,231 +7,202 @@ import (
 	"testing"
 
 	. "github.com/coderaiser/go-tape"
-	"github.com/coderaiser/go-tape/internal/model"
+	"github.com/coderaiser/go-tape/internal/stream"
 )
 
-// captureFormatter is a minimal Formatter that records every TestEnd call.
-type captureFormatter struct {
-	testEndCalls []testEndArgs
-}
-
-type testEndArgs struct {
-	count, total, failed int
-	name                 string
-}
-
-func (c *captureFormatter) Start(total int) string                   { return "" }
-func (c *captureFormatter) Test(name string) string                  { return "" }
-func (c *captureFormatter) Success(count int, message string) string { return "" }
-func (c *captureFormatter) Fail(count int, message, operator string, result, expected any, output, at, errorStack string) string {
-	return ""
-}
-func (c *captureFormatter) Comment(message string) string { return "" }
-func (c *captureFormatter) End(count, passed, failed, skipped int) string {
-	return ""
-}
-func (c *captureFormatter) TestEnd(count, total, failed int, name string) string {
-	c.testEndCalls = append(c.testEndCalls, testEndArgs{count, total, failed, name})
-	return ""
-}
-
-func newCaptureState(total int) (*State, *captureFormatter) {
-	cf := &captureFormatter{}
-	s := &State{
-		total:     total,
-		outputs:   make(map[string][]string),
-		formatter: cf,
-		w:         os.Stderr, // discarded; captureFormatter returns ""
-	}
-	return s, cf
-}
-
-// TestCachedRunBarCompletion verifies that End emits a synthetic TestEnd(total,
-// total) when s.count < s.total, so the progress bar reaches 100% on a cached
-// run where plain-Go-subtest packages emit no events.
-func TestCachedRunBarCompletion(t *testing.T) {
-	const total = 10
-
-	Test(t, "formatter: cached run pushes bar to 100%", func(t *T) {
-		s, cf := newCaptureState(total)
-
-		// Simulate only 3 out of 10 tests streaming (the rest were cached).
-		for i := 0; i < 3; i++ {
-			s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
-			s.FromEvent(model.Event{Action: "pass", Test: "scope: x"})
-		}
-
-		s.End(3, 0, 0)
-
-		t.TB().Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
-		t.Ok(len(cf.testEndCalls) > 0)
-		last := cf.testEndCalls[len(cf.testEndCalls)-1]
-		t.Equal(last.count, total)
-		t.Equal(last.total, total)
-		t.End()
-	})
-}
-
-// TestFullRunNoExtraTestEnd verifies that End does NOT emit an extra synthetic
-// TestEnd when s.count already equals s.total (non-cached run).
-func TestFullRunNoExtraTestEnd(t *testing.T) {
-	const total = 3
-
-	Test(t, "formatter: full run adds no extra TestEnd", func(t *T) {
-		s, cf := newCaptureState(total)
-
-		for i := 0; i < total; i++ {
-			s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
-			s.FromEvent(model.Event{Action: "pass", Test: "scope: x"})
-		}
-
-		callsBefore := len(cf.testEndCalls)
-		s.End(total, 0, 0)
-		callsAfter := len(cf.testEndCalls)
-
-		t.Equal(callsAfter, callsBefore)
-		t.End()
-	})
-}
-
-// TestFromEventRoutesCorrectly is a smoke test that FromEvent increments count
-// for pass/fail/skip and ignores run and output.
-func TestFromEventRoutesCorrectly(t *testing.T) {
-	Test(t, "formatter: FromEvent routes count correctly", func(t *T) {
-		var buf strings.Builder
-
-		// Use a real progress-bar formatter with show forced off so we get no stderr noise.
-		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
-		s := New("progress-bar", &buf, 5)
-
-		actions := []string{"run", "output", "pass", "fail", "skip"}
-		for _, a := range actions {
-			s.FromEvent(model.Event{Action: a, Test: "scope: x", Output: "# ok\n"})
-		}
-
-		// pass + fail + skip = 3
-		t.TB().Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
-		t.Equal(s.count, 3)
-		t.Equal(s.failed, 1)
-		t.End()
-	})
-}
-
-// TestFromEventIgnoresEmptyTest confirms that events with no Test name are skipped.
-func TestFromEventIgnoresEmptyTest(t *testing.T) {
-	Test(t, "formatter: empty test events are ignored", func(t *T) {
-		s, cf := newCaptureState(5)
-		s.FromEvent(model.Event{Action: "pass", Test: ""})
-		t.TB().Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "0")
-		t.Equal(s.count, 0)
-		t.Equal(len(cf.testEndCalls), 0)
-		t.End()
-	})
-}
-
-// TestNewCIForcesTap verifies that New selects tap when CI env is set.
-func TestNewCIForcesTap(t *testing.T) {
-	Test(t, "formatter: CI env forces tap format", func(t *T) {
-		var buf strings.Builder
-		t.TB().Setenv("CI", "1")
-		s := New("whatever", &buf, 1)
-		s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
-		t.Ok(strings.Contains(buf.String(), "TAP version"))
-		t.End()
-	})
-}
-
-// TestNewEmptyFormatDefaultsToProgressBar verifies default format selection.
-func TestNewEmptyFormatDefaultsToProgressBar(t *testing.T) {
-	Test(t, "formatter: empty format defaults to progress-bar", func(t *T) {
-		var buf strings.Builder
-		t.TB().Setenv("CI", "0")
-		t.TB().Setenv("TAPE_PROGRESS_BAR", "1")
-		s := New("", &buf, 1)
-		t.Ok(s.formatter != nil)
-		t.End()
-	})
-}
-
-func TestNewTapFormat(t *testing.T) {
+func TestNewTap(t *testing.T) {
 	Test(t, "formatter: tap format constructs", func(t *T) {
 		t.TB().Setenv("CI", "false")
-
 		var buf strings.Builder
 		t.Ok(New("tap", &buf, 3) != nil)
-
 		t.End()
 	})
+}
 
+func TestNewShort(t *testing.T) {
 	Test(t, "formatter: short format constructs", func(t *T) {
 		t.TB().Setenv("CI", "false")
-
 		var buf strings.Builder
 		t.Ok(New("short", &buf, 3) != nil)
-
 		t.End()
 	})
+}
+
+func TestNewFail(t *testing.T) {
 	Test(t, "formatter: fail format constructs", func(t *T) {
 		t.TB().Setenv("CI", "false")
-
 		var buf strings.Builder
 		t.Ok(New("fail", &buf, 3) != nil)
 		t.End()
 	})
+}
 
+func TestNewTime(t *testing.T) {
 	Test(t, "formatter: time format constructs", func(t *T) {
 		t.TB().Setenv("CI", "false")
-
 		var buf strings.Builder
 		t.Ok(New("time", &buf, 3) != nil)
-
 		t.End()
 	})
+}
 
+func TestNewJSONLines(t *testing.T) {
 	Test(t, "formatter: json-lines format constructs", func(t *T) {
 		t.TB().Setenv("CI", "false")
-
 		var buf strings.Builder
 		t.Ok(New("json-lines", &buf, 3) != nil)
-
 		t.End()
 	})
+}
 
+func TestNewProgressBar(t *testing.T) {
 	Test(t, "formatter: progress-bar format constructs", func(t *T) {
 		t.TB().Setenv("CI", "false")
-
 		var buf strings.Builder
 		t.Ok(New("progress-bar", &buf, 3) != nil)
-
 		t.End()
 	})
-	Test(t, "formatter: unknown format uses default", func(t *T) {
-		t.TB().Setenv("CI", "false")
+}
 
+func TestNewUnknownDefaultsToProgressBar(t *testing.T) {
+	Test(t, "formatter: unknown format falls back to progress-bar", func(t *T) {
+		t.TB().Setenv("CI", "false")
 		var buf strings.Builder
 		t.Ok(New("unknown-format", &buf, 3) != nil)
-
 		t.End()
 	})
 }
 
-// TestNewAllFormats verifies each named format constructs without panic.
-func TestNewAllFormats(t *testing.T) {
-	Test(t, "formatter: all named formats construct", func(t *T) {
+func TestNewEmptyFormatDefaultsToProgressBar(t *testing.T) {
+	Test(t, "formatter: empty format defaults to progress-bar", func(t *T) {
+		t.TB().Setenv("CI", "0")
 		var buf strings.Builder
-		reached := true
-		for _, f := range []string{"tap", "short", "fail", "time", "json-lines"} {
-			s := New(f, &buf, 3)
-			if s == nil {
-				reached = false
-			}
-		}
-		t.Ok(reached)
+		t.Ok(New("", &buf, 3) != nil)
 		t.End()
 	})
 }
 
-// TestTestLabelWithSlash covers the branch where the test name contains a slash.
+// TestNewCIForcesFail verifies that CI=1 forces the fail formatter even
+// when "tap" is requested.
+func TestNewCIForcesFail(t *testing.T) {
+	Test(t, "formatter: CI=1 forces fail format", func(t *T) {
+		t.TB().Setenv("CI", "1")
+		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
+		var buf strings.Builder
+		d := New("tap", &buf, 1)
+		d.Emit(stream.Event{Type: stream.TypeTestEnd, Test: "scope: x", Count: 1, Total: 1})
+		d.Emit(stream.Event{Type: stream.TypeFail, Test: "scope: x", Message: "m", Operator: "op"})
+		t.Match(buf.String(), "# scope: x")
+		t.End()
+	})
+}
+
+func TestNewCITrueForcesFail(t *testing.T) {
+	Test(t, "formatter: CI=true forces fail format", func(t *T) {
+		t.TB().Setenv("CI", "true")
+		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
+		var buf strings.Builder
+		d := New("tap", &buf, 1)
+		d.Emit(stream.Event{Type: stream.TypeTestEnd, Test: "scope: x", Count: 1, Total: 1})
+		d.Emit(stream.Event{Type: stream.TypeFail, Test: "scope: x", Message: "m", Operator: "op"})
+		t.Match(buf.String(), "# scope: x")
+		t.End()
+	})
+}
+
+
+func TestEmitTestEnd(t *testing.T) {
+	Test(t, "formatter: Emit test-end writes output", func(t *T) {
+		t.TB().Setenv("CI", "false")
+		var buf strings.Builder
+		d := New("tap", &buf, 1)
+		d.Emit(stream.Event{Type: stream.TypeTestEnd, Test: "scope: x", Count: 1, Total: 1})
+		t.Match(buf.String(), "ok 1 scope: x")
+		t.End()
+	})
+}
+
+func TestEmitFail(t *testing.T) {
+	Test(t, "formatter: Emit fail writes not-ok line", func(t *T) {
+		t.TB().Setenv("CI", "false")
+		var buf strings.Builder
+		d := New("tap", &buf, 1)
+		d.Emit(stream.Event{
+			Type: stream.TypeFail, Test: "scope: x", Count: 1,
+			Message: "should equal", Operator: "should equal",
+			Result: "got", Expected: "want",
+		})
+		t.Match(buf.String(), "not ok 1 scope: x")
+		t.End()
+	})
+}
+
+func TestEmitBuildError(t *testing.T) {
+	Test(t, "formatter: Emit build-error writes output", func(t *T) {
+		t.TB().Setenv("CI", "false")
+		var buf strings.Builder
+		d := New("tap", &buf, 0)
+		d.Emit(stream.Event{
+			Type:    stream.TypeBuildError,
+			Package: "example.com/foo",
+			Output:  "foo.go:1:1: undefined: x\n",
+		})
+		t.Match(buf.String(), "build-error")
+		t.End()
+	})
+}
+
+func TestEmitUnknownFail(t *testing.T) {
+	Test(t, "formatter: Emit unknown-fail writes output", func(t *T) {
+		t.TB().Setenv("CI", "false")
+		var buf strings.Builder
+		d := New("tap", &buf, 1)
+		d.Emit(stream.Event{
+			Type:   stream.TypeUnknownFail,
+			Test:   "scope: x",
+			Count:  1,
+			Output: "panic: something\n",
+		})
+		t.Match(buf.String(), "not ok")
+		t.End()
+	})
+}
+
+func TestEmitResolvesAtToURI(t *testing.T) {
+	Test(t, "formatter: Emit resolves At field to file URI", func(t *T) {
+		t.TB().Setenv("CI", "false")
+		dir := t.TB().TempDir()
+		os.WriteFile(filepath.Join(dir, "go.mod"),
+			[]byte("module example.com/mymod\n\ngo 1.25\n"), 0644)
+		var buf strings.Builder
+		d := newWithDir("tap", &buf, 1, dir)
+		d.Emit(stream.Event{
+			Type:     stream.TypeFail,
+			Test:     "scope: x",
+			Count:    1,
+			At:       "foo_test.go:10",
+			Package:  "example.com/mymod/internal/pkg",
+			Message:  "m",
+			Operator: "op",
+		})
+		t.Match(buf.String(), "internal/pkg/foo_test.go:10")
+		t.End()
+	})
+}
+
+func TestEndWritesSummary(t *testing.T) {
+	Test(t, "formatter: End writes summary line", func(t *T) {
+		t.TB().Setenv("CI", "false")
+		var buf strings.Builder
+		d := New("tap", &buf, 1)
+		d.End(1, 0, 0)
+		t.Match(buf.String(), "# tests 1")
+		t.End()
+	})
+}
+
+// --- helper function coverage ---
+
 func TestTestLabelWithSlash(t *testing.T) {
 	Test(t, "formatter: testLabel strips prefix before slash", func(t *T) {
 		t.Equal(testLabel("TestFoo/scope:_bar_baz"), "scope: bar baz")
@@ -239,7 +210,6 @@ func TestTestLabelWithSlash(t *testing.T) {
 	})
 }
 
-// TestTestLabelWithoutSlash covers the branch where the test name has no slash.
 func TestTestLabelWithoutSlash(t *testing.T) {
 	Test(t, "formatter: testLabel returns name unchanged when no slash", func(t *T) {
 		t.Equal(testLabel("scope:_bar"), "scope: bar")
@@ -247,15 +217,13 @@ func TestTestLabelWithoutSlash(t *testing.T) {
 	})
 }
 
-// TestFileLinkEmptyAt covers the early-return branch in fileLink.
-func TestFileLinkEmptyAt(t *testing.T) {
+func TestFileLinkEmpty(t *testing.T) {
 	Test(t, "formatter: fileLink returns empty string for empty at", func(t *T) {
-		t.Equal(fileLink("", "/some/dir"), "")
+		t.Equal(fileLink("", "/dir"), "")
 		t.End()
 	})
 }
 
-// TestFileLinkWithDir covers the branch where dir is set and at is relative.
 func TestFileLinkWithDir(t *testing.T) {
 	Test(t, "formatter: fileLink prepends dir to relative at", func(t *T) {
 		t.Equal(fileLink("file.go:10:", "/proj"), "at file:///proj/file.go:10")
@@ -263,15 +231,13 @@ func TestFileLinkWithDir(t *testing.T) {
 	})
 }
 
-// TestFileLinkAbsoluteAt covers the branch where at is already absolute.
-func TestFileLinkAbsoluteAt(t *testing.T) {
+func TestFileLinkAbsolute(t *testing.T) {
 	Test(t, "formatter: fileLink does not prepend dir to absolute at", func(t *T) {
 		t.Equal(fileLink("/abs/file.go:10:", "/proj"), "at file:///abs/file.go:10")
 		t.End()
 	})
 }
 
-// TestFileLinkNoDir covers the branch where dir is empty.
 func TestFileLinkNoDir(t *testing.T) {
 	Test(t, "formatter: fileLink with no dir uses at as-is", func(t *T) {
 		t.Equal(fileLink("file.go:5:", ""), "at file://file.go:5")
@@ -279,58 +245,23 @@ func TestFileLinkNoDir(t *testing.T) {
 	})
 }
 
-// TestWriteNonEmptyString exercises the discard-write path in write().
-func TestWriteNonEmptyString(t *testing.T) {
-	Test(t, "formatter: write emits non-empty output", func(t *T) {
-		var buf strings.Builder
-		s := New("tap", &buf, 3)
-		s.FromEvent(model.Event{Action: "pass", Test: "scope: x"})
-		t.Match(buf.String(), "ok 1")
-		t.End()
-	})
-	Test(t, "formatter: CI=true forces fail format", func(t *T) {
-		var buf strings.Builder
-		t.TB().Setenv("CI", "true")
-		s := New("whatever", &buf, 1)
-		s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
-		t.Ok(strings.Contains(buf.String(), "TAP version"))
+func TestPkgDirRoot(t *testing.T) {
+	Test(t, "formatter: pkgDir returns module root for root package", func(t *T) {
+		t.Equal(pkgDir("example.com/mymod", "example.com/mymod", "/abs"), "/abs")
 		t.End()
 	})
 }
 
-// TestFromEventFailUnstructuredOutput covers the rawOutput = fields.Cut branch
-// (formatter.go:122-124) — triggered when a fail event has no structured
-// operator/result/expected fields (e.g. a panic or plain log line).
-func TestFromEventFailUnstructuredOutput(t *testing.T) {
-	Test(t, "formatter: unstructured fail output passes Cut through", func(t *T) {
-		var buf strings.Builder
-		t.TB().Setenv("CI", "false")
-		s := New("tap", &buf, 1)
-		s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
-		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "    panic: something went wrong\n"})
-		s.FromEvent(model.Event{Action: "fail", Test: "scope: x"})
-		t.Match(buf.String(), "not ok")
+func TestPkgDirSub(t *testing.T) {
+	Test(t, "formatter: pkgDir appends sub-package path", func(t *T) {
+		t.Equal(pkgDir("example.com/mymod/internal/foo", "example.com/mymod", "/abs"), "/abs/internal/foo")
 		t.End()
 	})
 }
 
-// TestFromEventFailStructuredFieldsClearsCut covers formatter.go:122-124 —
-// when a fail event has structured operator/result/expected fields alongside
-// unstructured Cut output, rawOutput must be cleared so the formatter
-// generates a proper diff block instead of emitting the raw text.
-func TestFromEventFailStructuredFieldsClearsCut(t *testing.T) {
-	Test(t, "formatter: structured fail fields clear raw Cut output", func(t *T) {
-		var buf strings.Builder
-		t.TB().Setenv("CI", "false")
-		s := New("tap", &buf, 1)
-		s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
-		// operator line sets the Operator field; prior output line sets Cut
-		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "some raw output\n"})
-		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "  operator: equal\n"})
-		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "  expected: |-\n    want\n"})
-		s.FromEvent(model.Event{Action: "output", Test: "scope: x", Output: "  result: |-\n    got\n"})
-		s.FromEvent(model.Event{Action: "fail", Test: "scope: x"})
-		t.NotMatch(buf.String(), "some raw output")
+func TestPkgDirEmptyPkg(t *testing.T) {
+	Test(t, "formatter: pkgDir returns dir when pkg is empty", func(t *T) {
+		t.Equal(pkgDir("", "example.com/mymod", "/abs"), "/abs")
 		t.End()
 	})
 }
@@ -342,40 +273,29 @@ func TestReadModuleName(t *testing.T) {
 		t.Equal(readModuleName(dir), "example.com/mymod")
 		t.End()
 	})
+}
+
+func TestReadModuleNameMissing(t *testing.T) {
 	Test(t, "formatter: readModuleName returns empty when no go.mod", func(t *T) {
 		t.Equal(readModuleName(t.TB().TempDir()), "")
 		t.End()
 	})
 }
 
-func TestPkgDir(t *testing.T) {
-	Test(t, "formatter: pkgDir returns module root for root package", func(t *T) {
-		t.Equal(pkgDir("example.com/mymod", "example.com/mymod", "/abs/mymod"), "/abs/mymod")
-		t.End()
-	})
-	Test(t, "formatter: pkgDir appends sub-package path", func(t *T) {
-		t.Equal(pkgDir("example.com/mymod/internal/foo", "example.com/mymod", "/abs/mymod"), "/abs/mymod/internal/foo")
-		t.End()
-	})
-	Test(t, "formatter: pkgDir returns dir when pkg is empty", func(t *T) {
-		t.Equal(pkgDir("", "example.com/mymod", "/abs/mymod"), "/abs/mymod")
+func TestWriteEmpty(t *testing.T) {
+	Test(t, "formatter: write ignores empty string", func(t *T) {
+		var buf strings.Builder
+		write(&buf, "")
+		t.Equal(buf.String(), "")
 		t.End()
 	})
 }
 
-func TestFromEventFailPackageDir(t *testing.T) {
-	Test(t, "formatter: fail event uses Package field to resolve file URL", func(t *T) {
+func TestWriteNonEmpty(t *testing.T) {
+	Test(t, "formatter: write emits non-empty string", func(t *T) {
 		var buf strings.Builder
-		t.TB().Setenv("CI", "false")
-		dir := t.TB().TempDir()
-		os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/mymod\n\ngo 1.21\n"), 0644)
-		s := newWithDir("tap", &buf, 1, dir)
-		s.FromEvent(model.Event{Action: "run", Test: "scope: x"})
-		s.FromEvent(model.Event{Action: "output", Test: "scope: x",
-			Output: "    foo_test.go:10: \n"})
-		s.FromEvent(model.Event{Action: "fail", Test: "scope: x",
-			Package: "example.com/mymod/internal/pkg"})
-		t.Match(buf.String(), "internal/pkg/foo_test.go:10")
+		write(&buf, "hello\n")
+		t.Equal(buf.String(), "hello\n")
 		t.End()
 	})
 }
