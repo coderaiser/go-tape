@@ -12,6 +12,7 @@ import (
 type Result struct {
 	Ok       bool
 	Message  string // "should equal", "should be truthy", etc.
+	Operator string // operator name e.g. "equal", "ok", "match"
 	Result   any    // actual value
 	Expected any    // expected value
 	Output   string // diff or detail — empty on pass
@@ -32,7 +33,7 @@ func Equal(result, expected any) Result {
 			out = diff.Diff(expected, result)
 		}
 	}
-	return Result{Ok: ok, Message: "should equal", Result: result, Expected: expected, Output: out}
+	return Result{Ok: ok, Message: "should equal", Operator: "equal", Result: result, Expected: expected, Output: out}
 }
 
 // isComparable reports whether v can be compared with ==.
@@ -55,7 +56,7 @@ func NotEqual(result, expected any) Result {
 	if !ok {
 		out = diff.Diff(expected, result)
 	}
-	return Result{Ok: ok, Message: "should not equal", Result: result, Expected: expected, Output: out}
+	return Result{Ok: ok, Message: "should not equal", Operator: "notEqual", Result: result, Expected: expected, Output: out}
 }
 
 // DeepEqual asserts deep equality.
@@ -65,7 +66,7 @@ func DeepEqual(result, expected any) Result {
 	if !ok {
 		out = diff.Diff(expected, result)
 	}
-	return Result{Ok: ok, Message: "should deep equal", Result: result, Expected: expected, Output: out}
+	return Result{Ok: ok, Message: "should deep equal", Operator: "deepEqual", Result: result, Expected: expected, Output: out}
 }
 
 // NotDeepEqual asserts values are not deeply equal.
@@ -75,7 +76,7 @@ func NotDeepEqual(result, expected any) Result {
 	if !ok {
 		out = diff.Diff(expected, result)
 	}
-	return Result{Ok: ok, Message: "should not deep equal", Result: result, Expected: expected, Output: out}
+	return Result{Ok: ok, Message: "should not deep equal", Operator: "notDeepEqual", Result: result, Expected: expected, Output: out}
 }
 
 // Ok asserts result is truthy.
@@ -85,7 +86,7 @@ func Ok(result any) Result {
 	if !ok {
 		out = diff.Diff("truthy", result)
 	}
-	return Result{Ok: ok, Message: "should be truthy", Result: result, Expected: "truthy", Output: out}
+	return Result{Ok: ok, Message: "should be truthy", Operator: "ok", Result: result, Expected: "truthy", Output: out}
 }
 
 // NotOk asserts result is falsy.
@@ -95,7 +96,7 @@ func NotOk(result any) Result {
 	if !ok {
 		out = diff.Diff("falsy", result)
 	}
-	return Result{Ok: ok, Message: "should be falsy", Result: result, Expected: "falsy", Output: out}
+	return Result{Ok: ok, Message: "should be falsy", Operator: "notOk", Result: result, Expected: "falsy", Output: out}
 }
 
 // Match asserts result matches pattern.
@@ -103,14 +104,14 @@ func NotOk(result any) Result {
 func Match(result string, pattern any) Result {
 	re, err := toRegexp(pattern)
 	if err != nil {
-		return Result{Ok: false, Message: "should match", Result: result, Expected: pattern, Output: err.Error()}
+		return Result{Ok: false, Message: "should match", Operator: "match", Result: result, Expected: pattern, Output: err.Error()}
 	}
 	ok := re.MatchString(result)
 	out := ""
 	if !ok {
 		out = diff.Diff(pattern, result)
 	}
-	return Result{Ok: ok, Message: "should match", Result: result, Expected: pattern, Output: out}
+	return Result{Ok: ok, Message: "should match", Operator: "match", Result: result, Expected: pattern, Output: out}
 }
 
 // NotMatch asserts result does not match pattern.
@@ -118,24 +119,24 @@ func Match(result string, pattern any) Result {
 func NotMatch(result string, pattern any) Result {
 	re, err := toRegexp(pattern)
 	if err != nil {
-		return Result{Ok: false, Message: "should not match", Result: result, Expected: pattern, Output: err.Error()}
+		return Result{Ok: false, Message: "should not match", Operator: "notMatch", Result: result, Expected: pattern, Output: err.Error()}
 	}
 	ok := !re.MatchString(result)
 	out := ""
 	if !ok {
 		out = diff.Diff(pattern, result)
 	}
-	return Result{Ok: ok, Message: "should not match", Result: result, Expected: pattern, Output: out}
+	return Result{Ok: ok, Message: "should not match", Operator: "notMatch", Result: result, Expected: pattern, Output: out}
 }
 
 // Pass generates a passing result.
 func Pass(message string) Result {
-	return Result{Ok: true, Message: "pass", Result: message}
+	return Result{Ok: true, Message: "pass", Operator: "pass", Result: message}
 }
 
 // Fail generates a failing result.
 func Fail(message string) Result {
-	return Result{Ok: false, Message: "fail", Result: message, Output: message}
+	return Result{Ok: false, Message: "fail", Operator: "fail", Result: message, Output: message}
 }
 
 // truthy checks if v is truthy.
