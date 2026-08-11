@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	tape "github.com/coderaiser/go-tape"
+	"github.com/coderaiser/go-tape/internal/stream"
 )
 
 func TestNewDefaultColor(t *testing.T) {
@@ -223,130 +224,66 @@ func TestTruncateOverLimit(t *testing.T) {
 	})
 }
 
-func TestStartReturnsEmpty(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: start returns empty string", func(t *tape.T) {
+func TestEventCommentReturnsLine(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: comment event returns line", func(t *tape.T) {
 		pb := New(10)
-		result := pb.Start(10)
-		t.Equal(result, "")
-		t.End()
-	})
-}
-
-func TestTestReturnsEmpty(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: test returns empty", func(t *tape.T) {
-		pb := New(10)
-		result := pb.Test("scope: x")
-		t.Equal(result, "")
-		t.End()
-	})
-}
-
-func TestSuccessReturnsEmpty(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: success returns empty", func(t *tape.T) {
-		pb := New(10)
-		result := pb.Success(1, "scope: x")
-		t.Equal(result, "")
-		t.End()
-	})
-}
-
-func TestCommentReturnsLine(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: comment returns line", func(t *tape.T) {
-		pb := New(10)
-		result := pb.Comment("msg")
+		result := pb.Event(stream.Event{Type: stream.TypeComment, Message: "msg"})
 		t.Equal(result, "# msg\n")
 		t.End()
 	})
 }
 
-func TestTestEndNoShow(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: test end no show", func(t *tape.T) {
+func TestEventFailBuffersOutput(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail event buffers output for End", func(t *tape.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
-		pb := New(1000)
-		result := pb.TestEnd(1, 10, 0, "scope: x")
-		t.Equal(result, "")
-		t.End()
-	})
-}
-
-func failOutput(pb *ProgressBarFormatter, count int, message, operator string, result, expected any, output, at, errorStack string) string {
-	pb.Fail(count, message, operator, result, expected, output, at, errorStack)
-	return pb.End(count, 0, 1, 0)
-}
-
-func TestFailWithEqualValues(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail with equal values shows expected and result", func(t *tape.T) {
-		result := failOutput(New(10), 1, "scope: x", "Equal", "same", "same", "", "", "")
-		t.Ok(strings.Contains(result, "expected:"))
-		t.End()
-	})
-}
-
-func TestFailWithNoOperator(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail with no operator emits empty operator line", func(t *tape.T) {
-		result := failOutput(New(10), 1, "scope: x", "", "got", "want", "", "", "")
-		t.Ok(strings.Contains(result, "operator: \n"))
-		t.End()
-	})
-}
-
-func TestFailWithOperator(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail with operator", func(t *tape.T) {
-		result := failOutput(New(10), 1, "scope: x", "should equal", "got", "want", "", "", "")
+		pb := New(10)
+		pb.Event(stream.Event{
+			Type: stream.TypeFail, Test: "scope: x", Count: 1,
+			Operator: "Equal", Result: "got", Expected: "want",
+		})
+		result := pb.End(0, 1, 0)
 		t.Ok(strings.Contains(result, "not ok 1"))
 		t.End()
 	})
 }
 
-func TestFailWithoutOperator(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail without operator", func(t *tape.T) {
-		cut := "operator: should equal\n        expected: want\n        result: got\n"
-		result := failOutput(New(10), 1, "scope: x", "should equal", "got", "want", cut, "", "")
-		t.Ok(strings.Contains(result, cut))
-		t.End()
-	})
-}
-
-func TestFailWithExpectedResult(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail emits expected and result blocks", func(t *tape.T) {
-		result := failOutput(New(10), 1, "scope: x", "should equal", "got", "want", "", "", "")
-		t.Ok(strings.Contains(result, "expected: |-") && strings.Contains(result, "result: |-"))
-		t.End()
-	})
-}
-
-func TestFailWithAt(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail with at", func(t *tape.T) {
-		result := failOutput(New(10), 1, "scope: x", "Equal", "got", "want", "", "file.go:10:", "")
-		t.Ok(strings.Contains(result, "file.go:10:"))
-		t.End()
-	})
-}
-
-func TestFailWithErrorStack(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail with error stack", func(t *tape.T) {
-		result := failOutput(New(10), 1, "scope: x", "Equal", "got", "want", "", "", "stack trace")
+func TestEventFailWithErrorStack(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail event includes error stack", func(t *tape.T) {
+		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
+		pb := New(10)
+		pb.Event(stream.Event{
+			Type: stream.TypeFail, Test: "scope: x", Count: 1,
+			Operator: "Equal", Result: "got", Expected: "want",
+			ErrorStack: "stack trace",
+		})
+		result := pb.End(0, 1, 0)
 		t.Ok(strings.Contains(result, "stack trace"))
 		t.End()
 	})
 }
 
-func TestFailStackEnvDisabled(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: fail stack env disabled", func(t *tape.T) {
+func TestEventFailStackEnvDisabled(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail event hides stack when env disabled", func(t *tape.T) {
+		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
 		t.TB().Setenv("TAPE_PROGRESS_BAR_STACK", "0")
 		pb := New(10)
-		result := pb.Fail(1, "scope: x", "Equal", "got", "want", "", "", "stack trace")
+		pb.Event(stream.Event{
+			Type: stream.TypeFail, Test: "scope: x", Count: 1,
+			Operator: "Equal", Result: "got", Expected: "want",
+			ErrorStack: "stack trace",
+		})
+		result := pb.End(0, 1, 0)
 		t.NotOk(strings.Contains(result, "stack trace"))
 		t.End()
 	})
 }
 
-func TestEndShowFalse(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: end show false", func(t *tape.T) {
+func TestEndShowFalseSummary(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: end summary when hidden", func(t *tape.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
-		pb := New(1000)
-		result := pb.End(5, 5, 0, 0)
-		t.Ok(strings.Contains(result, "1..5"))
+		pb := New(10)
+		result := pb.End(5, 4, 1)
+		t.Ok(strings.Contains(result, "1..10"))
 		t.End()
 	})
 }
@@ -355,7 +292,7 @@ func TestEndWithFailed(t *testing.T) {
 	tape.Test(t, "formatter-progress-bar: end with failed", func(t *tape.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
 		pb := New(10)
-		result := pb.End(5, 4, 1, 0)
+		result := pb.End(5, 4, 1)
 		t.Ok(strings.Contains(result, "\u274c"))
 		t.End()
 	})
@@ -365,19 +302,19 @@ func TestEndWithSkipped(t *testing.T) {
 	tape.Test(t, "formatter-progress-bar: end with skipped", func(t *tape.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
 		pb := New(10)
-		result := pb.End(5, 5, 0, 1)
+		result := pb.End(5, 5, 1)
 		t.Ok(strings.Contains(result, "\u26a0"))
 		t.End()
 	})
 }
 
 func TestEndShowTrue(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: end show true", func(t *tape.T) {
+	tape.Test(t, "formatter-progress-bar: end show true returns summary with prefix", func(t *tape.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "1")
 		pb := New(10)
-		pb.TestEnd(1, 10, 0, "scope: x")
-		result := pb.End(5, 5, 0, 0)
-		t.Ok(strings.Contains(result, "1..5"))
+		pb.Event(stream.Event{Type: stream.TypeTestEnd, Count: 1, Total: 10, Test: "scope: x"})
+		result := pb.End(5, 5, 0)
+		t.Ok(strings.Contains(result, "1..10"))
 		t.End()
 	})
 }
@@ -424,44 +361,44 @@ func TestHexToANSIUpper(t *testing.T) {
 	})
 }
 
-func TestTestEndWithFailOverfill(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: test end with fail overfill", func(t *tape.T) {
+func TestEventTestEndWithFailOverfill(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: test-end event with fail overfill", func(t *tape.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "1")
 		t.TB().Setenv("TAPE_TERM_WIDTH", "5")
 		pb := New(10)
-		result := pb.TestEnd(100, 10, 3, "a very long scope name that will be truncated")
+		result := pb.Event(stream.Event{Type: stream.TypeTestEnd, Count: 100, Total: 10, Failed: 3, Test: "a very long scope name that will be truncated"})
 		t.Equal(result, "")
 		t.End()
 	})
 }
 
-func TestStartHidesCursorWhenShow(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: start hides cursor when show is true", func(t *tape.T) {
+func TestEventTestEndShowTrueWritesToStderr(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: test-end event writes to stderr when show is true", func(t *tape.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "1")
 		pb := New(10)
-		result := pb.Start(10)
+		result := pb.Event(stream.Event{Type: stream.TypeTestEnd, Count: 1, Total: 10, Test: "scope: x"})
 		t.Equal(result, "")
 		t.End()
 	})
 }
 
-func TestStartNoHideCursorWhenHidden(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: start does not hide cursor when show is false", func(t *tape.T) {
+func TestEventTestEndHiddenReturnsEmpty(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: test-end event returns empty when hidden", func(t *tape.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "0")
-		pb := New(1000)
-		result := pb.Start(1000)
+		pb := New(10)
+		result := pb.Event(stream.Event{Type: stream.TypeTestEnd, Count: 1, Total: 10, Test: "scope: x"})
 		t.Equal(result, "")
 		t.End()
 	})
 }
 
-func TestEndRestoresCursorWhenShow(t *testing.T) {
-	tape.Test(t, "formatter-progress-bar: end restores cursor when show is true", func(t *tape.T) {
+func TestEndShowTrueReturnsSummaryWithPrefix(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: end returns summary with prefix when show is true", func(t *tape.T) {
 		t.TB().Setenv("TAPE_PROGRESS_BAR", "1")
 		pb := New(10)
-		pb.TestEnd(1, 10, 0, "scope: x")
-		result := pb.End(5, 5, 0, 0)
-		t.Ok(strings.Contains(result, "1..5"))
+		pb.Event(stream.Event{Type: stream.TypeTestEnd, Count: 1, Total: 10, Test: "scope: x"})
+		result := pb.End(5, 5, 0)
+		t.Ok(strings.Contains(result, "1..10"))
 		t.End()
 	})
 }
@@ -495,12 +432,22 @@ func TestOkLineJetBrains(t *testing.T) {
 
 func TestFailExpectedResultValues(t *testing.T) {
 	tape.Test(t, "formatter-progress-bar: fail shows expected value", func(t *tape.T) {
-		result := failOutput(New(10), 1, "scope: x", "equal", "hello", "world", "", "", "")
+		pb := New(10)
+		pb.Event(stream.Event{
+			Type: stream.TypeFail, Test: "scope: x", Count: 1,
+			Operator: "equal", Result: "hello", Expected: "world",
+		})
+		result := pb.End(0, 1, 0)
 		t.Ok(strings.Contains(result, "expected: |-\n      world\n"))
 		t.End()
 	})
 	tape.Test(t, "formatter-progress-bar: fail shows result value", func(t *tape.T) {
-		result := failOutput(New(10), 1, "scope: x", "equal", "hello", "world", "", "", "")
+		pb := New(10)
+		pb.Event(stream.Event{
+			Type: stream.TypeFail, Test: "scope: x", Count: 1,
+			Operator: "equal", Result: "hello", Expected: "world",
+		})
+		result := pb.End(0, 1, 0)
 		t.Ok(strings.Contains(result, "result: |-\n      hello\n"))
 		t.End()
 	})

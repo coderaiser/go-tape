@@ -10,6 +10,13 @@ import (
 	. "github.com/coderaiser/go-tape"
 )
 
+func TestMain(m *testing.M) {
+	// Integration tests run `go test` on testdata packages, which need extra
+	// time for compilation. Raise the timeout for the entire package.
+	_ = os.Setenv("TAPE_TIMEOUT", "30s")
+	os.Exit(m.Run())
+}
+
 func TestRunHelp(t *testing.T) {
 	Test(t, "main: -h prints usage", func(t *T) {
 		var out, errOut strings.Builder

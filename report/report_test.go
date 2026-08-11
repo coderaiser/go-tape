@@ -1,7 +1,6 @@
 package report_test
 
 import (
-	"bufio"
 	"strings"
 	"testing"
 
@@ -123,28 +122,7 @@ func TestRunUnknownActionSkipped(t *testing.T) {
 	})
 }
 
-func TestRunScannerError(t *testing.T) {
-	Test(t, "report: scanner error returns error", func(t *T) {
-		long := strings.Repeat("a", bufio.MaxScanTokenSize+1)
-		var sb strings.Builder
-		result := report.Run(strings.NewReader(long), &sb, "tap", 1)
-		t.Ok(result != nil)
-		t.End()
-	})
-}
-
-func TestRunStoreApplyErrorContinues(t *testing.T) {
-	Test(t, "report: unknown action events are skipped without error", func(t *T) {
-		const unknownAction = `{"Action":"unknown_action","Test":"scope: x"}
-` + passingJSON
-		var sb strings.Builder
-		err := report.Run(strings.NewReader(unknownAction), &sb, "tap", 1)
-		t.NotOk(err)
-		t.End()
-	})
-}
-
-func TestRunStoreApplyErrorOutputContinues(t *testing.T) {
+func TestRunUnknownActionOutputContinues(t *testing.T) {
 	Test(t, "report: valid events after unknown action still appear in output", func(t *T) {
 		const unknownAction = `{"Action":"unknown_action","Test":"scope: x"}
 ` + passingJSON

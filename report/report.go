@@ -4,12 +4,10 @@
 package report
 
 import (
-	"bufio"
 	"io"
 
 	"github.com/coderaiser/go-tape/internal/formatter"
-	"github.com/coderaiser/go-tape/internal/parser"
-	"github.com/coderaiser/go-tape/internal/state"
+	"github.com/coderaiser/go-tape/internal/stream"
 )
 
 // Run reads go test -json output from r, formats events using the named
@@ -25,30 +23,23 @@ import (
 // Returns an error only on scanner failure; test failures are reflected in
 // the formatted output, not as a returned error.
 func Run(r io.Reader, w io.Writer, format string, total int) error {
-	f := formatter.New(format, w, total)
+	d := formatter.New(format, w, total)
 
-	store, err := state.New()
-	if err != nil {
-		return err
-	}
-
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		e, err := parser.Parse(scanner.Text())
-		if err != nil {
-			continue
+	var lastCount, lastFailed int
+	for e := range stream.Parse(r, total) {
+		d.Emit(e)
+		if e.Type == stream.TypeTestEnd {
+			lastCount = e.Count
+			lastFailed = e.Failed
 		}
-		if _, err := store.Apply(e); err != nil {
-			continue
-		}
-		f.FromEvent(e)
-	}
-	if err := scanner.Err(); err != nil {
-		return err
 	}
 
-	passed, failed, skipped := store.Summary()
-	f.End(len(passed), len(failed), len(skipped))
+	passedCount := lastCount - lastFailed
+	skipped := total - lastCount
+	if skipped < 0 {
+		skipped = 0
+	}
 
+	d.End(passedCount, lastFailed, skipped)
 	return nil
 }

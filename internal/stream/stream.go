@@ -76,6 +76,9 @@ func Run(total int, args ...string) (<-chan Event, error) {
 	}
 	ch := make(chan Event)
 	go parse(stdout, total, ch)
+	go func() {
+		_ = cmd.Wait()
+	}()
 	return ch, nil
 }
 

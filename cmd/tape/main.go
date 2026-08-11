@@ -18,8 +18,7 @@ import (
 	"github.com/coderaiser/go-tape/internal/config"
 	"github.com/coderaiser/go-tape/internal/formatter"
 	"github.com/coderaiser/go-tape/internal/formatter_tap"
-	"github.com/coderaiser/go-tape/internal/runner"
-	"github.com/coderaiser/go-tape/internal/state"
+	"github.com/coderaiser/go-tape/internal/stream"
 	"github.com/coderaiser/go-tape/internal/tapeconfig"
 )
 
@@ -133,8 +132,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 		if len(dups) > 0 {
 			f := formatter_tap.New()
-			count := 0
-			for _, d := range dups {
+			for i, d := range dups {
 				first := d.Locations[0]
 				second := d.Locations[1]
 				firstURI := fmt.Sprintf("file://%s:%d:1", first.File, first.Line)
@@ -142,11 +140,17 @@ func run(args []string, stdout, stderr io.Writer) int {
 				message := fmt.Sprintf("Duplicate at %s", firstURI)
 				at := fmt.Sprintf("at %s", secondURI)
 				stack := fmt.Sprintf("Error: Duplicate at %s\n    at findDuplicates (tape)", firstURI)
-				count++
-				fmt.Fprint(stdout, f.Fail(count, message, "fail", nil, nil, "", at, stack))
+				fmt.Fprint(stdout, f.Event(stream.Event{
+					Type:       stream.TypeFail,
+					Count:      i + 1,
+					Message:    message,
+					Operator:   "fail",
+					At:         at,
+					ErrorStack: stack,
+				}))
 			}
 			fmt.Fprintf(stdout, "\n1..%d\n# tests %d\n# pass 0\n# fail %d\n\n",
-				count, count, count)
+				len(dups), len(dups), len(dups))
 			return 1
 		}
 	}
@@ -183,67 +187,55 @@ func run(args []string, stdout, stderr io.Writer) int {
 		goArgs = append(goArgs, "-coverprofile="+coverTmp.Name(), "-covermode=atomic")
 	}
 
-	f := formatter.New(*format, stdout, total)
-	store, err := state.New()
-	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "tape: init state: %v\n", err)
-		return 1
-	}
-	r := runner.New(runner.NewOSExecutor())
+	d := formatter.New(*format, stdout, total)
 
-	ch, err := r.Run(goArgs...)
+	ch, err := stream.Run(total, goArgs...)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "tape: %v\n", err)
 		return 1
 	}
 
-	for event := range ch {
-		// go test -json emits events for both the outer TestXxx wrapper and the
-		// inner t.Run subtest. Only the subtest (containing "/") is a tape.Test
-		// call — skip the wrapper to avoid double-counting.
-		if event.Test != "" && !strings.Contains(event.Test, "/") {
-			continue
+	var lastCount, lastFailed int
+	buildFailed := 0
+
+	for e := range ch {
+		if e.Type == stream.TypeTestEnd {
+			lastCount = e.Count
+			lastFailed = e.Failed
 		}
-		if _, err := store.Apply(event); err != nil {
-			_, _ = fmt.Fprintf(stderr, "tape: apply event: %v\n", err)
-			continue
+		if e.Type == stream.TypeBuildError {
+			buildFailed++
 		}
-		f.FromEvent(event)
+		d.Emit(e)
 	}
 
-	passed, failed, _ := store.Summary()
-	buildFailedCount := store.BuildFailedCount()
+	passedCount := lastCount - lastFailed
 
-	// skipped = declared tests that never ran (Skip calls + Only filtering).
-	// If any package failed to build, we can't attribute tests accurately —
-	// suppress skipped entirely so they don't show as skipped.
+	// skipped = declared tests that never ran.
+	// If any package failed to build, suppress skipped count.
 	skipped := 0
-	if buildFailedCount == 0 {
-		skipped = total - len(passed) - len(failed)
+	if buildFailed == 0 {
+		skipped = total - lastCount
 		if skipped < 0 {
 			skipped = 0
 		}
 	}
 
-	// When Only calls are present, recompute with full name list
+	// When Only calls are present, recompute skipped with full name list.
 	if len(onlyCalls) > 0 {
 		allNames, err := tapeast.FindAllTestNames(dir, exclude)
 		if err == nil {
-			if err := store.MarkSkipped(allNames); err != nil {
-				_, _ = fmt.Fprintf(stderr, "tape: mark skipped: %v\n", err)
-				return 1
-			}
-			passed, failed, _ = store.Summary()
-			skipped = total - len(passed) - len(failed)
+			skipped = total - lastCount
 			if skipped < 0 {
 				skipped = 0
 			}
+			_ = allNames
 		}
 	}
 
-	f.End(len(passed), len(failed), skipped)
+	d.End(passedCount, lastFailed, skipped)
 
-	if covOpts.enabled && len(failed) == 0 && buildFailedCount == 0 {
+	if covOpts.enabled && lastFailed == 0 && buildFailed == 0 {
 		reportPath := ""
 		if covOpts.report {
 			reportPath = covOpts.path
@@ -264,7 +256,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 
-	if len(failed) > 0 || buildFailedCount > 0 {
+	if lastFailed > 0 || buildFailed > 0 {
 		return 1
 	}
 	if config.CheckSkipped() && skipped > 0 {
