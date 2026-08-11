@@ -81,3 +81,12 @@ func TestFailFormatterEndDelegates(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestFailFormatterCommentDelegates(t *testing.T) {
+	Test(t, "formatter-fail: comment event delegates to tap", func(t *T) {
+		f := formatter_fail.New()
+		result := f.Event(stream.Event{Type: stream.TypeComment, Message: "note"})
+		t.Equal(result, "# note\n")
+		t.End()
+	})
+}
