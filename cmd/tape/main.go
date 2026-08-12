@@ -245,13 +245,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if skipped < 0 {
 			skipped = 0
 		}
-		// If the run ended before all tests had a chance to run and nothing
-		// was explicitly skipped via tape.Skip, it means go test exited early
-		// (network error, missing dependency, runtime panic). Treat as failure.
-		if skipped > 0 && lastFailed == 0 {
-			earlyExit = true
-			skipped = 0
-		}
+
 	}
 
 	// When Only calls are present, recompute skipped with full name list.

@@ -202,7 +202,8 @@ func findCallNames(src string, _ ...string) ([]string, error) {
 			return true
 		}
 		matched := isTestCall(call) ||
-			isTestMethodCall(call, "Only")
+			isTestMethodCall(call, "Only") ||
+			isTestMethodCall(call, "Skip")
 		if matched && len(call.Args) >= 2 {
 			if lit, ok := call.Args[1].(*ast.BasicLit); ok {
 				names = append(names, strings.Trim(lit.Value, `"`))
@@ -221,8 +222,8 @@ func isTestCall(call *ast.CallExpr) bool {
 	case *ast.Ident:
 		return fn.Name == "Test"
 	case *ast.SelectorExpr:
-		if id, ok := fn.X.(*ast.Ident); ok {
-			return fn.Sel.Name == "Test" && id.Name != "Test"
+		if _, ok := fn.X.(*ast.Ident); ok {
+			return fn.Sel.Name == "Test"
 		}
 	}
 	return false

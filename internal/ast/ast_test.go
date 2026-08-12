@@ -536,8 +536,8 @@ func TestCountTestsRecursive(t *testing.T) {
 	})
 }
 
-func TestCountTestsExcludesSkip(t *testing.T) {
-	AstTest(t, "ast: CountTests excludes tape.Skip calls from total", func(t *AstT) {
+func TestCountTestsIncludesSkip(t *testing.T) {
+	AstTest(t, "ast: CountTests includes tape.Skip calls in total", func(t *AstT) {
 		dir, fixture := Fixture(t.TB())
 
 		fixture("skip_test.go", `
@@ -557,13 +557,13 @@ func TestCountTestsExcludesSkip(t *testing.T) {
 			t.TB().Fatal(err)
 		}
 
-		t.Equal(n, 1)
+		t.Equal(n, 2)
 		t.End()
 	})
 }
 
-func TestCountTestsInTestFilesExcludesSkip(t *testing.T) {
-	AstTest(t, "ast: CountTestsInTestFiles excludes tape.Skip calls from total", func(t *AstT) {
+func TestCountTestsInTestFilesIncludesSkip(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles includes tape.Skip calls in total", func(t *AstT) {
 		dir, fixture := Fixture(t.TB())
 
 		fixture("skip_test.go", `
@@ -585,7 +585,7 @@ func TestCountTestsInTestFilesExcludesSkip(t *testing.T) {
 			t.TB().Fatal(err)
 		}
 
-		t.Equal(n, 2)
+		t.Equal(n, 4)
 		t.End()
 	})
 }

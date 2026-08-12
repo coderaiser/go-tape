@@ -3,6 +3,7 @@ package tape
 import (
 	"errors"
 	"os"
+	"regexp"
 	"testing"
 )
 
