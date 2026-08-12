@@ -123,9 +123,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 	tcfg := tapeconfig.Load(dir)
 	exclude := tcfg.Test.Exclude
 
+	var dups []tapeast.Duplicate
 	// check duplicates before running
 	if !*noCheckDuplicates && config.CheckDuplicates() {
-		dups, err := tapeast.FindDuplicates(dir, exclude)
+		var err error
+		dups, err = tapeast.FindDuplicates(dir, exclude)
 		if err != nil {
 			_, _ = fmt.Fprintf(stderr, "tape: scan duplicates: %v\n", err)
 			return 1
@@ -196,7 +198,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "[tape:debug] total:  %d\n", total)
 		fmt.Fprintf(stderr, "[tape:debug] only:   %d\n", len(onlyCalls))
 		fmt.Fprintf(stderr, "[tape:debug] dups:   %d\n", len(dups))
-		fmt.Fprintf(stderr, "[tape:debug] args:   go test %s\n", strings.Join(goArgs, " "))
+		fmt.Fprintf(stderr, "[tape:debug] args:   %s\n", strings.Join(append([]string{"go"}, goArgs...), " "))
 	}
 
 	ch, err := stream.Run(total, goArgs...)
@@ -233,9 +235,17 @@ func run(args []string, stdout, stderr io.Writer) int {
 	// skipped = declared tests that never ran.
 	// If any package failed to build, suppress skipped count.
 	skipped := 0
+	earlyExit := false
 	if buildFailed == 0 {
 		skipped = total - lastCount
 		if skipped < 0 {
+			skipped = 0
+		}
+		// If the run ended before all tests had a chance to run and nothing
+		// was explicitly skipped via tape.Skip, it means go test exited early
+		// (network error, missing dependency, runtime panic). Treat as failure.
+		if skipped > 0 && lastFailed == 0 {
+			earlyExit = true
 			skipped = 0
 		}
 	}
@@ -253,6 +263,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	d.End(passedCount, lastFailed, skipped)
+
+	if earlyExit {
+		notRan := total - lastCount
+		_, _ = fmt.Fprintf(stderr, "tape: run ended early — %d of %d tests did not run\n", notRan, total)
+		return 1
+	}
 
 	if covOpts.enabled && lastFailed == 0 && buildFailed == 0 {
 		reportPath := ""
