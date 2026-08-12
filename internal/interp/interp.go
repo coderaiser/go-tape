@@ -2,6 +2,7 @@ package interp
 
 import (
 	"bytes"
+	"reflect"
 	"sync"
 
 	"github.com/goplus/ixgo"
@@ -24,9 +25,9 @@ type Handler interface {
 
 // handler holds the per-run event sink plus print output.
 type handler struct {
-	cb   func(Event)
-	out  *bytes.Buffer
-	mu   sync.Mutex
+	cb  func(Event)
+	out *bytes.Buffer
+	mu  sync.Mutex
 }
 
 func (h *handler) emit(e Event) {
@@ -37,39 +38,116 @@ func (h *handler) emit(e Event) {
 	}
 }
 
+// runTest is the host implementation of the tapeapi `Test` var for a single
+// run. It emits a "test" event, runs the interpreted body against a fresh
+// nativeT (whose assertion methods emit "assert" events), then emits an "end"
+// event. The "end" event carries the accumulated pass/fail state.
+func (h *handler) runTest(name string, fn func(T)) {
+	h.emit(Event{Kind: "test", Name: name})
+	tt := nativeT{h: h}
+	failed := false
+	tt.fail = &failed
+	fn(tt)
+	h.emit(Event{Kind: "end", Name: name, Ok: !failed})
+}
+
+// runReport is the host implementation of the tapeapi `Report` var. It emits a
+// "report" event carrying the structured assertion result.
+func (h *handler) runReport(r Result) {
+	h.emit(Event{Kind: "report", Name: r.Operator, Ok: r.Ok, Got: r.Got, Wanted: r.Expected, Msg: r.Message})
+}
+
 // nativeT implements host T; its methods emit assertion events.
 type nativeT struct {
-	h *handler
+	h    *handler
+	fail *bool
 }
 
 func (tt nativeT) Equal(a, b any) {
-	tt.h.emit(Event{Kind: "assert", Name: "equal", Ok: eq(a, b), Got: a, Wanted: b})
+	ok := eq(a, b)
+	if !ok && tt.fail != nil {
+		*tt.fail = true
+	}
+	tt.h.emit(Event{Kind: "assert", Name: "equal", Ok: ok, Got: a, Wanted: b})
 }
 
 func (tt nativeT) EqualText(a, b any, msg string) {
-	tt.h.emit(Event{Kind: "assert", Name: "equal", Ok: eq(a, b), Got: a, Wanted: b, Msg: msg})
+	ok := eq(a, b)
+	if !ok && tt.fail != nil {
+		*tt.fail = true
+	}
+	tt.h.emit(Event{Kind: "assert", Name: "equal", Ok: ok, Got: a, Wanted: b, Msg: msg})
 }
 
 func (tt nativeT) DeepEqual(a, b any) {
-	tt.h.emit(Event{Kind: "assert", Name: "deepEqual", Ok: deepEq(a, b), Got: a, Wanted: b})
+	ok := deepEq(a, b)
+	if !ok && tt.fail != nil {
+		*tt.fail = true
+	}
+	tt.h.emit(Event{Kind: "assert", Name: "deepEqual", Ok: ok, Got: a, Wanted: b})
 }
 
 func (tt nativeT) Ok(a any) {
-	tt.h.emit(Event{Kind: "assert", Name: "ok", Ok: truthy(a), Got: a})
+	ok := truthy(a)
+	if !ok && tt.fail != nil {
+		*tt.fail = true
+	}
+	tt.h.emit(Event{Kind: "assert", Name: "ok", Ok: ok, Got: a})
 }
 
 func (tt nativeT) NotOk(a any) {
-	tt.h.emit(Event{Kind: "assert", Name: "notOk", Ok: !truthy(a), Got: a})
+	ok := !truthy(a)
+	if !ok && tt.fail != nil {
+		*tt.fail = true
+	}
+	tt.h.emit(Event{Kind: "assert", Name: "notOk", Ok: ok, Got: a})
 }
 
 func (tt nativeT) End() {
 	tt.h.emit(Event{Kind: "end"})
 }
 
+// eq reports strict shallow equality.
+func eq(a, b any) bool {
+	return reflect.DeepEqual(a, b)
+}
+
+// deepEq reports deep equality.
+func deepEq(a, b any) bool {
+	return reflect.DeepEqual(a, b)
+}
+
+// truthy mirrors operator.truthy semantics for the simple native assertions.
+func truthy(v any) bool {
+	if v == nil {
+		return false
+	}
+	switch val := v.(type) {
+	case bool:
+		return val
+	case string:
+		return val != ""
+	case int:
+		return val != 0
+	}
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Slice, reflect.Map, reflect.Chan,
+		reflect.Func, reflect.Pointer, reflect.Interface:
+		return !rv.IsNil()
+	}
+	return true
+}
+
 // Run interprets a plain `package main` supertape-style source that uses the
 // tape API (Test/T/Report) via `import . "tapeapi"`, emitting structured events
 // to the given callback. It returns the interpreter exit code. No *testing.T,
 // no go test process, and none of ixgo's testing machinery is used.
+//
+// ixgo resolves tapeapi global vars to the package-level defaultTest/
+// defaultReport functions registered in the Package.Vars map, so per-run event
+// routing is done through the package-level `current` handler (Runs are
+// sequential by design).
 func Run(src string, w *bytes.Buffer, emit func(Event)) (code int, err error) {
 	h := &handler{cb: emit, out: w}
 
@@ -78,10 +156,8 @@ func Run(src string, w *bytes.Buffer, emit func(Event)) (code int, err error) {
 		ctx.SetPrintOutput(w)
 	}
 
-	// Point the tapeapi vars at this run's handler (ctx override wins over the
-	// globally-registered Vars used for type resolution).
-	ctx.RegisterExternal(apiPath+".Test", &testFn{h})
-	ctx.RegisterExternal(apiPath+".Report", &reportFn{h})
+	current = h
+	defer func() { current = nil }()
 
 	return ctx.RunFile("main.go", src, nil)
 }

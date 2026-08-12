@@ -27,6 +27,10 @@ flag = "--no-check-duplicates"
 desc = "do not check messages for duplicates"
 
 [[options]]
+flag = "--mode mode"
+desc = "run mode: interp (ixgo, default) or gotest (go test subprocess)"
+
+[[options]]
 flag = "-c, --coverage [format]"
 desc = "show coverage after tests"
 note = "default format: lines  values: lines|code-frame|json-lines"

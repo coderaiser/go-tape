@@ -34,6 +34,27 @@ type Result struct {
 	Message  string
 }
 
+// defaultTest / defaultReport are the GLOBAL func values registered via the
+// Package.Vars map. ixgo resolves a call to the tapeapi `Test`/`Report` vars to
+// these package-level functions (see globalToValue -> installed pkg Vars). Each
+// Run sets current to a per-run handler before interpreting, routes events to
+// it, then clears it. Runs are sequential by design, so a single current is
+// safe.
+var current *handler
+
+var defaultTest = func(name string, fn func(T)) {
+	if current != nil {
+		current.runTest(name, fn)
+	}
+}
+
+// defaultReport is the global fallback for the tapeapi `Report` var.
+var defaultReport = func(r Result) {
+	if current != nil {
+		current.runReport(r)
+	}
+}
+
 // Register exports the tape-style API as an ixgo package so that a plain
 // `package main` source can `import . "tapeapi"` and use Test/T/Report with no
 // package qualifier. The Source provides the Go types the interpreter needs to
