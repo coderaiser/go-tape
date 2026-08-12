@@ -4,9 +4,15 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/coderaiser/go-tape/internal/formatter"
 	"github.com/coderaiser/go-tape/internal/stream"
 )
+
+// Formatter is the subset of formatter.Formatter needed here.
+// Defined locally to break the import cycle with internal/formatter.
+type Formatter interface {
+	Event(e stream.Event) string
+	End(passed, failed, skipped int) string
+}
 
 // DebugFormatter writes structured debug lines to w (intended: os.Stderr).
 // Event always returns "" — no stdout output is produced.
@@ -51,12 +57,12 @@ func (f *DebugFormatter) log(e stream.Event) {
 // stdout output) while also writing debug lines to w (stderr). This lets
 // -f debug show both normal progress-bar output and full debug info.
 type WrappingDebugFormatter struct {
-	inner formatter.Formatter
+	inner Formatter
 	dbg   *DebugFormatter
 }
 
 // NewWrapping wraps inner, writing debug lines to w alongside inner's output.
-func NewWrapping(inner formatter.Formatter, w io.Writer) *WrappingDebugFormatter {
+func NewWrapping(inner Formatter, w io.Writer) *WrappingDebugFormatter {
 	return &WrappingDebugFormatter{
 		inner: inner,
 		dbg:   New(w),
