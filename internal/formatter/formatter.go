@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/coderaiser/go-tape/internal/formatter_debug"
 	"github.com/coderaiser/go-tape/internal/formatter_fail"
 	"github.com/coderaiser/go-tape/internal/formatter_json_lines"
 	"github.com/coderaiser/go-tape/internal/formatter_progress_bar"
@@ -42,6 +43,8 @@ func New(format string, w io.Writer, total int) *Dispatcher {
 
 	var f Formatter
 	switch format {
+	case "debug":
+		f = formatter_debug.NewWrapping(formatter_progress_bar.New(total), os.Stderr)
 	case "tap":
 		f = formatter_tap.New()
 	case "short":

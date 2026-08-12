@@ -31,7 +31,9 @@ type Duplicate struct {
 	Locations []Location
 }
 
-// CountTests returns total tape.Test + tape.Only + tape.Skip calls in dir.
+// CountTests returns total tape.Test + tape.Only calls in dir.
+// tape.Skip calls are excluded — they never emit test-end events,
+// so including them causes skipped count inflation.
 func CountTests(dir string, exclude []string) (int, error) {
 	total := 0
 	err := walkFiles(dir, exclude, func(src string) error {
@@ -183,10 +185,10 @@ func BuildRunPattern(calls []OnlyCall) string {
 	return strings.Join(patterns, "|")
 }
 
-// findCallNames extracts the second string-literal argument from all tape
-// Test(...), Test.Only(...), and Test.Skip(...) calls in src.
-// The fnNames parameter is kept for API compatibility but is now ignored —
-// all three call forms are always matched.
+// findCallNames extracts the second string-literal argument from tape
+// Test(...) and Test.Only(...) calls in src.
+// tape.Skip is intentionally excluded — Skip calls never emit test-end
+// events, so counting them inflates the total and produces phantom skips.
 func findCallNames(src string, _ ...string) ([]string, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, "src.go", src, 0)
@@ -200,8 +202,7 @@ func findCallNames(src string, _ ...string) ([]string, error) {
 			return true
 		}
 		matched := isTestCall(call) ||
-			isTestMethodCall(call, "Only") ||
-			isTestMethodCall(call, "Skip")
+			isTestMethodCall(call, "Only")
 		if matched && len(call.Args) >= 2 {
 			if lit, ok := call.Args[1].(*ast.BasicLit); ok {
 				names = append(names, strings.Trim(lit.Value, `"`))

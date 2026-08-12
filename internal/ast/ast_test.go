@@ -536,6 +536,60 @@ func TestCountTestsRecursive(t *testing.T) {
 	})
 }
 
+func TestCountTestsExcludesSkip(t *testing.T) {
+	AstTest(t, "ast: CountTests excludes tape.Skip calls from total", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("skip_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFoo(t *testing.T) {
+				Test.Test(t, "foo: one", func(t *Test.T) { t.End() })
+				Test.Skip(t, "foo: skipped", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		n, err := tapeast.CountTests(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		t.Equal(n, 1)
+		t.End()
+	})
+}
+
+func TestCountTestsInTestFilesExcludesSkip(t *testing.T) {
+	AstTest(t, "ast: CountTestsInTestFiles excludes tape.Skip calls from total", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("skip_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFoo(t *testing.T) {
+				Test.Test(t, "foo: a", func(t *Test.T) { t.End() })
+				Test.Test(t, "foo: b", func(t *Test.T) { t.End() })
+				Test.Skip(t, "foo: skipped one", func(t *Test.T) { t.End() })
+				Test.Skip(t, "foo: skipped two", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		n, err := tapeast.CountTestsInTestFiles(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		t.Equal(n, 2)
+		t.End()
+	})
+}
+
 func TestFindOnlyCallsRecursive(t *testing.T) {
 	AstTest(t, "ast: FindOnlyCalls finds Only calls in subdirectories", func(t *AstT) {
 		dir, fixture := Fixture(t.TB())

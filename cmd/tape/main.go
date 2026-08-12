@@ -67,7 +67,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	covOpts, args := preprocess(args)
 
 	flags := flag.NewFlagSet("tape", flag.ContinueOnError)
-	format := flags.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines")
+	format := flags.String("f", "", "output format: tap|progress-bar|short|fail|time|json-lines|debug")
 	flags.StringVar(format, "format", "", "output format (alias for -f)")
 
 	var help bool
@@ -190,6 +190,15 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	d := formatter.New(*format, stdout, total)
 
+	if *format == "debug" {
+		fmt.Fprintf(stderr, "[tape:debug] path:   %s\n", path)
+		fmt.Fprintf(stderr, "[tape:debug] dir:    %s\n", dir)
+		fmt.Fprintf(stderr, "[tape:debug] total:  %d\n", total)
+		fmt.Fprintf(stderr, "[tape:debug] only:   %d\n", len(onlyCalls))
+		fmt.Fprintf(stderr, "[tape:debug] dups:   %d\n", len(dups))
+		fmt.Fprintf(stderr, "[tape:debug] args:   go test %s\n", strings.Join(goArgs, " "))
+	}
+
 	ch, err := stream.Run(total, goArgs...)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "tape: %v\n", err)
@@ -210,6 +219,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 			buildErrors = append(buildErrors, e)
 		}
 		d.Emit(e)
+	}
+
+	if *format == "debug" {
+		fmt.Fprintf(stderr, "[tape:debug] lastCount=%d lastFailed=%d total=%d\n",
+			lastCount, lastFailed, total)
+		fmt.Fprintf(stderr, "[tape:debug] skipped computed: %d - %d = %d\n",
+			total, lastCount, total-lastCount)
 	}
 
 	passedCount := lastCount - lastFailed
