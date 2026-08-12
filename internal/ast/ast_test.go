@@ -1184,6 +1184,238 @@ func TestFindOnlyCallsSkipsExcludedDirs(t *testing.T) {
 	})
 }
 
+func TestFindTestsWithLocationsReturnsTestCall(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations returns Test call", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+		fixture("a_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestFoo(t *testing.T) {
+				Test.Test(t, "foo: one", func(t *Test.T) { t.End() })
+			}
+		`)
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 1)
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsKindTest(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations Kind is Test for tape.Test call", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+		fixture("a_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestFoo(t *testing.T) {
+				Test.Test(t, "foo: one", func(t *Test.T) { t.End() })
+			}
+		`)
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(calls[0].Kind, "Test")
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsName(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations captures test name", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+		fixture("a_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestFoo(t *testing.T) {
+				Test.Test(t, "foo: one", func(t *Test.T) { t.End() })
+			}
+		`)
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(calls[0].Name, "foo: one")
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsLine(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations captures line number", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+		fixture("a_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestFoo(t *testing.T) {
+				Test.Test(t, "foo: one", func(t *Test.T) { t.End() })
+			}
+		`)
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Ok(calls[0].Line > 0)
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsFile(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations captures absolute file path", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+		fixture("a_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestFoo(t *testing.T) {
+				Test.Test(t, "foo: one", func(t *Test.T) { t.End() })
+			}
+		`)
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Match(calls[0].File, "a_test.go")
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsOnlyKind(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations Kind is Only for tape.Only call", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+		fixture("a_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestFoo(t *testing.T) {
+				Test.Only(t, "foo: only", func(t *Test.T) { t.End() })
+			}
+		`)
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(calls[0].Kind, "Only")
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsSkipExcluded(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations excludes tape.Skip calls", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+		fixture("a_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestFoo(t *testing.T) {
+				Test.Test(t, "foo: one", func(t *Test.T) { t.End() })
+				Test.Skip(t, "foo: skip", func(t *Test.T) { t.End() })
+			}
+		`)
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 1)
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsNonTestFilesExcluded(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations ignores non-_test.go files", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+		fixture("fixture.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func setup(t *testing.T) {
+				Test.Test(t, "foo: fixture", func(t *Test.T) { t.End() })
+			}
+		`)
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 0)
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsMultipleFiles(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations finds calls across multiple test files", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+		fixture("a_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestA(t *testing.T) {
+				Test.Test(t, "a: one", func(t *Test.T) { t.End() })
+			}
+		`)
+		fixture("b_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestB(t *testing.T) {
+				Test.Test(t, "b: one", func(t *Test.T) { t.End() })
+				Test.Test(t, "b: two", func(t *Test.T) { t.End() })
+			}
+		`)
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 3)
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsInvalidGo(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations returns error for invalid Go", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+		fixture("bad_test.go", `not valid go`)
+		_, err := tapeast.FindTestsWithLocations(dir, nil)
+		t.NotOk(err == nil)
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsEmptyDir(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations returns empty slice for dir with no test files", func(t *AstT) {
+		dir, _ := Fixture(t.TB())
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 0)
+		t.End()
+	})
+}
+
 func TestFindOnlyCallsInsideAnonFunc(t *testing.T) {
 	AstTest(t, "ast: Only inside anonymous func literal is attributed to enclosing TestXxx", func(t *AstT) {
 		src := `

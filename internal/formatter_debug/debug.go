@@ -7,76 +7,44 @@ import (
 	"github.com/coderaiser/go-tape/internal/stream"
 )
 
-// Formatter is the subset of formatter.Formatter needed here.
-// Defined locally to break the import cycle with internal/formatter.
-type Formatter interface {
-	Event(e stream.Event) string
-	End(passed, failed, skipped int) string
-}
-
-// DebugFormatter writes structured debug lines to w (intended: os.Stderr).
-// Event always returns "" — no stdout output is produced.
+// DebugFormatter writes structured debug lines to w (stdout when -f debug).
+// Event returns the debug line as a string so the dispatcher can write it
+// to stdout via the normal formatter pipeline.
 type DebugFormatter struct {
-	w io.Writer
+	w     io.Writer
+	total int
 }
 
-// New returns a standalone DebugFormatter that writes all output to w.
-func New(w io.Writer) *DebugFormatter {
-	return &DebugFormatter{w: w}
+// New returns a DebugFormatter that writes all output to w.
+func New(w io.Writer, total int) *DebugFormatter {
+	return &DebugFormatter{w: w, total: total}
 }
 
 func (f *DebugFormatter) Event(e stream.Event) string {
-	f.log(e)
-	return ""
+	return f.format(e)
 }
 
 func (f *DebugFormatter) End(passed, failed, skipped int) string {
-	fmt.Fprintf(f.w, "[tape:debug] result: passed=%d failed=%d skipped=%d\n",
+	return fmt.Sprintf("[tape:debug] result: passed=%d failed=%d skipped=%d\n",
 		passed, failed, skipped)
-	return ""
 }
 
-func (f *DebugFormatter) log(e stream.Event) {
+func (f *DebugFormatter) format(e stream.Event) string {
 	switch e.Type {
 	case stream.TypeTestEnd:
-		fmt.Fprintf(f.w, "[tape:debug] test-end    %s  count=%d failed=%d\n",
-			e.Test, e.Count, e.Failed)
+		return fmt.Sprintf("[tape:debug] pass  %s  count=%d/%d failed=%d\n",
+			e.Test, e.Count, f.total, e.Failed)
 	case stream.TypeFail:
-		fmt.Fprintf(f.w, "[tape:debug] fail        %s  operator=%q\n",
-			e.Test, e.Operator)
+		return fmt.Sprintf("[tape:debug] fail  %s  count=%d/%d operator=%q\n",
+			e.Test, e.Count, f.total, e.Operator)
 	case stream.TypeBuildError:
-		fmt.Fprintf(f.w, "[tape:debug] build-error   %s\n", e.Package)
+		return fmt.Sprintf("[tape:debug] build-error   %s\n%s\n", e.Package, e.Output)
 	case stream.TypePackageError:
-		fmt.Fprintf(f.w, "[tape:debug] package-error %s\n", e.Package)
+		return fmt.Sprintf("[tape:debug] package-error %s\n%s\n", e.Package, e.Output)
 	case stream.TypeUnknownFail:
-		fmt.Fprintf(f.w, "[tape:debug] unknown-fail %s\n", e.Test)
+		return fmt.Sprintf("[tape:debug] unknown-fail  %s\n", e.Test)
 	case stream.TypeComment:
-		fmt.Fprintf(f.w, "[tape:debug] comment      %s\n", e.Message)
+		return fmt.Sprintf("[tape:debug] comment       %s\n", e.Message)
 	}
-}
-
-// WrappingDebugFormatter delegates Event/End to an inner formatter (for
-// stdout output) while also writing debug lines to w (stderr). This lets
-// -f debug show both normal progress-bar output and full debug info.
-type WrappingDebugFormatter struct {
-	inner Formatter
-	dbg   *DebugFormatter
-}
-
-// NewWrapping wraps inner, writing debug lines to w alongside inner's output.
-func NewWrapping(inner Formatter, w io.Writer) *WrappingDebugFormatter {
-	return &WrappingDebugFormatter{
-		inner: inner,
-		dbg:   New(w),
-	}
-}
-
-func (f *WrappingDebugFormatter) Event(e stream.Event) string {
-	f.dbg.log(e)
-	return f.inner.Event(e)
-}
-
-func (f *WrappingDebugFormatter) End(passed, failed, skipped int) string {
-	f.dbg.End(passed, failed, skipped)
-	return f.inner.End(passed, failed, skipped)
+	return ""
 }

@@ -362,8 +362,89 @@ func walkTestFiles(dir string, exclude []string, fn func(string) error) error {
 	})
 }
 
-// CountTestsInTestFiles counts tape.Test/Only/Skip calls only in *_test.go files.
-// Use this from the CLI to avoid counting fixture files.
+// walkTestFilesWithPath is like walkTestFiles but passes (path, src) to fn.
+func walkTestFilesWithPath(dir string, exclude []string, fn func(path, src string) error) error {
+	return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if isExcludedDir(path, exclude) {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		src, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if hasBuildIgnore(string(src)) {
+			return nil
+		}
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			return err
+		}
+		return fn(abs, string(src))
+	})
+}
+
+// TestCall is a single tape.Test / tape.Only call found during AST scan.
+type TestCall struct {
+	Kind string   // "Test" or "Only"
+	Name string   // second string-literal argument
+	File string   // absolute path
+	Line int
+}
+
+// FindTestsWithLocations returns every tape.Test and tape.Only call in
+// *_test.go files under dir, with file and line information.
+// Used by formatter-debug to show exactly what the AST scan counted.
+func FindTestsWithLocations(dir string, exclude []string) ([]TestCall, error) {
+	var calls []TestCall
+	err := walkTestFilesWithPath(dir, exclude, func(path, src string) error {
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, path, src, 0)
+		if err != nil {
+			return err
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			kind := ""
+			switch {
+			case isTestCall(call):
+				kind = "Test"
+			case isTestMethodCall(call, "Only"):
+				kind = "Only"
+			}
+			if kind == "" {
+				return true
+			}
+			if len(call.Args) >= 2 {
+				if lit, ok := call.Args[1].(*ast.BasicLit); ok {
+					pos := fset.Position(lit.Pos())
+					calls = append(calls, TestCall{
+						Kind: kind,
+						Name: strings.Trim(lit.Value, `"`),
+						File: path,
+						Line: pos.Line,
+					})
+				}
+			}
+			return true
+		})
+		return nil
+	})
+	return calls, err
+}
+
+
 func CountTestsInTestFiles(dir string, exclude []string) (int, error) {
 	total := 0
 	err := walkTestFiles(dir, exclude, func(src string) error {

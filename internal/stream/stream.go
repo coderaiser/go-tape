@@ -137,7 +137,7 @@ func parse(r io.Reader, total int, ch chan<- Event) {
 		}
 
 		// outer TestXxx wrapper — no slash means it is not a subtest
-		if !strings.Contains(ge.Test, "/") {
+		if strings.Count(ge.Test, "/") != 1 {
 			continue
 		}
 
