@@ -210,6 +210,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	var lastCount, lastFailed int
 	buildFailed := 0
 	var buildErrors []stream.Event
+	var packageErrors []stream.Event
 
 	for e := range ch {
 		if e.Type == stream.TypeTestEnd {
@@ -219,6 +220,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if e.Type == stream.TypeBuildError {
 			buildFailed++
 			buildErrors = append(buildErrors, e)
+		}
+		if e.Type == stream.TypePackageError {
+			packageErrors = append(packageErrors, e)
 		}
 		d.Emit(e)
 	}
@@ -266,7 +270,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	if earlyExit {
 		notRan := total - lastCount
-		_, _ = fmt.Fprintf(stderr, "tape: run ended early — %d of %d tests did not run\n", notRan, total)
+		_, _ = fmt.Fprintf(stderr, "tape: run ended early — %d of %d tests did not run\n\n", notRan, total)
+		for _, e := range packageErrors {
+			_, _ = fmt.Fprintf(stderr, "  %s:\n%s\n", e.Package, e.Output)
+		}
 		return 1
 	}
 

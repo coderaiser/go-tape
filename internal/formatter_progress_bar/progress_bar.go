@@ -121,6 +121,10 @@ func (f *ProgressBarFormatter) Event(e stream.Event) string {
 		f.out.WriteString(fmt.Sprintf("# build-error: %s\n%s\n", e.Package, e.Output))
 		return ""
 
+	case stream.TypePackageError:
+		f.out.WriteString(fmt.Sprintf("# package-error: %s\n%s\n", e.Package, e.Output))
+		return ""
+
 	case stream.TypeComment:
 		return fmt.Sprintf("# %s\n", e.Message)
 	}

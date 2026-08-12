@@ -15,6 +15,7 @@ const (
 	TypeUnknownFail = "unknown-fail"
 	TypeComment     = "comment"
 	TypeBuildError  = "build-error"
+	TypePackageError = "package-error" // package failed for any non-build reason (network, panic, etc.)
 	TypeEnd         = "end"
 )
 
@@ -120,6 +121,12 @@ func parse(r io.Reader, total int, ch chan<- Event) {
 				if strings.Contains(raw, "[build failed]") {
 					ch <- Event{
 						Type:    TypeBuildError,
+						Package: ge.Package,
+						Output:  raw,
+					}
+				} else {
+					ch <- Event{
+						Type:    TypePackageError,
 						Package: ge.Package,
 						Output:  raw,
 					}

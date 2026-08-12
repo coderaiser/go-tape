@@ -45,7 +45,9 @@ func (f *DebugFormatter) log(e stream.Event) {
 		fmt.Fprintf(f.w, "[tape:debug] fail        %s  operator=%q\n",
 			e.Test, e.Operator)
 	case stream.TypeBuildError:
-		fmt.Fprintf(f.w, "[tape:debug] build-error %s\n", e.Package)
+		fmt.Fprintf(f.w, "[tape:debug] build-error   %s\n", e.Package)
+	case stream.TypePackageError:
+		fmt.Fprintf(f.w, "[tape:debug] package-error %s\n", e.Package)
 	case stream.TypeUnknownFail:
 		fmt.Fprintf(f.w, "[tape:debug] unknown-fail %s\n", e.Test)
 	case stream.TypeComment:

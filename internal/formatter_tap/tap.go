@@ -24,6 +24,8 @@ func (f *TAPFormatter) Event(e stream.Event) string {
 		return fmt.Sprintf("not ok %d %s\n%s\n", e.Count, e.Test, e.Output)
 	case stream.TypeBuildError:
 		return fmt.Sprintf("# build-error: %s\n%s\n", e.Package, e.Output)
+	case stream.TypePackageError:
+		return fmt.Sprintf("# package-error: %s\n%s\n", e.Package, e.Output)
 	case stream.TypeComment:
 		return fmt.Sprintf("# %s\n", e.Message)
 	}

@@ -512,6 +512,75 @@ func TestStreamTwoBuildErrorsTwoEvents(t *testing.T) {
 // unknown-fail — non-tape test with no TAPE: sentinel
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// package-error — package fails for non-build reason (network, panic, etc.)
+// ---------------------------------------------------------------------------
+
+func TestStreamPackageErrorEmitsEvent(t *testing.T) {
+	Test(t, "stream: non-build package failure emits package-error event", func(t *T) {
+		r := strings.NewReader(lines(
+			pkgOutputLine(`cannot load golang.org/x/tools: 403 Forbidden\n`),
+			pkgOutputLine(`FAIL\t`+pkg+`\n`),
+			pkgFailLine(),
+		))
+		events := collect(Parse(r, 0))
+		t.Equal(len(events), 1)
+		t.End()
+	})
+}
+
+func TestStreamPackageErrorEventType(t *testing.T) {
+	Test(t, "stream: package-error event has correct type", func(t *T) {
+		r := strings.NewReader(lines(
+			pkgOutputLine(`cannot load golang.org/x/tools: 403 Forbidden\n`),
+			pkgOutputLine(`FAIL\t`+pkg+`\n`),
+			pkgFailLine(),
+		))
+		events := collect(Parse(r, 0))
+		t.Equal(events[0].Type, TypePackageError)
+		t.End()
+	})
+}
+
+func TestStreamPackageErrorEventPackage(t *testing.T) {
+	Test(t, "stream: package-error event carries package name", func(t *T) {
+		r := strings.NewReader(lines(
+			pkgOutputLine(`cannot load golang.org/x/tools: 403 Forbidden\n`),
+			pkgOutputLine(`FAIL\t`+pkg+`\n`),
+			pkgFailLine(),
+		))
+		events := collect(Parse(r, 0))
+		t.Equal(events[0].Package, pkg)
+		t.End()
+	})
+}
+
+func TestStreamPackageErrorEventOutput(t *testing.T) {
+	Test(t, "stream: package-error event carries raw output", func(t *T) {
+		r := strings.NewReader(lines(
+			pkgOutputLine(`cannot load golang.org/x/tools: 403 Forbidden\n`),
+			pkgOutputLine(`FAIL\t`+pkg+`\n`),
+			pkgFailLine(),
+		))
+		events := collect(Parse(r, 0))
+		t.Match(events[0].Output, "403 Forbidden")
+		t.End()
+	})
+}
+
+func TestStreamBuildErrorNotPackageError(t *testing.T) {
+	Test(t, "stream: build failed output emits build-error not package-error", func(t *T) {
+		r := strings.NewReader(lines(
+			pkgOutputLine(`foo.go:5:2: declared and not used: x\n`),
+			pkgOutputLine(`FAIL\t`+pkg+` [build failed]\n`),
+			pkgFailLine(),
+		))
+		events := collect(Parse(r, 0))
+		t.Equal(events[0].Type, TypeBuildError)
+		t.End()
+	})
+}
+
 func TestStreamUnknownFailEmitsTwoEvents(t *testing.T) {
 	Test(t, "stream: non-tape fail emits unknown-fail and test-end", func(t *T) {
 		r := strings.NewReader(lines(
