@@ -44,7 +44,7 @@ func New(format string, w io.Writer, total int) *Dispatcher {
 	var f Formatter
 	switch format {
 	case "debug":
-		f = formatter_debug.New(stdout, total)
+		f = formatter_debug.New(nil, total)
 	case "tap":
 		f = formatter_tap.New()
 	case "short":
