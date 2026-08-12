@@ -16,16 +16,24 @@ const supertapeSuffix = "_tape.go"
 
 // isSupertapeFile reports whether src is a supertape-style package-main source
 // that imports the virtual tapeapi package.
+// fileSource pairs a discovered supertape file with its (already-read) source
+// text, so each file is read exactly once.
+type fileSource struct {
+	path string
+	src  string
+}
+
 func isSupertapeFile(src string) bool {
 	return strings.Contains(src, `import . "tapeapi"`) ||
 		strings.Contains(src, `import "tapeapi"`)
 }
 
 // findSupertapeFiles walks dir (which may be a directory or a single file) and
-// returns the supertape source files it finds. Only *_tape.go files are
-// considered supertape sources; the tapeapi import confirms it.
-func findSupertapeFiles(dir string, exclude []string) ([]string, error) {
-	var files []string
+// returns the supertape source files it finds, along with their source text.
+// Only *_tape.go files are considered supertape sources; the tapeapi import
+// confirms it.
+func findSupertapeFiles(dir string, exclude []string) ([]fileSource, error) {
+	var files []fileSource
 	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -41,10 +49,11 @@ func findSupertapeFiles(dir string, exclude []string) ([]string, error) {
 			return err
 		}
 		if isSupertapeFile(string(src)) {
-			files = append(files, path)
+			files = append(files, fileSource{path: path, src: string(src)})
 		}
 		return nil
 	})
+	_ = exclude
 	return files, err
 }
 
@@ -106,14 +115,9 @@ func runInterpMode(dir string, d *formatter.Dispatcher, stdout io.Writer) int {
 	}
 
 	passed, failed := 0, 0
-	for _, file := range files {
-		src, err := os.ReadFile(file)
-		if err != nil {
-			_, _ = io.WriteString(stdout, "tape: read "+file+": "+err.Error()+"\n")
-			return 1
-		}
+	for _, f := range files {
 		var st interpState
-		_, err = interp.Run(string(src), nil, func(ev interp.Event) {
+		_, err := interp.Run(f.src, nil, func(ev interp.Event) {
 			for _, se := range interpToStream(ev, &st) {
 				if se.Type == stream.TypeFail {
 					failed++
@@ -124,7 +128,7 @@ func runInterpMode(dir string, d *formatter.Dispatcher, stdout io.Writer) int {
 			}
 		})
 		if err != nil {
-			_, _ = io.WriteString(stdout, "tape: interpret "+file+": "+err.Error()+"\n")
+			_, _ = io.WriteString(stdout, "tape: interpret "+f.path+": "+err.Error()+"\n")
 			return 1
 		}
 	}

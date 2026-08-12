@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -44,6 +45,11 @@ func TestInterpToStream(t *testing.T) {
 			t.TB().Fatal("t.End() event should emit nothing")
 		}
 
+		// report event is not a transition; emits nothing (covers default return nil)
+		if n := interpToStream(interp.Event{Kind: "report", Name: "ok", Ok: true}, &st); len(n) != 0 {
+			t.TB().Fatal("report event should emit nothing")
+		}
+
 		// final end with Name + Ok emits TypeTestEnd
 		evs = interpToStream(interp.Event{Kind: "end", Name: "scope: x", Ok: true}, &st)
 		if len(evs) != 1 || evs[0].Type != stream.TypeTestEnd {
@@ -65,7 +71,7 @@ func TestFindSupertapeFiles(t *testing.T) {
 		files, err := findSupertapeFiles("testdata/interp", nil)
 		ok := err == nil && len(files) == 2
 		for _, f := range files {
-			ok = ok && strings.HasSuffix(f, "_tape.go")
+			ok = ok && strings.HasSuffix(f.path, "_tape.go") && f.src != ""
 		}
 		t.Ok(ok)
 		t.End()
@@ -75,6 +81,25 @@ func TestFindSupertapeFiles(t *testing.T) {
 func TestFindSupertapeFilesMissingDir(t *testing.T) {
 	Test(t, "interp: findSupertapeFiles errors on missing dir", func(t *T) {
 		_, err := findSupertapeFiles("testdata/does-not-exist", nil)
+		t.Ok(err != nil)
+		t.End()
+	})
+}
+
+func TestFindSupertapeFilesUnreadable(t *testing.T) {
+	Test(t, "interp: findSupertapeFiles errors on unreadable tape file", func(t *T) {
+		dir := t.TB().TempDir()
+		path := dir + "/bad_tape.go"
+		if err := os.WriteFile(path, []byte(`package main
+import . "tapeapi"
+`), 0o644); err != nil {
+			t.TB().Fatal(err)
+		}
+		if err := os.Chmod(path, 0o000); err != nil {
+			t.TB().Fatal(err)
+		}
+		defer os.Chmod(path, 0o644)
+		_, err := findSupertapeFiles(dir, nil)
 		t.Ok(err != nil)
 		t.End()
 	})
@@ -116,6 +141,25 @@ func TestRunInterpModeMissingDir(t *testing.T) {
 		d := formatter.New("tap", &out, 1)
 		code := runInterpMode("testdata/does-not-exist", d, &out)
 		t.Equal(code, 1)
+		t.End()
+	})
+}
+
+func TestRunInterpModeInvalidSource(t *testing.T) {
+	Test(t, "interp: runInterpMode exits 1 on interpret error", func(t *T) {
+		dir := t.TB().TempDir()
+		src := `package main
+
+import . "tapeapi"
+
+func main() { Test("bad", func(t T) { t this is not valid go }) }`
+		if err := os.WriteFile(dir+"/bad_tape.go", []byte(src), 0o644); err != nil {
+			t.TB().Fatal(err)
+		}
+		var out strings.Builder
+		d := formatter.New("tap", &out, 1)
+		code := runInterpMode(dir, d, &out)
+		t.Ok(code == 1 && strings.Contains(out.String(), "tape: interpret"))
 		t.End()
 	})
 }

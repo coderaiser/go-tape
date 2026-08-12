@@ -78,10 +78,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 	flags.BoolVar(&ver, "v", false, "output version information and exit")
 	flags.BoolVar(&ver, "version", false, "output version information and exit")
 
-	noCheckScopes := flags.Bool("no-check-scopes", false, "do not check scope format")
+			noCheckScopes := flags.Bool("no-check-scopes", false, "do not check scope format")
 	noCheckAssertions := flags.Bool("no-check-assertions-count", false, "do not check assertion count")
 	noCheckDuplicates := flags.Bool("no-check-duplicates", false, "do not check for duplicates")
-	mode := flags.String("mode", "interp", "run mode: interp (ixgo) or gotest (go test subprocess)")
+	super := flags.Bool("super", false, "interpret supertape *_tape.go sources directly with ixgo instead of running them through go test")
 	if err := flags.Parse(args); err != nil {
 		if _, werr := fmt.Fprintf(stderr, "tape: %v\n", err); werr != nil {
 			log.Fatal(werr)
