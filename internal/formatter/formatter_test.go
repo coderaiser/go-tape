@@ -64,6 +64,15 @@ func TestNewProgressBar(t *testing.T) {
 	})
 }
 
+func TestNewDebug(t *testing.T) {
+	Test(t, "formatter: debug format constructs", func(t *T) {
+		t.TB().Setenv("CI", "false")
+		var buf strings.Builder
+		t.Ok(New("debug", &buf, 3) != nil)
+		t.End()
+	})
+}
+
 func TestNewUnknownDefaultsToProgressBar(t *testing.T) {
 	Test(t, "formatter: unknown format falls back to progress-bar", func(t *T) {
 		t.TB().Setenv("CI", "false")
@@ -277,6 +286,18 @@ func TestReadModuleName(t *testing.T) {
 func TestReadModuleNameMissing(t *testing.T) {
 	Test(t, "formatter: readModuleName returns empty when no go.mod", func(t *T) {
 		t.Equal(readModuleName(t.TB().TempDir()), "")
+		t.End()
+	})
+}
+
+func TestReadModuleNameWithoutModuleLine(t *testing.T) {
+	Test(t, "formatter: readModuleName returns empty when go.mod has no module line", func(t *T) {
+		dir := t.TB().TempDir()
+		err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("go 1.21\n"), 0644)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(readModuleName(dir), "")
 		t.End()
 	})
 }
