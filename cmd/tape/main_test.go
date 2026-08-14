@@ -117,6 +117,16 @@ func TestHelpOutputContainsTapeCheckDuplicates(t *testing.T) {
 	})
 }
 
+func TestDuplicateAtFormatNoURIPrefix(t *testing.T) {
+	Test(t, "main: duplicate at field uses plain file:line, no file:// prefix", func(t *T) {
+		var out, errOut strings.Builder
+		run([]string{"./testdata/duplicates/..."}, &out, &errOut)
+		plain := regexp.MustCompile(`at .*duplicates_test\.go:\d+ \(first\)`)
+		t.Ok(plain.MatchString(out.String()) && !strings.Contains(out.String(), "file://"))
+		t.End()
+	})
+}
+
 func TestCheckSkippedExitCode(t *testing.T) {
 	Test(t, "main: TAPE_CHECK_SKIPPED=1 returns exit code 5 when skipped > 0", func(t *T) {
 		t.TB().Setenv("TAPE_CHECK_SKIPPED", "1")

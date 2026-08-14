@@ -137,10 +137,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 			for i, d := range dups {
 				first := d.Locations[0]
 				second := d.Locations[1]
-				firstURI := fmt.Sprintf("file://%s:%d:1", first.File, first.Line)
-				secondURI := fmt.Sprintf("file://%s:%d:1", second.File, second.Line)
 				message := fmt.Sprintf("duplicate test name: %q", d.Name)
-				at := fmt.Sprintf("at %s (first)\n    at %s (second)", firstURI, secondURI)
+				at := fmt.Sprintf("at %s:%d (first)\n    at %s:%d (second)",
+					first.File, first.Line, second.File, second.Line)
 				stack := fmt.Sprintf("Error: duplicate test name: %q\n    at findDuplicates (tape)", d.Name)
 				fmt.Fprint(stdout, f.Event(stream.Event{
 					Type:       stream.TypeFail,
