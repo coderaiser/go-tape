@@ -1591,3 +1591,204 @@ func TestIsExcludedDirDoesNotMatchUnrelatedDir(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestCountTestsSkipsExcludedDirs(t *testing.T) {
+	AstTest(t, "ast: CountTests skips dirs in exclude list", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("root.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestRoot(t *testing.T) {
+				Test(t, "root: one", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		fixture("fixture/fixture.go", `
+			package fixture
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestFixture(t *testing.T) {
+				Test(t, "fixture: one", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		n, err := tapeast.CountTests(dir, []string{"fixture"})
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(n, 1)
+		t.End()
+	})
+}
+
+func TestFindDuplicatesSkipsNonGoFiles(t *testing.T) {
+	AstTest(t, "ast: FindDuplicates ignores non-.go files", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("a.go", `
+			package foo
+			import Test "github.com/coderaiser/go-tape"
+			func TestFoo(t *testing.T) {
+				Test(t, "foo: one", func(t *Test.T) { t.End() })
+			}
+		`)
+		fixture("notes.txt", "this is not go source")
+
+		dups, err := tapeast.FindDuplicates(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(dups), 0)
+		t.End()
+	})
+}
+
+func TestFindDuplicatesReadFileError(t *testing.T) {
+	AstTest(t, "ast: FindDuplicates errors when a .go file cannot be read", func(t *AstT) {
+		dir, _ := Fixture(t.TB())
+		if err := os.Symlink("/nonexistent", filepath.Join(dir, "broken.go")); err != nil {
+			t.TB().Fatal(err)
+		}
+		_, err := tapeast.FindDuplicates(dir, nil)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+func TestFindOnlyCallsSkipsBuildIgnoreFile(t *testing.T) {
+	AstTest(t, "ast: FindOnlyCalls skips files with //go:build ignore", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("ignored.go", `//go:build ignore
+
+package foo
+import Test "github.com/coderaiser/go-tape"
+func TestIgnored(t *testing.T) {
+	Test.Only(t, "ignore: me", func(t *Test.T) { t.End() })
+}
+`)
+
+		fixture("ok.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestOk(t *testing.T) {
+				Test.Only(t, "ok: one", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		calls, err := tapeast.FindOnlyCalls(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 1)
+		t.End()
+	})
+}
+
+func TestHasBuildIgnoreUnparseableLong(t *testing.T) {
+	AstTest(t, "ast: unparseable source longer than 512 bytes is handled without error", func(t *AstT) {
+		src := strings.Repeat("not go {{{{\n", 60)
+		t.Ok(!tapeast.HasBuildIgnore(src))
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsMissingDir(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations errors on missing directory", func(t *AstT) {
+		_, err := tapeast.FindTestsWithLocations("nonexistent_dir", nil)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsSkipsExcludedDirs(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations skips dirs in exclude list", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("a_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestA(t *testing.T) {
+				Test.Test(t, "a: one", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		fixture("fixture/fixture_test.go", `
+			package fixture
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestFixture(t *testing.T) {
+				Test.Test(t, "fixture: one", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		calls, err := tapeast.FindTestsWithLocations(dir, []string{"fixture"})
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 1)
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsReadFileError(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations errors when a _test.go file cannot be read", func(t *AstT) {
+		dir, _ := Fixture(t.TB())
+		if err := os.Symlink("/nonexistent", filepath.Join(dir, "broken_test.go")); err != nil {
+			t.TB().Fatal(err)
+		}
+		_, err := tapeast.FindTestsWithLocations(dir, nil)
+		t.Ok(err)
+		t.End()
+	})
+}
+
+func TestFindTestsWithLocationsIgnoresBuildIgnore(t *testing.T) {
+	AstTest(t, "ast: FindTestsWithLocations skips _test.go with //go:build ignore", func(t *AstT) {
+		dir, fixture := Fixture(t.TB())
+
+		fixture("ignored_test.go", `//go:build ignore
+
+package foo
+import (
+	"testing"
+	Test "github.com/coderaiser/go-tape"
+)
+func TestIgnored(t *testing.T) {
+	Test.Test(t, "ignore: me", func(t *Test.T) { t.End() })
+}
+`)
+
+		fixture("a_test.go", `
+			package foo
+			import (
+				"testing"
+				Test "github.com/coderaiser/go-tape"
+			)
+			func TestA(t *testing.T) {
+				Test.Test(t, "a: one", func(t *Test.T) { t.End() })
+			}
+		`)
+
+		calls, err := tapeast.FindTestsWithLocations(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+		t.Equal(len(calls), 1)
+		t.End()
+	})
+}
