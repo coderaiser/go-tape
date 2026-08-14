@@ -320,6 +320,30 @@ func TestFindOnlyCallsSetsFile(t *testing.T) {
 	})
 }
 
+func TestHasBuildIgnoreRealTag(t *testing.T) {
+	AstTest(t, "ast: first line //go:build ignore is a real build tag", func(t *AstT) {
+		src := "//go:build ignore\n\npackage foo\n"
+		t.Ok(tapeast.HasBuildIgnore(src))
+		t.End()
+	})
+}
+
+func TestHasBuildIgnoreStringLiteral(t *testing.T) {
+	AstTest(t, "ast: //go:build ignore inside a string literal is not a build tag", func(t *AstT) {
+		src := "package foo\nvar s = \"//go:build ignore\"\n"
+		t.Ok(!tapeast.HasBuildIgnore(src))
+		t.End()
+	})
+}
+
+func TestHasBuildIgnoreFunctionComment(t *testing.T) {
+	AstTest(t, "ast: //go:build ignore inside a function body comment is not a build tag", func(t *AstT) {
+		src := "package foo\nfunc f() {\n\t// //go:build ignore\n}\n"
+		t.Ok(!tapeast.HasBuildIgnore(src))
+		t.End()
+	})
+}
+
 func TestFindOnlyCallsInSourceInvalid(t *testing.T) {
 	AstTest(t, "ast: FindOnlyCallsInSource errors on invalid Go source", func(t *AstT) {
 		_, err := tapeast.FindOnlyCallsInSource("not go {{{{")

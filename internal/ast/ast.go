@@ -336,9 +336,31 @@ func walkFilesWithPath(dir string, exclude []string, fn func(string, string) err
 	})
 }
 
-// hasBuildIgnore returns true if the source contains //go:build ignore.
+// hasBuildIgnore returns true only if //go:build ignore appears as a real
+// file-level build constraint, not inside a string literal or function body.
 func hasBuildIgnore(src string) bool {
-	return strings.Contains(src, "//go:build ignore")
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "", src, parser.ParseComments)
+	if err != nil {
+		// unparseable — fall back to string search on first 512 bytes
+		if len(src) > 512 {
+			src = src[:512]
+		}
+		return strings.Contains(src, "//go:build ignore")
+	}
+	// Only look at comments before the package declaration position.
+	pkgPos := f.Package
+	for _, cg := range f.Comments {
+		if cg.Pos() >= pkgPos {
+			break
+		}
+		for _, c := range cg.List {
+			if c.Text == "//go:build ignore" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // walkTestFiles is like walkFiles but restricted to _test.go files.
