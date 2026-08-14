@@ -28,6 +28,7 @@ type Event struct {
 	Count  int    `json:"count,omitempty"`
 	Total  int    `json:"total,omitempty"`
 	Failed int    `json:"failed,omitempty"`
+	Skipped bool  `json:"skipped,omitempty"` // true when go test reported this test as skipped
 
 	// fail fields (from TAPE: sentinel)
 	Message    string `json:"message,omitempty"`
@@ -184,11 +185,12 @@ func parse(r io.Reader, total int, ch chan<- Event) {
 			}
 
 			ch <- Event{
-				Type:   TypeTestEnd,
-				Test:   label,
-				Count:  count,
-				Total:  total,
-				Failed: failed,
+				Type:    TypeTestEnd,
+				Test:    label,
+				Count:   count,
+				Total:   total,
+				Failed:  failed,
+				Skipped: ge.Action == "skip",
 			}
 		}
 	}

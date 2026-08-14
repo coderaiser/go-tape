@@ -214,7 +214,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	var lastCount, lastFailed int
+	var lastCount, lastFailed, skippedCount int
 	buildFailed := 0
 	var buildErrors []stream.Event
 	var packageErrors []stream.Event
@@ -223,6 +223,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if e.Type == stream.TypeTestEnd {
 			lastCount = e.Count
 			lastFailed = e.Failed
+			if e.Skipped {
+				skippedCount++
+			}
 		}
 		if e.Type == stream.TypeBuildError {
 			buildFailed++
@@ -235,48 +238,20 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	if *format == "debug" {
-		fmt.Fprintf(stderr, "[tape:debug] lastCount=%d lastFailed=%d total=%d\n",
-			lastCount, lastFailed, total)
-		fmt.Fprintf(stderr, "[tape:debug] skipped computed: %d - %d = %d\n",
-			total, lastCount, total-lastCount)
+		fmt.Fprintf(stderr, "[tape:debug] lastCount=%d lastFailed=%d total=%d skipped=%d\n",
+			lastCount, lastFailed, total, skippedCount)
 	}
 
 	passedCount := lastCount - lastFailed
 
-	// skipped = declared tests that never ran.
-	// If any package failed to build, suppress skipped count.
-	skipped := 0
-	earlyExit := false
-	if buildFailed == 0 {
-		skipped = total - lastCount
-		if skipped < 0 {
-			skipped = 0
-		}
-
-	}
-
-	// When Only calls are present, recompute skipped with full name list.
-	if len(onlyCalls) > 0 {
-		allNames, err := tapeast.FindAllTestNames(dir, exclude)
-		if err == nil {
-			skipped = total - lastCount
-			if skipped < 0 {
-				skipped = 0
-			}
-			_ = allNames
-		}
-	}
+	// skipped count comes from actual go test skip events, not the difference
+	// between the AST scan total and the number of test-end events. The two
+	// counts diverge whenever a package fails to build, has build tags that
+	// exclude files, or is excluded by the caller — those fake the old
+	// `total - lastCount` arithmetic into phantom skips.
+	skipped := skippedCount
 
 	d.End(passedCount, lastFailed, skipped)
-
-	if earlyExit {
-		notRan := total - lastCount
-		_, _ = fmt.Fprintf(stderr, "tape: run ended early — %d of %d tests did not run\n\n", notRan, total)
-		for _, e := range packageErrors {
-			_, _ = fmt.Fprintf(stderr, "  %s:\n%s\n", e.Package, e.Output)
-		}
-		return 1
-	}
 
 	if covOpts.enabled && lastFailed == 0 && buildFailed == 0 {
 		reportPath := ""

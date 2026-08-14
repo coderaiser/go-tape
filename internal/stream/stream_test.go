@@ -339,6 +339,34 @@ func TestStreamSkipDoesNotIncrementFailed(t *testing.T) {
 	})
 }
 
+func TestStreamSkipSetsSkippedFlag(t *testing.T) {
+	Test(t, "stream: skip action sets Skipped true on test-end", func(t *T) {
+		r := strings.NewReader(lines(
+			runLine(outerFn),
+			runLine(subtest),
+			skipLine(subtest),
+			skipLine(outerFn),
+		))
+		events := collect(Parse(r, 1))
+		t.Ok(events[0].Type == TypeTestEnd && events[0].Skipped)
+		t.End()
+	})
+}
+
+func TestStreamPassDoesNotSetSkippedFlag(t *testing.T) {
+	Test(t, "stream: pass action leaves Skipped false on test-end", func(t *T) {
+		r := strings.NewReader(lines(
+			runLine(outerFn),
+			runLine(subtest),
+			passLine(subtest),
+			passLine(outerFn),
+		))
+		events := collect(Parse(r, 1))
+		t.Ok(events[0].Type == TypeTestEnd && !events[0].Skipped)
+		t.End()
+	})
+}
+
 // ---------------------------------------------------------------------------
 // multiple tests — counter accumulation
 // ---------------------------------------------------------------------------

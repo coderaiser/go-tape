@@ -7,8 +7,11 @@ import (
 )
 
 func TestSkippedFixture(t *testing.T) {
-	Test.Skip(t, "skipped: this test is skipped", func(t *T) {
+	Test(t, "skipped: ran", func(t *T) {
 		t.Ok(true)
 		t.End()
+	})
+	t.Run("skipped: skipped", func(sub *testing.T) {
+		sub.Skip()
 	})
 }

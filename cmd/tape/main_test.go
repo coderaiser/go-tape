@@ -137,6 +137,16 @@ func TestCheckSkippedOffExitCode(t *testing.T) {
 	})
 }
 
+func TestSkippedCountMatchesSkipCalls(t *testing.T) {
+	Test(t, "main: skipped count matches number of Skip calls, not total minus passed", func(t *T) {
+		t.TB().Setenv("TAPE_CHECK_SKIPPED", "0")
+		var out, errOut strings.Builder
+		run([]string{"-f", "tap", "./testdata/skipped/..."}, &out, &errOut)
+		t.Match(out.String(), "# skip 1")
+		t.End()
+	})
+}
+
 func TestCoverageFlagExitZero(t *testing.T) {
 	Test(t, "main: -c exits 0 when all covered", func(t *T) {
 		var out, errOut strings.Builder
