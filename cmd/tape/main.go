@@ -81,7 +81,6 @@ func run(args []string, stdout, stderr io.Writer) int {
 			noCheckScopes := flags.Bool("no-check-scopes", false, "do not check scope format")
 	noCheckAssertions := flags.Bool("no-check-assertions-count", false, "do not check assertion count")
 	noCheckDuplicates := flags.Bool("no-check-duplicates", false, "do not check for duplicates")
-	super := flags.Bool("super", false, "interpret supertape *_tape.go sources directly with ixgo instead of running them through go test")
 	if err := flags.Parse(args); err != nil {
 		if _, werr := fmt.Fprintf(stderr, "tape: %v\n", err); werr != nil {
 			log.Fatal(werr)
@@ -120,13 +119,6 @@ func run(args []string, stdout, stderr io.Writer) int {
 		path = flags.Arg(0)
 	}
 	dir := dirFromPattern(path)
-
-	// interp mode interprets supertape *_tape.go sources directly with ixgo —
-	// no go-test subprocess. This is the default.
-	if *mode == "interp" {
-		d := formatter.New(*format, stdout, 0)
-		return runInterpMode(dir, d, stdout)
-	}
 
 	tcfg := tapeconfig.Load(dir)
 	exclude := tcfg.Test.Exclude
