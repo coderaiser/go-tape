@@ -641,6 +641,7 @@ func TestFindOnlyCallsRecursive(t *testing.T) {
 			{
 				Parent: "TestFoo",
 				Name:   "foo: bar",
+				File:   dir + "/sub/foo_test.go",
 			},
 		}
 
@@ -1206,7 +1207,7 @@ func TestFindOnlyCallsSkipsExcludedDirs(t *testing.T) {
 		if err != nil {
 			t.TB().Fatal(err)
 		}
-		t.DeepEqual(calls, []tapeast.OnlyCall{{Parent: "TestRoot", Name: "root: only"}})
+		t.DeepEqual(calls, []tapeast.OnlyCall{{Parent: "TestRoot", Name: "root: only", File: dir + "/root_test.go"}})
 		t.End()
 	})
 }
