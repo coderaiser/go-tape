@@ -2,7 +2,9 @@ package ast_test
 
 import (
 	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	tape "github.com/coderaiser/go-tape"
