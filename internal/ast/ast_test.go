@@ -293,6 +293,33 @@ func TestFindOnlyCallsMissingDir(t *testing.T) {
 	})
 }
 
+func TestFindOnlyCallsSetsFile(t *testing.T) {
+	AstTest(t, "ast: FindOnlyCalls sets absolute File path", func(t *AstT) {
+		dir := t.TB().TempDir()
+
+		writeFile(t.TB(), dir+"/foo_test.go", `
+			package foo
+
+			import Test "github.com/coderaiser/go-tape"
+			import "testing"
+
+			func TestFoo(t *testing.T) {
+				Test.Only(t, "foo: bar", func(t *Test.T) { t.Ok(true); t.End() })
+			}
+		`)
+
+		calls, err := tapeast.FindOnlyCalls(dir, nil)
+		if err != nil {
+			t.TB().Fatal(err)
+		}
+
+		t.DeepEqual(calls, []tapeast.OnlyCall{
+			{Parent: "TestFoo", Name: "foo: bar", File: dir + "/foo_test.go"},
+		})
+		t.End()
+	})
+}
+
 func TestFindOnlyCallsInSourceInvalid(t *testing.T) {
 	AstTest(t, "ast: FindOnlyCallsInSource errors on invalid Go source", func(t *AstT) {
 		_, err := tapeast.FindOnlyCallsInSource("not go {{{{")

@@ -172,6 +172,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 
+	// When Only calls are present, compile only the affected packages instead
+	// of the whole module.
+	if len(onlyCalls) > 0 {
+		pkgDirs := uniquePkgDirs(onlyCalls)
+		path = strings.Join(pkgDirs, " ")
+	}
+
 	goArgs := []string{"test", "-json", "-v", path}
 	if pattern := tapeast.BuildRunPattern(onlyCalls); pattern != "" {
 		goArgs = append(goArgs, "-run", pattern)

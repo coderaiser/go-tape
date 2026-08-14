@@ -16,6 +16,7 @@ import (
 type OnlyCall struct {
 	Parent string // enclosing TestXxx function name
 	Name   string // name string argument
+	File   string // absolute path to the file containing the Only call
 }
 
 // Location is a file:line position for a test-name string literal.
@@ -93,10 +94,13 @@ func FindDuplicates(dir string, exclude []string) ([]Duplicate, error) {
 // FindOnlyCalls returns all tape.Only() calls with enclosing TestXxx name.
 func FindOnlyCalls(dir string, exclude []string) ([]OnlyCall, error) {
 	var all []OnlyCall
-	err := walkFiles(dir, exclude, func(src string) error {
+	err := walkFilesWithPath(dir, exclude, func(path, src string) error {
 		calls, err := FindOnlyCallsInSource(src)
 		if err != nil {
 			return err
+		}
+		for i := range calls {
+			calls[i].File = path // absolute path
 		}
 		all = append(all, calls...)
 		return nil

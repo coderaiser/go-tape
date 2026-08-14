@@ -1,9 +1,11 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	. "github.com/coderaiser/go-tape"
+	tapeast "github.com/coderaiser/go-tape/internal/ast"
 )
 
 func TestPreprocessCFlag(t *testing.T) {
@@ -166,6 +168,64 @@ func TestDirFromPatternSubpackage(t *testing.T) {
 func TestDirFromPatternSubpackageRecursive(t *testing.T) {
 	Test(t, "preprocess: ./internal/foo/... maps to ./internal/foo", func(t *T) {
 		t.Equal(dirFromPattern("./internal/foo/..."), "./internal/foo")
+		t.End()
+	})
+}
+
+// ---------------------------------------------------------------------------
+// uniquePkgDirs
+// ---------------------------------------------------------------------------
+
+func TestUniquePkgDirsSingleDir(t *testing.T) {
+	Test(t, "preprocess: single Only call yields one pkg dir", func(t *T) {
+		dir := t.TB().TempDir()
+		old, _ := os.Getwd()
+		os.Chdir(dir)
+		defer os.Chdir(old)
+		os.MkdirAll(dir+"/pkg", 0o755)
+
+		calls := []tapeast.OnlyCall{
+			{Parent: "TestFoo", Name: "foo: bar", File: dir + "/pkg/foo_test.go"},
+		}
+		dirs := uniquePkgDirs(calls)
+		t.DeepEqual(dirs, []string{"./pkg"})
+		t.End()
+	})
+}
+
+func TestUniquePkgDirsDedupSameFile(t *testing.T) {
+	Test(t, "preprocess: two Only calls in same file dedupe to one pkg dir", func(t *T) {
+		dir := t.TB().TempDir()
+		old, _ := os.Getwd()
+		os.Chdir(dir)
+		defer os.Chdir(old)
+		os.MkdirAll(dir+"/pkg", 0o755)
+
+		calls := []tapeast.OnlyCall{
+			{Parent: "TestFoo", Name: "foo: bar", File: dir + "/pkg/foo_test.go"},
+			{Parent: "TestBaz", Name: "foo: baz", File: dir + "/pkg/foo_test.go"},
+		}
+		dirs := uniquePkgDirs(calls)
+		t.DeepEqual(dirs, []string{"./pkg"})
+		t.End()
+	})
+}
+
+func TestUniquePkgDirsMultipleDirs(t *testing.T) {
+	Test(t, "preprocess: two Only calls in different packages yield two pkg dirs", func(t *T) {
+		dir := t.TB().TempDir()
+		old, _ := os.Getwd()
+		os.Chdir(dir)
+		defer os.Chdir(old)
+		os.MkdirAll(dir+"/pkg/foo", 0o755)
+		os.MkdirAll(dir+"/pkg/bar", 0o755)
+
+		calls := []tapeast.OnlyCall{
+			{Parent: "TestFoo", Name: "foo: bar", File: dir + "/pkg/foo/foo_test.go"},
+			{Parent: "TestBar", Name: "bar: baz", File: dir + "/pkg/bar/bar_test.go"},
+		}
+		dirs := uniquePkgDirs(calls)
+		t.DeepEqual(dirs, []string{"./pkg/foo", "./pkg/bar"})
 		t.End()
 	})
 }

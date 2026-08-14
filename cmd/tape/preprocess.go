@@ -1,6 +1,12 @@
 package main
 
-import "strings"
+import (
+	"os"
+	"path/filepath"
+	"strings"
+
+	tapeast "github.com/coderaiser/go-tape/internal/ast"
+)
 
 type coverageOpts struct {
 	enabled bool
@@ -64,4 +70,26 @@ func dirFromPattern(path string) string {
 		return "."
 	}
 	return dir
+}
+
+// uniquePkgDirs returns one "./rel/path/to/pkg" entry per unique package
+// directory found in the Only calls, relative to the working directory.
+// When all Only calls are in one package, returns a single entry.
+func uniquePkgDirs(calls []tapeast.OnlyCall) []string {
+	seen := make(map[string]bool)
+	var dirs []string
+	wd, _ := os.Getwd()
+	for _, c := range calls {
+		dir := filepath.Dir(c.File)
+		rel, err := filepath.Rel(wd, dir)
+		if err != nil {
+			rel = dir
+		}
+		pkg := "./" + rel
+		if !seen[pkg] {
+			seen[pkg] = true
+			dirs = append(dirs, pkg)
+		}
+	}
+	return dirs
 }
