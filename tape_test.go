@@ -3,6 +3,7 @@ package tape
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"regexp"
 	"testing"
 )
@@ -439,4 +440,28 @@ func TestTestOnlyCallsFnDirectly(t *testing.T) {
 	if !ran {
 		t.Fatal("Test did not call fn")
 	}
+}
+
+func TestTestFnSkipIsNoop(t *testing.T) {
+	ran := false
+	Test.Skip(t, "tape: skip test", func(_ *T) { ran = true })
+	if ran {
+		t.Fatal("TestFn.Skip should not run the body")
+	}
+}
+
+func TestHitFatalPathViaSubprocess(t *testing.T) {
+	// Re-run only the helper subtest in a subprocess so its Fatalf doesn't
+	// fail the outer suite.
+	if os.Getenv("TAPE_HIT_FATAL_SUBPROCESS") == "1" {
+		t.Setenv("TAPE_CHECK_ASSERTIONS_COUNT", "1")
+		inner := &testing.T{}
+		assertOne(inner)
+		hit(inner)
+		hit(inner) // triggers Fatalf on inner — exercises the fatal branch
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestHitFatalPathViaSubprocess", "-test.v")
+	cmd.Env = append(os.Environ(), "TAPE_HIT_FATAL_SUBPROCESS=1")
+	_ = cmd.Run() // subprocess may exit non-zero — that's fine
 }

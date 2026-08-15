@@ -477,3 +477,45 @@ func TestProgressBarBuildError(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestEventPackageError(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: package-error buffered into End output", func(t *tape.T) {
+		f := New(0)
+		f.Event(stream.Event{
+			Type:    stream.TypePackageError,
+			Package: "example.com/bar",
+			Output:  "panic: oops\n",
+		})
+		out := f.End(0, 0, 0)
+		t.Match(out, "package-error")
+		t.End()
+	})
+}
+
+func TestEventFailWithAt(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: fail with At field includes location", func(t *tape.T) {
+		f := New(0)
+		f.Event(stream.Event{
+			Type:     stream.TypeFail,
+			Test:     "scope: x",
+			Count:    1,
+			Operator: "equal",
+			Output:   "",
+			Result:   "a",
+			Expected: "b",
+			At:       "foo_test.go:42",
+		})
+		out := f.End(0, 1, 0)
+		t.Match(out, "foo_test.go:42")
+		t.End()
+	})
+}
+
+func TestTermWidthSyscall(t *testing.T) {
+	tape.Test(t, "formatter-progress-bar: termWidth falls back to 80 without env", func(t *tape.T) {
+		t.TB().Setenv("TAPE_TERM_WIDTH", "")
+		result := termWidth()
+		t.Ok(result >= 80)
+		t.End()
+	})
+}

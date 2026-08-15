@@ -247,3 +247,16 @@ func TestTAPEndTotal(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestTAPPackageError(t *testing.T) {
+	Test(t, "formatter-tap: package-error event", func(t *T) {
+		f := formatter_tap.New()
+		result := f.Event(stream.Event{
+			Type:    stream.TypePackageError,
+			Package: "example.com/foo",
+			Output:  "panic: something\n",
+		})
+		t.Equal(result, "# package-error: example.com/foo\npanic: something\n\n")
+		t.End()
+	})
+}

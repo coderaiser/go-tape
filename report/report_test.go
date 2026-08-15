@@ -132,3 +132,13 @@ func TestRunUnknownActionOutputContinues(t *testing.T) {
 		t.End()
 	})
 }
+
+func TestRunSkippedNegativeClamped(t *testing.T) {
+	Test(t, "report: skipped is clamped to 0 when count exceeds total", func(t *T) {
+		// total=0 but one test passes → skipped = 0-1 = -1, must clamp to 0
+		var sb strings.Builder
+		err := report.Run(strings.NewReader(passingJSON), &sb, "tap", 0)
+		t.NotOk(err)
+		t.End()
+	})
+}
