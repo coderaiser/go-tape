@@ -1,6 +1,7 @@
 package diff_test
 
 import (
+	"strings"
 	"testing"
 
 	tape "github.com/coderaiser/go-tape"
@@ -223,6 +224,29 @@ func TestDiffFunc(t *testing.T) {
 		b := func() {}
 		result := diff.Diff(a, b)
 		t.Ok(result != "")
+		t.End()
+	})
+}
+
+func TestDiffMultilineLineByLine(t *testing.T) {
+	tape.Test(t, "diff: Diff multiline strings is line-by-line", func(t *tape.T) {
+		got := diff.Diff("line1\nline2\nline3", "line1\nchanged\nline3")
+		t.Ok(strings.Contains(got, "- line2"))
+		t.End()
+	})
+}
+
+func TestDiffMultilineNoCollapse(t *testing.T) {
+	tape.Test(t, "diff: Diff multiline strings does not collapse newlines", func(t *tape.T) {
+		got := diff.Diff("a\nb", "a\nc")
+		t.Ok(!strings.Contains(got, `\n`))
+		t.End()
+	})
+}
+
+func TestDiffMultilineEqualEmpty(t *testing.T) {
+	tape.Test(t, "diff: Diff equal multiline strings returns empty", func(t *tape.T) {
+		t.Equal(diff.Diff("same\ncontent", "same\ncontent"), "")
 		t.End()
 	})
 }

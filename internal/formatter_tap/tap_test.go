@@ -60,7 +60,7 @@ func TestTAPFailEventDiffMinusLine(t *testing.T) {
 			Type: stream.TypeFail, Test: "scope: foo", Count: 1,
 			Result: "hello", Expected: "world",
 		})
-		t.Match(result, `- "world"`)
+		t.Match(result, "- world")
 		t.End()
 	})
 }
@@ -72,7 +72,7 @@ func TestTAPFailEventDiffPlusLine(t *testing.T) {
 			Type: stream.TypeFail, Test: "scope: foo", Count: 1,
 			Result: "hello", Expected: "world",
 		})
-		t.Match(result, `+ "hello"`)
+		t.Match(result, "+ hello")
 		t.End()
 	})
 }

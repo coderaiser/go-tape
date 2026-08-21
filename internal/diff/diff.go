@@ -110,7 +110,7 @@ func prettyValue(v reflect.Value, depth int) string {
 		return sb.String()
 
 	case reflect.String:
-		return fmt.Sprintf("%q", v.String())
+		return v.String()
 
 	case reflect.Invalid, reflect.Bool,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
