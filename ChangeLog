@@ -1,3 +1,35 @@
+2026.08.22, v1.4.0
+
+fix:
+- 1071f30 diff: prettyValue strings raw value for line-by-line multiline diffs
+- e0ee8eb tape: duplicate format
+- 302caa1 ast: hasBuildIgnore false positive
+- 2b47bfc tape: count real skip events
+- 61badc2 formatter
+- ace8397 main
+- 059bcf5 formatter-debug: cyclyck deps
+- c0aa509 tape: build
+- 0102a9e tape: preprocess
+- 4fa499c Equal
+- e1df1a2 ast
+
+feature:
+- 68a426f tape: only compiles affected packages
+- f88ae89 skip: improve
+- d84bf5d tape: remove interpreter machinery
+- e3b8cfe interp: improve
+- 0a6ca55 tape --super
+- 0f9adc0 tape: interp
+- a9afa5c ast: improve
+- 459ee21 formatter-debug: improve
+- 6c2d383 handle network error
+- bdc44ab formatter-debug: add
+- 865bb3f t: remove unused
+- 4a95508 rm old
+- c18bc54 formatters: migrate
+- f6d3396 tape: stream: streaming parser emitting typed events
+- 4b70772 tape: Report emits structured TAPE: line
+
 2026.08.09, v1.3.6
 
 fix:
